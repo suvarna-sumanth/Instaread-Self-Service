@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react';
-import type { PlayerConfig } from '@/types';
+import type { PlayerConfig, Placement } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
@@ -10,20 +10,24 @@ import { useToast } from "@/hooks/use-toast";
 
 type IntegrationCodeSectionProps = {
     playerConfig: PlayerConfig;
-    placementSelector: string | null;
+    selectedPlacement: Placement;
     websiteUrl: string;
 };
 
-const IntegrationCodeSection = ({ playerConfig, placementSelector, websiteUrl }: IntegrationCodeSectionProps) => {
+const IntegrationCodeSection = ({ playerConfig, selectedPlacement, websiteUrl }: IntegrationCodeSectionProps) => {
     const { toast } = useToast();
     const [copied, setCopied] = useState(false);
     
     const { design, showAds, enableMetrics, audioFileName } = playerConfig;
+    
+    const selector = selectedPlacement?.selector || 'body';
+    const position = selectedPlacement?.position || 'before';
 
     const codeSnippets = {
         html: `<instaread-player
   data-source="${websiteUrl}"
-  data-placement-selector="${placementSelector || 'body'}"
+  data-placement-selector="${selector}"
+  data-placement-position="${position}"
   data-design="${design}"
   data-show-ads="${showAds}"
   data-enable-metrics="${enableMetrics}"
@@ -36,7 +40,8 @@ const MyComponent = () => {
   return (
     <AudioLeapPlayer
       dataSource="${websiteUrl}"
-      placementSelector="${placementSelector || 'body'}"
+      placementSelector="${selector}"
+      placementPosition="${position}"
       design="${design}"
       showAds={${showAds}}
       enableMetrics={${enableMetrics}}
@@ -48,7 +53,8 @@ const MyComponent = () => {
 // 2. Go to the AudioLeap settings page in your WordPress admin.
 // 3. Enter the following configuration:
 Website URL: ${websiteUrl}
-Placement Selector: ${placementSelector || 'body'}
+Placement Selector: ${selector}
+Placement Position: ${position}
 Design: ${design}
 Show Ads: ${showAds ? 'Enabled' : 'Disabled'}
 Enable Metrics: ${enableMetrics ? 'Enabled' : 'Disabled'}

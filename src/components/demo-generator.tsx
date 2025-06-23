@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { PlayerConfig, AnalysisResult } from '@/types';
+import type { PlayerConfig, AnalysisResult, Placement } from '@/types';
 import Header from '@/components/layout/header';
 import WebsiteAnalysisSection from '@/components/sections/website-analysis-section';
 import PlayerConfigSection from '@/components/sections/player-config-section';
@@ -24,7 +24,7 @@ export default function DemoGenerator() {
   const [cloneHtml, setCloneHtml] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [placementSuggestions, setPlacementSuggestions] = useState<string[]>([]);
-  const [selectedPlacement, setSelectedPlacement] = useState<string | null>(null);
+  const [selectedPlacement, setSelectedPlacement] = useState<Placement>(null);
 
   const handleAnalyze = async (newUrl: string) => {
     if (!newUrl) {
@@ -43,11 +43,9 @@ export default function DemoGenerator() {
     setPlacementSuggestions([]);
     
     try {
-      // We now always generate the clone first.
       const html = await getVisualClone(newUrl);
       setCloneHtml(html);
 
-      // Then, run analysis and placement suggestions in parallel.
       const [analysisResult, suggestions] = await Promise.all([
         analyzeWebsite(newUrl),
         getPlacementSuggestions(html),
@@ -55,15 +53,11 @@ export default function DemoGenerator() {
       
       setAnalysis(analysisResult);
       setPlacementSuggestions(suggestions.suggestedLocations);
-
-      // Auto-select the first suggestion as the default placement.
-      if (suggestions.suggestedLocations?.length > 0) {
-        setSelectedPlacement(suggestions.suggestedLocations[0]);
-      }
+      setSelectedPlacement(null);
 
       toast({
         title: "Analysis & Preview Ready",
-        description: "Website preview is generated and ready for placement.",
+        description: "Click a suggested area in the preview to place the player.",
       });
 
     } catch (error) {
@@ -84,9 +78,9 @@ export default function DemoGenerator() {
         <aside className="lg:col-span-2 flex flex-col gap-8">
           <WebsiteAnalysisSection onAnalyze={handleAnalyze} analysis={analysis} isLoading={isLoading} />
           <PlayerConfigSection config={playerConfig} setConfig={setPlayerConfig} />
-          <IntegrationCodeSection playerConfig={playerConfig} placementSelector={selectedPlacement} websiteUrl={url} />
+          <IntegrationCodeSection playerConfig={playerConfig} selectedPlacement={selectedPlacement} websiteUrl={url} />
         </aside>
-        <main className="lg:col-span-3 lg:sticky top-8 self-start">
+        <main className="lg:col-span-3">
           <LivePreviewSection
             url={url}
             cloneHtml={cloneHtml}

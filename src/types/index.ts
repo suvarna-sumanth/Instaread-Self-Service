@@ -10,6 +10,11 @@ export type PlayerConfig = {
 
 export type AnalysisResult = WebsiteAnalysisOutput | null;
 
+export type Placement = {
+  selector: string;
+  position: 'before' | 'after';
+} | null;
+
 
 export type PlacementSuggestion = {
   selector: string;

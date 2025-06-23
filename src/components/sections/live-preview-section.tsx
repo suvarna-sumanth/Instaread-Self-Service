@@ -1,11 +1,11 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react';
-import type { PlayerConfig } from '@/types';
+import type { PlayerConfig, Placement } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from '@/components/ui/skeleton';
-import { Monitor, Smartphone, Loader2, Info, Pointer } from 'lucide-react';
+import { Monitor, Smartphone, Loader2, Info, Pointer, ArrowUp, ArrowDown } from 'lucide-react';
 import AudioPlayer from '@/components/ui/audio-player';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -16,8 +16,8 @@ type LivePreviewSectionProps = {
   cloneHtml: string | null;
   isLoading: boolean;
   placementSuggestions: string[];
-  selectedPlacement: string | null;
-  onSelectPlacement: (selector: string | null) => void;
+  selectedPlacement: Placement;
+  onSelectPlacement: (placement: Placement) => void;
   playerConfig: PlayerConfig;
 };
 
@@ -25,6 +25,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   const { url, cloneHtml, isLoading, placementSuggestions, selectedPlacement, onSelectPlacement, playerConfig } = props;
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [suggestionPositions, setSuggestionPositions] = useState<Record<string, React.CSSProperties>>({});
+  const [activeSuggestion, setActiveSuggestion] = useState<string | null>(null);
   
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -58,28 +59,34 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       setSuggestionPositions(newPositions);
     };
 
-    // Recalculate positions if the iframe resizes (e.g. switching between desktop/mobile tabs)
-    const handleResize = () => {
-        // A small delay to allow layout to settle
-        setTimeout(calculatePositions, 50);
-    }
+    const handleResize = () => setTimeout(calculatePositions, 50);
     const resizeObserver = new ResizeObserver(handleResize);
-    resizeObserver.observe(iframe);
+    if(iframe) resizeObserver.observe(iframe);
     
-    // Initial calculation on load
-    iframe.onload = calculatePositions;
-    // Also run if already loaded
     if (iframe.contentDocument?.readyState === 'complete') {
         calculatePositions();
+    } else {
+        iframe.onload = calculatePositions;
     }
 
     return () => {
         resizeObserver.disconnect();
-        if (iframe) {
-            iframe.onload = null;
-        }
+        if (iframe) iframe.onload = null;
     }
   }, [cloneHtml, placementSuggestions]);
+  
+  const handlePlacementDecision = (selector: string, position: 'before' | 'after', e: React.MouseEvent) => {
+      e.stopPropagation();
+      onSelectPlacement({ selector, position });
+      setActiveSuggestion(null);
+  };
+  
+  const handleSuggestionClick = (selector: string) => {
+    // Make the clicked suggestion active to show placement options.
+    // Clear any previous selection to hide the player while deciding.
+    setActiveSuggestion(selector);
+    onSelectPlacement(null);
+  }
 
 
   const renderPreviewContent = (isMobile: boolean) => {
@@ -135,19 +142,43 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                         key={selector}
                         style={style}
                         className={cn(
-                            "border-2 border-dashed border-accent cursor-pointer transition-all duration-300 bg-accent/20 hover:bg-accent/40 flex items-center justify-center",
-                            selectedPlacement === selector && "border-solid border-primary bg-primary/30"
+                            "border-2 border-dashed border-accent cursor-pointer transition-all duration-300 bg-accent/20 hover:bg-accent/40 flex items-center justify-center p-2",
+                            (selectedPlacement?.selector === selector || activeSuggestion === selector) && "border-solid border-primary bg-primary/30"
                         )}
-                        onClick={() => onSelectPlacement(selector)}
+                        onClick={() => handleSuggestionClick(selector)}
                     >
-                        <div className="bg-background/80 p-1 rounded-sm text-xs text-foreground">
-                            {selector}
-                        </div>
+                         {activeSuggestion === selector ? (
+                            <div className="flex flex-col md:flex-row gap-2 z-10 bg-background/90 p-2 rounded-md shadow-lg backdrop-blur-sm">
+                                <Button variant="outline" size="sm" onClick={(e) => handlePlacementDecision(selector, 'before', e)}>
+                                    <ArrowUp className="mr-2 h-4 w-4" /> Above
+                                </Button>
+                                <Button variant="outline" size="sm" onClick={(e) => handlePlacementDecision(selector, 'after', e)}>
+                                    <ArrowDown className="mr-2 h-4 w-4" /> Below
+                                </Button>
+                            </div>
+                        ) : selectedPlacement?.selector !== selector && (
+                             <div className="bg-background/80 p-1 rounded-sm text-xs text-foreground">
+                                {selector}
+                            </div>
+                        )}
                     </div>
                 ))}
-                {selectedPlacement && suggestionPositions[selectedPlacement] && (
-                    <div style={{ ...suggestionPositions[selectedPlacement], height: 'auto', zIndex: 10 }} className="transition-all duration-300">
-                       <AudioPlayer config={playerConfig} />
+
+                {selectedPlacement && suggestionPositions[selectedPlacement.selector] && (
+                    <div style={{
+                        ...suggestionPositions[selectedPlacement.selector],
+                        top: selectedPlacement.position === 'before'
+                            ? suggestionPositions[selectedPlacement.selector].top
+                            : `calc(${suggestionPositions[selectedPlacement.selector].top} + ${suggestionPositions[selectedPlacement.selector].height})`,
+                        height: 'auto',
+                        zIndex: 10,
+                        pointerEvents: 'none'
+                        }}
+                        className="transition-all duration-300 absolute"
+                    >
+                        <div style={{pointerEvents: 'auto'}}>
+                            <AudioPlayer config={playerConfig} />
+                        </div>
                     </div>
                 )}
             </>
