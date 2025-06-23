@@ -74,12 +74,6 @@ const websiteAnalysisFlow = ai.defineFlow(
     outputSchema: WebsiteAnalysisOutputSchema, // The flow returns the combined schema.
   },
   async (input) => {
-    if (!process.env.GOOGLE_API_KEY) {
-      throw new Error(
-        'The Google AI API key is missing. Please add GOOGLE_API_KEY to your .env file.'
-      );
-    }
-    
     const htmlContent = await fetchWebsite(input.url);
     if (htmlContent.startsWith('Error')) {
       throw new Error(`Failed to fetch website: ${htmlContent}`);
