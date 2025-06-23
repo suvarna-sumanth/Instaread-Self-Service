@@ -10,7 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { fetchWebsiteTool } from '@/ai/tools/fetch-website';
+import { fetchWebsite } from '@/lib/fetch-website';
 import * as cheerio from 'cheerio';
 
 const GenerateVisualCloneInputSchema = z.object({
@@ -35,7 +35,7 @@ const generateVisualCloneFlow = ai.defineFlow(
     outputSchema: GenerateVisualCloneOutputSchema,
   },
   async (input) => {
-    const htmlContent = await fetchWebsiteTool({ url: input.websiteUrl });
+    const htmlContent = await fetchWebsite(input.websiteUrl);
     if (htmlContent.startsWith('Error')) {
         throw new Error(`Failed to fetch website for cloning: ${htmlContent}`);
     }

@@ -10,7 +10,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { fetchWebsiteTool } from '@/ai/tools/fetch-website';
+import { fetchWebsite } from '@/lib/fetch-website';
 
 const WebsiteAnalysisInputSchema = z.object({
   url: z.string().url().describe('The URL of the website to analyze.'),
@@ -68,7 +68,7 @@ const websiteAnalysisFlow = ai.defineFlow(
     outputSchema: WebsiteAnalysisOutputSchema,
   },
   async (input) => {
-    const htmlContent = await fetchWebsiteTool({ url: input.url });
+    const htmlContent = await fetchWebsite(input.url);
     if (htmlContent.startsWith('Error')) {
       throw new Error(`Failed to fetch website: ${htmlContent}`);
     }
