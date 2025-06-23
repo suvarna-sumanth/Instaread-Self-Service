@@ -1,6 +1,6 @@
 
-require('dotenv/config');
-const { withGenkit } = require('@genkit-ai/next');
+import 'dotenv/config';
+import { withGenkit } from '@genkit-ai/next';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -23,4 +23,4 @@ const nextConfig = {
   },
 };
 
-module.exports = withGenkit(nextConfig);
+export default withGenkit(nextConfig);
