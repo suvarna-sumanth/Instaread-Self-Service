@@ -185,7 +185,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                         title={`Click to select placement for element: ${selector}`}
                     >
                         {activeSuggestion !== selector && !selectedPlacement && (
-                             <div className="pointer-events-none rounded-md bg-background/80 p-2 text-xs font-medium text-foreground shadow-md backdrop-blur-sm">
+                             <div className="pointer-events-none rounded-md bg-background/80 p-2 text-xs font-medium text-foreground shadow-md">
                                 Click to place player here
                             </div>
                         )}
@@ -199,7 +199,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                         position: 'absolute',
                         ...suggestionPositions[activeSuggestion],
                     }}
-                    className="z-20 pointer-events-auto flex flex-col items-center justify-center gap-2 rounded-lg bg-background/80 backdrop-blur-sm p-2 shadow-lg"
+                    className="z-20 pointer-events-auto flex flex-col items-center justify-center gap-2 rounded-lg bg-background/80 p-2 shadow-lg"
                     onClick={(e) => e.stopPropagation()}
                 >
                     <p className='text-xs font-bold text-center'>Place Player</p>
