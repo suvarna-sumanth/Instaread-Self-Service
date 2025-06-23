@@ -9,7 +9,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'zod';
+import {z} from 'genkit';
 import { fetchWebsiteTool } from '@/ai/tools/fetch-website';
 import * as cheerio from 'cheerio';
 
