@@ -70,7 +70,6 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     
     const onLoad = () => {
         calculatePositions();
-        // Recalculate after a short delay to handle late-loading elements
         setTimeout(calculatePositions, 250);
     }
     
@@ -88,7 +87,6 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   }, [cloneHtml, placementSuggestions]);
 
   useEffect(() => {
-    // Automatically select the first suggestion when they load
     if (placementSuggestions.length > 0 && !selectedPlacement) {
       onSelectPlacement({ selector: placementSuggestions[0], position: 'before' });
     }
@@ -98,7 +96,11 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   const handleSuggestionClick = (selector: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setActiveSuggestion(selector);
+    if (activeSuggestion === selector) {
+        setActiveSuggestion(null);
+    } else {
+        setActiveSuggestion(selector);
+    }
   };
   
   const handlePlacementDecision = (position: 'before' | 'after', e: React.MouseEvent) => {
@@ -147,6 +149,28 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       isMobile ? "h-[640px] w-[360px] shadow-2xl border-[10px] border-black rounded-[40px]" : "h-[600px] shadow-lg",
       "transition-all duration-300"
     );
+    
+    const playerWrapperStyle: React.CSSProperties = selectedPlacement ? {
+      position: 'absolute',
+      top: suggestionPositions[selectedPlacement.selector]?.top,
+      left: suggestionPositions[selectedPlacement.selector]?.left,
+      width: suggestionPositions[selectedPlacement.selector]?.width,
+      transform: selectedPlacement.position === 'before' 
+          ? 'translateY(-100%)' 
+          : `translateY(${suggestionPositions[selectedPlacement.selector]?.height})`,
+      zIndex: 10, // Player is the base interactive layer
+    } : {};
+  
+    const placementControlStyle: React.CSSProperties = activeSuggestion ? {
+      position: 'absolute',
+      top: suggestionPositions[activeSuggestion]?.top,
+      left: suggestionPositions[activeSuggestion]?.left,
+      width: suggestionPositions[activeSuggestion]?.width,
+      transform: 'translateY(-100%) translateY(-0.5rem)', // Position above the element
+      zIndex: 30, // Controls on very top
+      pointerEvents: 'auto',
+    } : {};
+
 
     return (
         <div className={previewContainerClasses}>
@@ -157,7 +181,15 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                 className="w-full h-full border-0"
                 sandbox="allow-scripts allow-same-origin"
             />
-             <div className="absolute inset-0 pointer-events-none">
+            {/* RENDER PLAYER */}
+            {selectedPlacement && suggestionPositions[selectedPlacement.selector] && (
+                <div style={playerWrapperStyle} className="p-2 w-full transition-all duration-300 pointer-events-none">
+                    <AudioPlayer config={playerConfig} />
+                </div>
+            )}
+
+            {/* RENDER SUGGESTION OVERLAYS */}
+            <div className="absolute inset-0 z-20"> {/* This container must have a higher z-index than the player */}
                 {Object.entries(suggestionPositions).map(([selector, style]) => {
                     const isSelected = selectedPlacement?.selector === selector;
                     const isActive = activeSuggestion === selector;
@@ -167,46 +199,41 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                             key={selector}
                             style={{ position: 'absolute', ...style }}
                             className={cn(
-                                "transition-all duration-300 pointer-events-auto cursor-pointer",
+                                "transition-all duration-300 pointer-events-auto cursor-pointer group",
                                 "border-2 border-dashed border-accent hover:bg-accent/10",
                                 { "bg-accent/20 border-solid": isActive || isSelected }
                             )}
                             onClick={(e) => handleSuggestionClick(selector, e)}
                         >
-                            {isSelected && (
-                                <div 
-                                    className="absolute w-full"
-                                    style={{
-                                        left: 0,
-                                        top: selectedPlacement?.position === 'after' ? '100%' : '0%',
-                                        transform: selectedPlacement?.position === 'before' ? 'translateY(-100%)' : 'translateY(0)',
-                                    }}
-                                >
-                                     <div className="p-2 animate-in fade-in">
-                                         <AudioPlayer config={playerConfig} />
-                                     </div>
-                                </div>
-                            )}
-                            {isActive && (
-                                <div 
-                                    className="absolute -top-5 left-1/2 -translate-x-1/2 z-10 p-1"
-                                    onClick={(e) => e.stopPropagation()}
-                                >
-                                    <div className="flex items-center gap-1 rounded-full bg-background p-1 shadow-lg">
-                                       <Button variant="ghost" size="sm" className="h-8 px-3" onClick={(e) => handlePlacementDecision('before', e)}>
-                                          <ArrowUp className="mr-2 h-4 w-4" /> Above
-                                       </Button>
-                                       <Separator orientation="vertical" className="h-4" />
-                                       <Button variant="ghost" size="sm" className="h-8 px-3" onClick={(e) => handlePlacementDecision('after', e)}>
-                                          <ArrowDown className="mr-2 h-4 w-4" /> Below
-                                       </Button>
-                                    </div>
+                            {!(isActive || isSelected) && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-accent/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                                    <span className="text-accent font-semibold text-sm bg-background/80 px-2 py-1 rounded-md">Click to place player</span>
                                 </div>
                             )}
                         </div>
                     );
                 })}
             </div>
+
+            {/* RENDER PLACEMENT CONTROLS */}
+            {activeSuggestion && suggestionPositions[activeSuggestion] && (
+                <div 
+                    style={placementControlStyle}
+                    onClick={(e) => e.stopPropagation()} // Prevent click from bubbling up to suggestion box
+                >
+                  <div className='flex justify-center'>
+                    <div className="flex items-center gap-1 rounded-full bg-background p-1 shadow-lg">
+                       <Button variant="ghost" size="sm" className="h-8 px-3" onClick={(e) => handlePlacementDecision('before', e)}>
+                          <ArrowUp className="mr-2 h-4 w-4" /> Above
+                       </Button>
+                       <Separator orientation="vertical" className="h-4" />
+                       <Button variant="ghost" size="sm" className="h-8 px-3" onClick={(e) => handlePlacementDecision('after', e)}>
+                          <ArrowDown className="mr-2 h-4 w-4" /> Below
+                       </Button>
+                    </div>
+                  </div>
+                </div>
+            )}
         </div>
     )
   }
