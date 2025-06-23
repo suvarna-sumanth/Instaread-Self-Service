@@ -11,8 +11,8 @@
  * - DomHeuristicAnalysisOutput - The output type for the domHeuristicAnalysis function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
+import * as cheerio from 'cheerio';
 
 const DomHeuristicAnalysisInputSchema = z.object({
   htmlContent: z
@@ -42,35 +42,46 @@ export type DomHeuristicAnalysisOutput = z.infer<typeof DomHeuristicAnalysisOutp
 export async function domHeuristicAnalysis(
   input: DomHeuristicAnalysisInput
 ): Promise<DomHeuristicAnalysisOutput> {
-  return domHeuristicAnalysisFlow(input);
-}
+  const { htmlContent } = input;
+  const $ = cheerio.load(htmlContent);
 
-const prompt = ai.definePrompt({
-  name: 'domHeuristicAnalysisPrompt',
-  input: {schema: DomHeuristicAnalysisInputSchema},
-  output: {schema: DomHeuristicAnalysisOutputSchema},
-  prompt: `You are an AI assistant specializing in analyzing HTML DOM structures to suggest optimal locations for embedding an audio player.
+  const candidateSelectors = [
+    'h1',
+    'header',
+    '.entry-header',
+    'main',
+    '[role="main"]',
+    'article',
+    '.content',
+    '.post',
+    '.entry-content',
+  ];
 
-  Given the HTML content of a website clone, your task is to identify potential locations where the audio player can be seamlessly integrated into the site's layout and design.
+  const suggestedLocations: string[] = [];
+  const addedElements = new Set<cheerio.Element>();
 
-  Consider factors such as proximity to content, visual hierarchy, and overall site structure.
-
-  Provide a list of CSS selectors that represent these suggested locations, along with a brief explanation of why each location is suitable.
-
-  Here is the HTML content of the website clone:
-  \n{{{htmlContent}}}
-  \n  Please provide your analysis and suggestions:
-  `,
-});
-
-const domHeuristicAnalysisFlow = ai.defineFlow(
-  {
-    name: 'domHeuristicAnalysisFlow',
-    inputSchema: DomHeuristicAnalysisInputSchema,
-    outputSchema: DomHeuristicAnalysisOutputSchema,
-  },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
+  for (const selector of candidateSelectors) {
+    const elements = $(selector);
+    if (elements.length > 0) {
+        const firstElement = elements.get(0);
+        if (firstElement && !addedElements.has(firstElement)) {
+            suggestedLocations.push(selector);
+            addedElements.add(firstElement);
+        }
+    }
+    if (suggestedLocations.length >= 5) {
+        break;
+    }
   }
-);
+
+  // Ensure there's at least one fallback suggestion
+  if (suggestedLocations.length === 0) {
+    suggestedLocations.push('body');
+  }
+
+  return {
+    suggestedLocations: [...new Set(suggestedLocations)], // Remove potential duplicates
+    reasoning:
+      'These locations were identified as primary content areas suitable for placing an audio player based on common HTML structures like headings and main content containers.',
+  };
+}
