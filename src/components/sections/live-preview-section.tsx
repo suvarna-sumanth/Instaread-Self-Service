@@ -44,13 +44,16 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
           const targetElement = doc.querySelector(selector) as HTMLElement;
           if (targetElement) {
               const targetRect = targetElement.getBoundingClientRect();
-              newPositions[selector] = {
-                  position: 'absolute',
-                  top: `${targetRect.top}px`,
-                  left: `${targetRect.left}px`,
-                  width: `${targetRect.width}px`,
-                  height: `${targetRect.height}px`,
-              };
+              // Only create suggestions for elements with a visible area
+              if (targetRect.width > 20 && targetRect.height > 20) {
+                newPositions[selector] = {
+                    position: 'absolute',
+                    top: `${targetRect.top + doc.documentElement.scrollTop}px`,
+                    left: `${targetRect.left + doc.documentElement.scrollLeft}px`,
+                    width: `${targetRect.width}px`,
+                    height: `${targetRect.height}px`,
+                };
+              }
           }
         } catch (e) {
             console.error(`Invalid selector: ${selector}`, e);
@@ -63,6 +66,10 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     const resizeObserver = new ResizeObserver(handleResize);
     if(iframe) resizeObserver.observe(iframe);
     
+    // Add event listener for iframe's internal scroll
+    const iframeDoc = iframe.contentDocument;
+    iframeDoc?.addEventListener('scroll', handleResize);
+    
     if (iframe.contentDocument?.readyState === 'complete') {
         calculatePositions();
     } else {
@@ -71,6 +78,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
 
     return () => {
         resizeObserver.disconnect();
+        iframeDoc?.removeEventListener('scroll', handleResize);
         if (iframe) iframe.onload = null;
     }
   }, [cloneHtml, placementSuggestions]);
@@ -82,9 +90,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   };
   
   const handleSuggestionClick = (selector: string) => {
-    // Make the clicked suggestion active to show placement options.
-    // Clear any previous selection to hide the player while deciding.
-    setActiveSuggestion(selector);
+    setActiveSuggestion(selector === activeSuggestion ? null : selector);
     onSelectPlacement(null);
   }
 
@@ -140,25 +146,25 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                 {Object.entries(suggestionPositions).map(([selector, style]) => (
                     <div
                         key={selector}
-                        style={{...style, zIndex: 50}}
+                        style={{...style, zIndex: 999}}
                         className={cn(
-                            "border-2 border-dashed border-accent cursor-pointer transition-all duration-300 bg-accent/20 hover:bg-accent/40",
-                            "flex flex-col items-center justify-between p-2",
-                            (selectedPlacement?.selector === selector || activeSuggestion === selector) && "border-solid border-primary bg-primary/30"
+                            "border-2 border-dashed border-accent cursor-pointer transition-all duration-300 hover:bg-accent/20",
+                            "flex flex-col items-center justify-center p-2 gap-4",
+                            (selectedPlacement?.selector === selector || activeSuggestion === selector) ? "bg-accent/20 border-solid" : "bg-transparent"
                         )}
                         onClick={() => handleSuggestionClick(selector)}
                     >
                          {activeSuggestion === selector ? (
-                            <>
+                            <div className='flex flex-col md:flex-row gap-2 bg-background/80 p-2 rounded-lg'>
                                 <Button variant="secondary" size="sm" onClick={(e) => handlePlacementDecision(selector, 'before', e)} className="shadow-lg">
                                     <ArrowUp className="mr-2 h-4 w-4" /> Place Above
                                 </Button>
                                 <Button variant="secondary" size="sm" onClick={(e) => handlePlacementDecision(selector, 'after', e)} className="shadow-lg">
                                     <ArrowDown className="mr-2 h-4 w-4" /> Place Below
                                 </Button>
-                            </>
+                            </div>
                         ) : selectedPlacement?.selector !== selector && (
-                             <div className="m-auto bg-background/80 p-2 rounded-md text-xs text-foreground font-medium shadow-md">
+                             <div className="m-auto bg-background/80 p-2 rounded-md text-xs text-foreground font-medium shadow-md opacity-0 group-hover:opacity-100 transition-opacity">
                                 Click to place player here
                             </div>
                         )}
@@ -167,17 +173,19 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
 
                 {selectedPlacement && suggestionPositions[selectedPlacement.selector] && (
                     <div style={{
-                        ...suggestionPositions[selectedPlacement.selector],
+                        position: 'absolute',
+                        width: suggestionPositions[selectedPlacement.selector].width,
+                        left: suggestionPositions[selectedPlacement.selector].left,
                         top: selectedPlacement.position === 'before'
                             ? suggestionPositions[selectedPlacement.selector].top
                             : `calc(${suggestionPositions[selectedPlacement.selector].top} + ${suggestionPositions[selectedPlacement.selector].height})`,
                         height: 'auto',
-                        zIndex: 30,
+                        zIndex: 998,
                         pointerEvents: 'none'
                         }}
-                        className="transition-all duration-300 absolute"
+                        className="transition-all duration-300"
                     >
-                        <div style={{pointerEvents: 'auto'}}>
+                        <div style={{pointerEvents: 'auto'}} className="p-2">
                             <AudioPlayer config={playerConfig} />
                         </div>
                     </div>
@@ -197,7 +205,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                     Visually place the player on the website clone.
                 </CardDescription>
             </div>
-            {placementSuggestions.length > 0 && <Button variant="outline" size="sm" onClick={() => onSelectPlacement(null)}><Pointer className="mr-2 h-4 w-4"/>Clear Placement</Button>}
+            {url && <Button variant="outline" size="sm" onClick={() => onSelectPlacement(null)}><Pointer className="mr-2 h-4 w-4"/>Clear Placement</Button>}
         </div>
       </CardHeader>
       <CardContent>
