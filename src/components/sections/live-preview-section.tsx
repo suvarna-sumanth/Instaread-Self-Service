@@ -30,7 +30,6 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   const [activeSuggestion, setActiveSuggestion] = useState<string | null>(null);
   const [playerContainer, setPlayerContainer] = useState<HTMLElement | null>(null);
   
-  // This effect handles redrawing suggestion boxes and injecting the player
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
@@ -65,8 +64,9 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
         const doc = iframe.contentDocument;
         if (!doc?.body) return;
         
-        // 1. Reset previous state
-        playerContainer?.remove();
+        // 1. Reset previous state by finding and removing any existing player
+        const existingPlayer = doc.querySelector('.audioleap-player-container');
+        existingPlayer?.remove();
         setPlayerContainer(null);
         
         // 2. Inject a portal container for the player if a placement is selected
@@ -92,23 +92,19 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
         
         // 3. (Re)calculate suggestion box positions after DOM change
         calculatePositions();
-        setTimeout(calculatePositions, 200); // Recalculate after render
+        setTimeout(calculatePositions, 50); // Recalculate after DOM settles
     }
 
 
     const onLoad = () => {
-        // Copy styles from main document to iframe to style the React components
         const doc = iframe.contentDocument;
         if (doc) {
-            const styleSheets = Array.from(document.styleSheets);
             const styleElement = doc.createElement('style');
-            styleElement.textContent = styleSheets
+            styleElement.textContent = Array.from(document.styleSheets)
                 .map(ss => {
                     try {
                         return Array.from(ss.cssRules).map(rule => rule.cssText).join('\n');
-                    } catch (e) {
-                        return ''; // Avoid cross-origin issues
-                    }
+                    } catch (e) { return ''; }
                 })
                 .join('\n');
             doc.head.appendChild(styleElement);
@@ -116,7 +112,6 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
         setupPlayerAndSuggestions();
     }
     
-    // If the iframe is already loaded, run setup. Otherwise, wait for onload.
     if (iframe.contentDocument?.readyState === 'complete') {
       onLoad();
     } else {
@@ -131,21 +126,19 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     return () => {
         resizeObserver.disconnect();
         iframe.contentDocument?.removeEventListener('scroll', calculatePositions);
-        playerContainer?.remove();
+        if (iframe?.contentDocument) {
+            const existingPlayer = iframe.contentDocument.querySelector('.audioleap-player-container');
+            existingPlayer?.remove();
+        }
         if (iframe) iframe.onload = null;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cloneHtml, selectedPlacement]);
+  }, [cloneHtml, selectedPlacement, placementSuggestions]);
 
-  const handleSuggestionClick = (selector: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setActiveSuggestion(selector === activeSuggestion ? null : selector);
+  const handleSuggestionClick = (selector: string) => {
+    setActiveSuggestion(prev => (prev === selector ? null : selector));
   };
   
-  const handlePlacementDecision = (position: 'before' | 'after', e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation(); 
+  const handlePlacementDecision = (position: 'before' | 'after') => {
       if (!activeSuggestion) return;
       onSelectPlacement({ selector: activeSuggestion, position });
       setActiveSuggestion(null);
@@ -188,15 +181,6 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       isMobile ? "h-[640px] w-[360px] shadow-2xl border-[10px] border-black rounded-[40px]" : "h-[600px] shadow-lg",
       "transition-all duration-300"
     );
-    
-    const placementControlStyle: React.CSSProperties = activeSuggestion ? {
-      position: 'absolute',
-      ...suggestionPositions[activeSuggestion],
-      transform: 'translateY(-100%) translateY(-0.5rem)', // Position above the element
-      zIndex: 30,
-      pointerEvents: 'auto',
-    } : {};
-
 
     return (
         <div className={previewContainerClasses}>
@@ -207,10 +191,8 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                 className="w-full h-full border-0"
                 sandbox="allow-scripts allow-same-origin"
             />
-            {/* The actual player is rendered into the iframe via a portal */}
-
-            {/* RENDER SUGGESTION OVERLAYS */}
-            <div className="absolute inset-0 z-20 pointer-events-none">
+            
+            <div className="absolute inset-0 z-20">
                 {Object.entries(suggestionPositions).map(([selector, style]) => {
                     const isSelected = selectedPlacement?.selector === selector;
                     const isActive = activeSuggestion === selector;
@@ -220,41 +202,38 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                             key={selector}
                             style={{ position: 'absolute', ...style }}
                             className={cn(
-                                "transition-all duration-300 pointer-events-auto cursor-pointer group",
+                                "transition-all duration-300 cursor-pointer group",
                                 "border-2 border-dashed border-accent hover:bg-accent/10",
                                 { "bg-accent/20 border-solid": isActive || isSelected }
                             )}
-                            onClick={(e) => handleSuggestionClick(selector, e)}
+                            onClick={() => handleSuggestionClick(selector)}
                         >
+                            {isActive && (
+                                <div
+                                    className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full py-2 z-30 flex justify-center"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <div className="flex items-center gap-1 rounded-full bg-background p-1 shadow-lg border">
+                                       <Button variant="ghost" size="sm" className="h-8 px-3" onClick={() => handlePlacementDecision('before')}>
+                                          <ArrowUp className="mr-2 h-4 w-4" /> Above
+                                       </Button>
+                                       <Separator orientation="vertical" className="h-4" />
+                                       <Button variant="ghost" size="sm" className="h-8 px-3" onClick={() => handlePlacementDecision('after')}>
+                                          <ArrowDown className="mr-2 h-4 w-4" /> Below
+                                       </Button>
+                                    </div>
+                                </div>
+                            )}
+                             
                              {!(isActive || isSelected) && (
-                                <div className="absolute inset-0 flex items-center justify-center bg-accent/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                                    <span className="text-accent font-semibold text-sm bg-background/80 px-2 py-1 rounded-md">Click to place player</span>
+                                <div className="absolute inset-0 flex items-center justify-center bg-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                                    <span className="text-accent font-semibold text-sm bg-background/80 px-2 py-1 rounded-md">Click to select area</span>
                                 </div>
                             )}
                         </div>
                     );
                 })}
             </div>
-
-            {/* RENDER PLACEMENT CONTROLS */}
-            {activeSuggestion && suggestionPositions[activeSuggestion] && (
-                <div 
-                    style={placementControlStyle}
-                    onClick={(e) => e.stopPropagation()}
-                >
-                  <div className='flex justify-center'>
-                    <div className="flex items-center gap-1 rounded-full bg-background p-1 shadow-lg border">
-                       <Button variant="ghost" size="sm" className="h-8 px-3" onClick={(e) => handlePlacementDecision('before', e)}>
-                          <ArrowUp className="mr-2 h-4 w-4" /> Above
-                       </Button>
-                       <Separator orientation="vertical" className="h-4" />
-                       <Button variant="ghost" size="sm" className="h-8 px-3" onClick={(e) => handlePlacementDecision('after', e)}>
-                          <ArrowDown className="mr-2 h-4 w-4" /> Below
-                       </Button>
-                    </div>
-                  </div>
-                </div>
-            )}
         </div>
     )
   }
