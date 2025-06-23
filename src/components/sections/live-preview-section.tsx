@@ -44,7 +44,6 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
           const targetElement = doc.querySelector(selector) as HTMLElement;
           if (targetElement) {
               const targetRect = targetElement.getBoundingClientRect();
-              // Only include suggestions for visible elements of a reasonable size
               if (targetRect.width > 20 && targetRect.height > 10 && targetRect.top >= 0) {
                 newPositions[selector] = {
                     top: `${targetRect.top + doc.documentElement.scrollTop}px`,
@@ -68,10 +67,16 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     const iframeDoc = iframe.contentDocument;
     iframeDoc?.addEventListener('scroll', handleResize);
     
-    if (iframe.contentDocument?.readyState === 'complete') {
+    const onLoad = () => {
         calculatePositions();
+        // Recalculate after a short delay to handle late-loading elements
+        setTimeout(calculatePositions, 250);
+    }
+    
+    if (iframe.contentDocument?.readyState === 'complete') {
+        onLoad();
     } else {
-        iframe.onload = calculatePositions;
+        iframe.onload = onLoad;
     }
 
     return () => {
@@ -81,7 +86,8 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     }
   }, [cloneHtml, placementSuggestions]);
   
-  const handleSuggestionClick = (selector: string) => {
+  const handleSuggestionClick = (selector: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     setActiveSuggestion(current => (current === selector ? null : selector));
   };
   
@@ -91,6 +97,31 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       
       onSelectPlacement({ selector: activeSuggestion, position });
       setActiveSuggestion(null);
+  };
+  
+  const renderPlayer = () => {
+    if (!selectedPlacement || !suggestionPositions[selectedPlacement.selector]) {
+        return null;
+    }
+
+    const targetPos = suggestionPositions[selectedPlacement.selector];
+    const playerStyle: React.CSSProperties = {
+        position: 'absolute',
+        width: targetPos.width,
+        left: targetPos.left,
+        top: selectedPlacement.position === 'before' ? targetPos.top : `calc(${targetPos.top} + ${targetPos.height})`,
+        transform: selectedPlacement.position === 'before' ? 'translateY(-100%)' : 'translateY(0)',
+        zIndex: 40,
+        pointerEvents: 'none',
+    };
+
+    return (
+        <div style={playerStyle} className="transition-transform duration-300 animate-in fade-in">
+            <div style={{ pointerEvents: 'auto' }} className="p-2">
+                <AudioPlayer config={playerConfig} />
+            </div>
+        </div>
+    );
   };
 
   const renderPreviewContent = (isMobile: boolean) => {
@@ -150,54 +181,39 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                             "border-2 border-dashed border-accent hover:bg-accent/10",
                             { "bg-accent/20 border-solid": activeSuggestion === selector }
                         )}
-                        onClick={() => handleSuggestionClick(selector)}
+                        onClick={(e) => handleSuggestionClick(selector, e)}
                         title={`Click to select placement for element: ${selector}`}
                     >
                         {activeSuggestion !== selector && !selectedPlacement && (
-                             <div className="pointer-events-none rounded-md bg-background/80 p-2 text-xs font-medium text-foreground shadow-md">
+                             <div className="pointer-events-none rounded-md bg-background/80 p-2 text-xs font-medium text-foreground shadow-md backdrop-blur-sm">
                                 Click to place player here
                             </div>
                         )}
                     </div>
                 ))}
+            </div>
 
-                {activeSuggestion && suggestionPositions[activeSuggestion] && (
-                    <div
-                        style={{
-                            position: 'absolute',
-                            ...suggestionPositions[activeSuggestion],
-                        }}
-                        className="z-20 pointer-events-auto flex flex-col items-center justify-center gap-2 rounded-lg bg-background/80 backdrop-blur-sm p-2 shadow-lg"
-                    >
-                        <p className='text-xs font-bold text-center'>Place Player</p>
-                        <Button variant="secondary" size="sm" className="w-full" onClick={(e) => handlePlacementDecision('before', e)}>
-                           <ArrowUp className="mr-2 h-4 w-4" /> Above
-                       </Button>
-                       <Button variant="secondary" size="sm" className="w-full" onClick={(e) => handlePlacementDecision('after', e)}>
-                           <ArrowDown className="mr-2 h-4 w-4" /> Below
-                       </Button>
-                   </div>
-                )}
-
-                {selectedPlacement && suggestionPositions[selectedPlacement.selector] && (
-                    <div style={{
+            {activeSuggestion && suggestionPositions[activeSuggestion] && (
+                <div
+                    style={{
                         position: 'absolute',
-                        width: suggestionPositions[selectedPlacement.selector].width,
-                        left: suggestionPositions[selectedPlacement.selector].left,
-                        top: selectedPlacement.position === 'before'
-                            ? `calc(${suggestionPositions[selectedPlacement.selector].top} - 80px)`
-                            : `calc(${suggestionPositions[selectedPlacement.selector].top} + ${suggestionPositions[selectedPlacement.selector].height})`,
-                        height: 'auto',
-                        zIndex: 30,
-                        pointerEvents: 'none'
-                        }}
-                        className="transition-all duration-300 animate-in fade-in"
-                    >
-                        <div style={{pointerEvents: 'auto'}} className="p-2">
-                            <AudioPlayer config={playerConfig} />
-                        </div>
-                    </div>
-                )}
+                        ...suggestionPositions[activeSuggestion],
+                    }}
+                    className="z-20 pointer-events-auto flex flex-col items-center justify-center gap-2 rounded-lg bg-background/80 backdrop-blur-sm p-2 shadow-lg"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <p className='text-xs font-bold text-center'>Place Player</p>
+                    <Button variant="secondary" size="sm" className="w-full" onClick={(e) => handlePlacementDecision('before', e)}>
+                        <ArrowUp className="mr-2 h-4 w-4" /> Above
+                    </Button>
+                    <Button variant="secondary" size="sm" className="w-full" onClick={(e) => handlePlacementDecision('after', e)}>
+                        <ArrowDown className="mr-2 h-4 w-4" /> Below
+                    </Button>
+                </div>
+            )}
+            
+            <div className="absolute inset-0 z-30 pointer-events-none">
+              {renderPlayer()}
             </div>
         </div>
     )
