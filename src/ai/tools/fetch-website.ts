@@ -17,9 +17,14 @@ export const fetchWebsiteTool = ai.defineTool(
     },
     async (input) => {
         try {
-            const response = await fetch(input.url);
+            const response = await fetch(input.url, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                },
+            });
+
             if (!response.ok) {
-                return `Error fetching URL: ${response.statusText}`;
+                return `Error fetching URL: ${response.status} ${response.statusText}`;
             }
             const text = await response.text();
             return text;

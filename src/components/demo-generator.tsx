@@ -7,7 +7,7 @@ import WebsiteAnalysisSection from '@/components/sections/website-analysis-secti
 import PlayerConfigSection from '@/components/sections/player-config-section';
 import IntegrationCodeSection from '@/components/sections/integration-code-section';
 import LivePreviewSection from '@/components/sections/live-preview-section';
-import { getVisualClone, getPlacementSuggestions } from '@/lib/actions';
+import { getVisualClone, getPlacementSuggestions, analyzeWebsite } from '@/lib/actions';
 import { useToast } from "@/hooks/use-toast";
 
 export default function DemoGenerator() {
@@ -37,25 +37,29 @@ export default function DemoGenerator() {
         return;
     };
     setIsLoading(true);
+    setAnalysis(null);
     setUrl(newUrl);
     setCloneHtml(null);
     setIframeError(false);
     setSelectedPlacement(null);
     setPlacementSuggestions([]);
     
-    // Simulate analysis
-    setTimeout(() => {
-      setAnalysis({
-        colors: { primary: '#29ABE2', background: '#F0F0F0', text: '#333333' },
-        fonts: { headline: 'Poppins', body: 'Inter' },
-        techStack: ['React', 'Next.js', 'Tailwind CSS'],
-      });
-      setIsLoading(false);
+    try {
+      const analysisResult = await analyzeWebsite(newUrl);
+      setAnalysis(analysisResult);
       toast({
         title: "Analysis Complete",
         description: "Website styles and tech stack identified.",
-      })
-    }, 1500);
+      });
+    } catch (error) {
+       toast({
+        title: "Analysis Failed",
+        description: `Could not analyze the website. Attempting to load preview directly. ${error instanceof Error ? error.message : ''}`,
+        variant: "destructive",
+      });
+    } finally {
+        setIsLoading(false);
+    }
   };
   
   const handleIframeError = async () => {
