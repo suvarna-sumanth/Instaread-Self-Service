@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import {withGenkit} from '@genkit-ai/next';
 import type {NextConfig} from 'next';
 
