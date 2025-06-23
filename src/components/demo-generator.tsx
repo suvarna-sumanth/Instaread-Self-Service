@@ -65,9 +65,13 @@ export default function DemoGenerator() {
       });
 
     } catch (error) {
-       let description = `Could not generate a preview for the website. It may be protected.`;
+       let description = "An unexpected error occurred.";
        if (error instanceof Error) {
-         description += ` ${error.message}`;
+         if (error.message.includes('NOT_FOUND') || error.message.includes('PERMISSION_DENIED')) {
+            description = 'The AI model could not be accessed. Please ensure your API key in the .env file is correct and that the associated Google Cloud project has both billing and the Vertex AI API enabled.';
+         } else {
+            description = `Could not generate a preview for the website. It may be protected. ${error.message}`;
+         }
        }
        toast({
         title: "Analysis Failed",
