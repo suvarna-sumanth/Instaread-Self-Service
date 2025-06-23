@@ -11,33 +11,16 @@
  * - DomHeuristicAnalysisOutput - The output type for the domHeuristicAnalysis function.
  */
 
-import {z} from 'zod';
 import * as cheerio from 'cheerio';
 
-const DomHeuristicAnalysisInputSchema = z.object({
-  htmlContent: z
-    .string()
-    .describe(
-      "The HTML content of the website clone."
-    ),
-});
+export type DomHeuristicAnalysisInput = {
+  htmlContent: string;
+};
 
-export type DomHeuristicAnalysisInput = z.infer<typeof DomHeuristicAnalysisInputSchema>;
-
-const DomHeuristicAnalysisOutputSchema = z.object({
-  suggestedLocations: z
-    .array(z.string())
-    .describe(
-      'A list of CSS selectors representing suggested locations within the DOM where the audio player could be placed.'
-    ),
-  reasoning: z
-    .string()
-    .describe(
-      'Explanation of why these locations are suitable based on DOM analysis.'
-    ),
-});
-
-export type DomHeuristicAnalysisOutput = z.infer<typeof DomHeuristicAnalysisOutputSchema>;
+export type DomHeuristicAnalysisOutput = {
+  suggestedLocations: string[];
+  reasoning: string;
+};
 
 export async function domHeuristicAnalysis(
   input: DomHeuristicAnalysisInput
