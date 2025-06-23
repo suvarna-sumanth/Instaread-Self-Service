@@ -10,7 +10,6 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { googleAI } from '@genkit-ai/googleai';
 import { z } from 'genkit';
 import { fetchWebsite } from '@/lib/fetch-website';
 
@@ -46,7 +45,7 @@ export async function analyzeWebsite(input: WebsiteAnalysisInput): Promise<Websi
 
 const prompt = ai.definePrompt({
   name: 'websiteAnalysisPrompt',
-  model: googleAI.model('gemini-pro'),
+  model: 'gemini-pro',
   input: { schema: z.object({ htmlContent: z.string() }) },
   output: { schema: WebsiteAnalysisLLMOutputSchema }, // The prompt now uses the LLM-specific schema.
   prompt: `You are an expert web developer and designer. Analyze the provided HTML and any inline/linked CSS to identify the website's design system.
