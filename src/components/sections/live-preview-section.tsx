@@ -140,25 +140,26 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                 {Object.entries(suggestionPositions).map(([selector, style]) => (
                     <div
                         key={selector}
-                        style={{...style, zIndex: 40}}
+                        style={{...style, zIndex: 50}}
                         className={cn(
-                            "border-2 border-dashed border-accent cursor-pointer transition-all duration-300 bg-accent/20 hover:bg-accent/40 flex items-center justify-center p-2",
+                            "border-2 border-dashed border-accent cursor-pointer transition-all duration-300 bg-accent/20 hover:bg-accent/40",
+                            "flex flex-col items-center justify-between p-2",
                             (selectedPlacement?.selector === selector || activeSuggestion === selector) && "border-solid border-primary bg-primary/30"
                         )}
                         onClick={() => handleSuggestionClick(selector)}
                     >
                          {activeSuggestion === selector ? (
-                            <div className="flex flex-col md:flex-row gap-2 z-50 bg-background/90 p-2 rounded-md shadow-lg backdrop-blur-sm">
-                                <Button variant="outline" size="sm" onClick={(e) => handlePlacementDecision(selector, 'before', e)}>
-                                    <ArrowUp className="mr-2 h-4 w-4" /> Above
+                            <>
+                                <Button variant="secondary" size="sm" onClick={(e) => handlePlacementDecision(selector, 'before', e)} className="shadow-lg">
+                                    <ArrowUp className="mr-2 h-4 w-4" /> Place Above
                                 </Button>
-                                <Button variant="outline" size="sm" onClick={(e) => handlePlacementDecision(selector, 'after', e)}>
-                                    <ArrowDown className="mr-2 h-4 w-4" /> Below
+                                <Button variant="secondary" size="sm" onClick={(e) => handlePlacementDecision(selector, 'after', e)} className="shadow-lg">
+                                    <ArrowDown className="mr-2 h-4 w-4" /> Place Below
                                 </Button>
-                            </div>
+                            </>
                         ) : selectedPlacement?.selector !== selector && (
-                             <div className="bg-background/80 p-1 rounded-sm text-xs text-foreground">
-                                {selector}
+                             <div className="m-auto bg-background/80 p-2 rounded-md text-xs text-foreground font-medium shadow-md">
+                                Click to place player here
                             </div>
                         )}
                     </div>
