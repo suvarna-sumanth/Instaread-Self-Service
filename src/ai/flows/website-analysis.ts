@@ -40,12 +40,17 @@ export type WebsiteAnalysisOutput = z.infer<typeof WebsiteAnalysisOutputSchema>;
 
 
 export async function analyzeWebsite(input: WebsiteAnalysisInput): Promise<WebsiteAnalysisOutput> {
+  if (!process.env.GOOGLE_API_KEY) {
+    throw new Error(
+      'GOOGLE_API_KEY is not set. Please add it to your .env file.'
+    );
+  }
   return websiteAnalysisFlow(input);
 }
 
 const prompt = ai.definePrompt({
   name: 'websiteAnalysisPrompt',
-  model: 'googleai/gemini-1.5-pro-latest',
+  model: 'googleai/gemini-pro',
   input: { schema: z.object({ htmlContent: z.string() }) },
   output: { schema: WebsiteAnalysisLLMOutputSchema }, // The prompt now uses the LLM-specific schema.
   prompt: `You are an expert web developer and designer. Analyze the provided HTML and any inline/linked CSS to identify the website's design system.
