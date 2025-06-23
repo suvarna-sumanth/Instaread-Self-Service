@@ -22,4 +22,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withGenkit(nextConfig, { dev: { tsx: ['src/ai/dev.ts'] } });
+export default withGenkit(nextConfig);
