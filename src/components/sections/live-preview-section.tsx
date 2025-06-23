@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import type { PlayerConfig, Placement } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,13 +28,12 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [suggestionPositions, setSuggestionPositions] = useState<Record<string, React.CSSProperties>>({});
   const [activeSuggestion, setActiveSuggestion] = useState<string | null>(null);
+  const [playerContainer, setPlayerContainer] = useState<HTMLElement | null>(null);
   
+  // This effect handles redrawing suggestion boxes and injecting the player
   useEffect(() => {
     const iframe = iframeRef.current;
-    if (!iframe || !cloneHtml || placementSuggestions.length === 0) {
-      setSuggestionPositions({});
-      return;
-    };
+    if (!iframe) return;
 
     const calculatePositions = () => {
       const doc = iframe.contentDocument;
@@ -44,8 +44,8 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
         try {
           const targetElement = doc.querySelector(selector) as HTMLElement;
           if (targetElement) {
-              const targetRect = targetElement.getBoundingClientRect();
-              if (targetRect.width > 20 && targetRect.height > 10 && targetRect.top >= 0) {
+            const targetRect = targetElement.getBoundingClientRect();
+             if (targetRect.width > 20 && targetRect.height > 10 && targetRect.top >= 0) {
                 newPositions[selector] = {
                     top: `${targetRect.top + doc.documentElement.scrollTop}px`,
                     left: `${targetRect.left + doc.documentElement.scrollLeft}px`,
@@ -55,59 +55,98 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
               }
           }
         } catch (e) {
-            console.error(`Invalid selector: ${selector}`, e);
+          console.error(`Invalid selector: ${selector}`, e);
         }
       }
       setSuggestionPositions(newPositions);
     };
 
-    const handleResize = () => setTimeout(calculatePositions, 50);
-    const resizeObserver = new ResizeObserver(handleResize);
+    const setupPlayerAndSuggestions = () => {
+        const doc = iframe.contentDocument;
+        if (!doc?.body) return;
+        
+        // 1. Reset previous state
+        playerContainer?.remove();
+        setPlayerContainer(null);
+        
+        // 2. Inject a portal container for the player if a placement is selected
+        if (selectedPlacement) {
+            try {
+                const targetEl = doc.querySelector(selectedPlacement.selector) as HTMLElement;
+                if (targetEl) {
+                    const portalRoot = doc.createElement('div');
+                    portalRoot.className = 'audioleap-player-container';
+                    
+                    if (selectedPlacement.position === 'before') {
+                        targetEl.parentNode?.insertBefore(portalRoot, targetEl);
+                    } else {
+                        targetEl.parentNode?.insertBefore(portalRoot, targetEl.nextSibling);
+                    }
+                    setPlayerContainer(portalRoot);
+                }
+            } catch (e) {
+                console.error("Error placing player:", e);
+                setPlayerContainer(null);
+            }
+        }
+        
+        // 3. (Re)calculate suggestion box positions after DOM change
+        calculatePositions();
+        setTimeout(calculatePositions, 200); // Recalculate after render
+    }
+
+
+    const onLoad = () => {
+        // Copy styles from main document to iframe to style the React components
+        const doc = iframe.contentDocument;
+        if (doc) {
+            const styleSheets = Array.from(document.styleSheets);
+            const styleElement = doc.createElement('style');
+            styleElement.textContent = styleSheets
+                .map(ss => {
+                    try {
+                        return Array.from(ss.cssRules).map(rule => rule.cssText).join('\n');
+                    } catch (e) {
+                        return ''; // Avoid cross-origin issues
+                    }
+                })
+                .join('\n');
+            doc.head.appendChild(styleElement);
+        }
+        setupPlayerAndSuggestions();
+    }
+    
+    // If the iframe is already loaded, run setup. Otherwise, wait for onload.
+    if (iframe.contentDocument?.readyState === 'complete') {
+      onLoad();
+    } else {
+      iframe.onload = onLoad;
+    }
+
+    const resizeObserver = new ResizeObserver(calculatePositions);
     if(iframe.contentDocument?.body) resizeObserver.observe(iframe.contentDocument.body);
     
-    const iframeDoc = iframe.contentDocument;
-    iframeDoc?.addEventListener('scroll', handleResize);
+    iframe.contentDocument?.addEventListener('scroll', calculatePositions);
     
-    const onLoad = () => {
-        calculatePositions();
-        setTimeout(calculatePositions, 250);
-    }
-    
-    if (iframe.contentDocument?.readyState === 'complete') {
-        onLoad();
-    } else {
-        iframe.onload = onLoad;
-    }
-
     return () => {
         resizeObserver.disconnect();
-        iframeDoc?.removeEventListener('scroll', handleResize);
+        iframe.contentDocument?.removeEventListener('scroll', calculatePositions);
+        playerContainer?.remove();
         if (iframe) iframe.onload = null;
     }
-  }, [cloneHtml, placementSuggestions]);
-
-  useEffect(() => {
-    if (placementSuggestions.length > 0 && !selectedPlacement) {
-      onSelectPlacement({ selector: placementSuggestions[0], position: 'before' });
-    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [placementSuggestions]);
-  
+  }, [cloneHtml, selectedPlacement]);
+
   const handleSuggestionClick = (selector: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (activeSuggestion === selector) {
-        setActiveSuggestion(null);
-    } else {
-        setActiveSuggestion(selector);
-    }
+    setActiveSuggestion(selector === activeSuggestion ? null : selector);
   };
   
   const handlePlacementDecision = (position: 'before' | 'after', e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation(); 
       if (!activeSuggestion) return;
-      
       onSelectPlacement({ selector: activeSuggestion, position });
       setActiveSuggestion(null);
   };
@@ -150,24 +189,11 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       "transition-all duration-300"
     );
     
-    const playerWrapperStyle: React.CSSProperties = selectedPlacement ? {
-      position: 'absolute',
-      top: suggestionPositions[selectedPlacement.selector]?.top,
-      left: suggestionPositions[selectedPlacement.selector]?.left,
-      width: suggestionPositions[selectedPlacement.selector]?.width,
-      transform: selectedPlacement.position === 'before' 
-          ? 'translateY(-100%)' 
-          : `translateY(${suggestionPositions[selectedPlacement.selector]?.height})`,
-      zIndex: 10, // Player is the base interactive layer
-    } : {};
-  
     const placementControlStyle: React.CSSProperties = activeSuggestion ? {
       position: 'absolute',
-      top: suggestionPositions[activeSuggestion]?.top,
-      left: suggestionPositions[activeSuggestion]?.left,
-      width: suggestionPositions[activeSuggestion]?.width,
+      ...suggestionPositions[activeSuggestion],
       transform: 'translateY(-100%) translateY(-0.5rem)', // Position above the element
-      zIndex: 30, // Controls on very top
+      zIndex: 30,
       pointerEvents: 'auto',
     } : {};
 
@@ -181,15 +207,10 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                 className="w-full h-full border-0"
                 sandbox="allow-scripts allow-same-origin"
             />
-            {/* RENDER PLAYER */}
-            {selectedPlacement && suggestionPositions[selectedPlacement.selector] && (
-                <div style={playerWrapperStyle} className="p-2 w-full transition-all duration-300 pointer-events-none">
-                    <AudioPlayer config={playerConfig} />
-                </div>
-            )}
+            {/* The actual player is rendered into the iframe via a portal */}
 
             {/* RENDER SUGGESTION OVERLAYS */}
-            <div className="absolute inset-0 z-20"> {/* This container must have a higher z-index than the player */}
+            <div className="absolute inset-0 z-20 pointer-events-none">
                 {Object.entries(suggestionPositions).map(([selector, style]) => {
                     const isSelected = selectedPlacement?.selector === selector;
                     const isActive = activeSuggestion === selector;
@@ -205,7 +226,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                             )}
                             onClick={(e) => handleSuggestionClick(selector, e)}
                         >
-                            {!(isActive || isSelected) && (
+                             {!(isActive || isSelected) && (
                                 <div className="absolute inset-0 flex items-center justify-center bg-accent/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                                     <span className="text-accent font-semibold text-sm bg-background/80 px-2 py-1 rounded-md">Click to place player</span>
                                 </div>
@@ -219,10 +240,10 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
             {activeSuggestion && suggestionPositions[activeSuggestion] && (
                 <div 
                     style={placementControlStyle}
-                    onClick={(e) => e.stopPropagation()} // Prevent click from bubbling up to suggestion box
+                    onClick={(e) => e.stopPropagation()}
                 >
                   <div className='flex justify-center'>
-                    <div className="flex items-center gap-1 rounded-full bg-background p-1 shadow-lg">
+                    <div className="flex items-center gap-1 rounded-full bg-background p-1 shadow-lg border">
                        <Button variant="ghost" size="sm" className="h-8 px-3" onClick={(e) => handlePlacementDecision('before', e)}>
                           <ArrowUp className="mr-2 h-4 w-4" /> Above
                        </Button>
@@ -244,37 +265,45 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   }
 
   return (
-    <Card className="shadow-md relative">
-      <CardHeader>
-        <div className="flex justify-between items-start">
-            <div>
-                <CardTitle className="font-headline text-2xl">3. Live Preview & Placement</CardTitle>
-                <CardDescription>
-                    Visually place the player on the website clone. Click an orange box to move the player.
-                </CardDescription>
-            </div>
-            {url && <Button variant="outline" size="sm" onClick={handleClear}><Pointer className="mr-2 h-4 w-4"/>Clear Placement</Button>}
-        </div>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="desktop" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="desktop"><Monitor className="mr-2 h-4 w-4"/>Desktop</TabsTrigger>
-            <TabsTrigger value="mobile"><Smartphone className="mr-2 h-4 w-4"/>Mobile</TabsTrigger>
-          </TabsList>
-          <TabsContent value="desktop">
-            <div className="bg-muted/50 rounded-lg p-4 mt-4 flex items-center justify-center">
-                {renderPreviewContent(false)}
-            </div>
-          </TabsContent>
-          <TabsContent value="mobile">
-            <div className="bg-muted/50 rounded-lg p-4 mt-4 flex items-center justify-center">
-                {renderPreviewContent(true)}
-            </div>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+    <>
+      <Card className="shadow-md relative">
+        <CardHeader>
+          <div className="flex justify-between items-start">
+              <div>
+                  <CardTitle className="font-headline text-2xl">3. Live Preview & Placement</CardTitle>
+                  <CardDescription>
+                      Visually place the player on the website clone. Click an orange box to move the player.
+                  </CardDescription>
+              </div>
+              {url && <Button variant="outline" size="sm" onClick={handleClear}><Pointer className="mr-2 h-4 w-4"/>Clear Placement</Button>}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="desktop" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="desktop"><Monitor className="mr-2 h-4 w-4"/>Desktop</TabsTrigger>
+              <TabsTrigger value="mobile"><Smartphone className="mr-2 h-4 w-4"/>Mobile</TabsTrigger>
+            </TabsList>
+            <TabsContent value="desktop">
+              <div className="bg-muted/50 rounded-lg p-4 mt-4 flex items-center justify-center">
+                  {renderPreviewContent(false)}
+              </div>
+            </TabsContent>
+            <TabsContent value="mobile">
+              <div className="bg-muted/50 rounded-lg p-4 mt-4 flex items-center justify-center">
+                  {renderPreviewContent(true)}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+      {playerContainer && ReactDOM.createPortal(
+        <div className="p-2">
+          <AudioPlayer config={playerConfig} />
+        </div>,
+        playerContainer
+      )}
+    </>
   );
 };
 
