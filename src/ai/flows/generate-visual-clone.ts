@@ -10,6 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { fetchWebsiteTool } from '@/ai/tools/fetch-website';
 
 const GenerateVisualCloneInputSchema = z.object({
   websiteUrl: z.string().describe('The URL of the website to clone.'),
@@ -29,15 +30,18 @@ const prompt = ai.definePrompt({
   name: 'generateVisualClonePrompt',
   input: {schema: GenerateVisualCloneInputSchema},
   output: {schema: GenerateVisualCloneOutputSchema},
+  tools: [fetchWebsiteTool],
   prompt: `You are an expert web developer tasked with creating a visual clone of a website.
 
   Your goal is to generate HTML that closely resembles the original website in appearance.
 
-  Here is the URL of the website to clone: {{{websiteUrl}}}
+  First, use the 'fetchWebsite' tool to get the HTML content of the website at the given URL: {{{websiteUrl}}}
+
+  Then, analyze the fetched HTML and generate a new, self-contained HTML document that is a visual clone.
+  This means you should try to inline any critical CSS. You can use placeholder images if necessary.
 
   Please return the complete HTML content of the cloned website.
-  The HTML should be self-contained and include all necessary CSS and images.
-  `, // Consider adding instructions to use specific libraries or techniques if needed.
+  `,
 });
 
 const generateVisualCloneFlow = ai.defineFlow(

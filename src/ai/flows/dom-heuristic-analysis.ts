@@ -15,10 +15,10 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const DomHeuristicAnalysisInputSchema = z.object({
-  htmlDataUri: z
+  htmlContent: z
     .string()
     .describe(
-      "The HTML content of the website clone, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "The HTML content of the website clone."
     ),
 });
 
@@ -58,9 +58,9 @@ const prompt = ai.definePrompt({
   Provide a list of CSS selectors that represent these suggested locations, along with a brief explanation of why each location is suitable.
 
   Here is the HTML content of the website clone:
-  \n{{htmlDataUri}}
+  \n{{{htmlContent}}}
   \n  Please provide your analysis and suggestions:
-  `, // using htmlDataUri directly in the prompt, not as media
+  `,
 });
 
 const domHeuristicAnalysisFlow = ai.defineFlow(
