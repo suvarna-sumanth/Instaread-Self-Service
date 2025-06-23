@@ -140,7 +140,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                 {Object.entries(suggestionPositions).map(([selector, style]) => (
                     <div
                         key={selector}
-                        style={{...style, zIndex: 20}}
+                        style={{...style, zIndex: 40}}
                         className={cn(
                             "border-2 border-dashed border-accent cursor-pointer transition-all duration-300 bg-accent/20 hover:bg-accent/40 flex items-center justify-center p-2",
                             (selectedPlacement?.selector === selector || activeSuggestion === selector) && "border-solid border-primary bg-primary/30"
@@ -148,7 +148,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                         onClick={() => handleSuggestionClick(selector)}
                     >
                          {activeSuggestion === selector ? (
-                            <div className="flex flex-col md:flex-row gap-2 z-30 bg-background/90 p-2 rounded-md shadow-lg backdrop-blur-sm">
+                            <div className="flex flex-col md:flex-row gap-2 z-50 bg-background/90 p-2 rounded-md shadow-lg backdrop-blur-sm">
                                 <Button variant="outline" size="sm" onClick={(e) => handlePlacementDecision(selector, 'before', e)}>
                                     <ArrowUp className="mr-2 h-4 w-4" /> Above
                                 </Button>
@@ -171,7 +171,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                             ? suggestionPositions[selectedPlacement.selector].top
                             : `calc(${suggestionPositions[selectedPlacement.selector].top} + ${suggestionPositions[selectedPlacement.selector].height})`,
                         height: 'auto',
-                        zIndex: 10,
+                        zIndex: 30,
                         pointerEvents: 'none'
                         }}
                         className="transition-all duration-300 absolute"
