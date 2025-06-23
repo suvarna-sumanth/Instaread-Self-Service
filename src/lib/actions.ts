@@ -1,7 +1,7 @@
 
 'use server'
 
-import { generateVisualClone } from '@/ai/flows/generate-visual-clone';
+import { generateVisualClone as generateVisualCloneFlow } from '@/ai/flows/generate-visual-clone';
 import { domHeuristicAnalysis } from '@/lib/dom-analysis';
 import { analyzeWebsite as analyzeWebsiteFlow, type WebsiteAnalysisOutput } from '@/ai/flows/website-analysis';
 
@@ -9,7 +9,7 @@ import { analyzeWebsite as analyzeWebsiteFlow, type WebsiteAnalysisOutput } from
 
 export async function getVisualClone(url: string): Promise<string> {
     console.log(`Generating visual clone for: ${url}`);
-    const result = await generateVisualClone({ websiteUrl: url });
+    const result = await generateVisualCloneFlow({ websiteUrl: url });
     return result.cloneHtml;
 }
 
