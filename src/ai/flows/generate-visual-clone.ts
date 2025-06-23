@@ -28,19 +28,21 @@ export async function generateVisualClone(input: GenerateVisualCloneInput): Prom
 
 const prompt = ai.definePrompt({
   name: 'generateVisualClonePrompt',
-  input: {schema: GenerateVisualCloneInputSchema},
+  input: {schema: z.object({ htmlContent: z.string() })},
   output: {schema: GenerateVisualCloneOutputSchema},
-  tools: [fetchWebsiteTool],
-  prompt: `You are an expert web developer tasked with creating a visual clone of a website.
+  prompt: `You are an expert web developer tasked with creating a visual clone of a website from its HTML.
 
   Your goal is to generate HTML that closely resembles the original website in appearance.
-
-  First, use the 'fetchWebsite' tool to get the HTML content of the website at the given URL: {{{websiteUrl}}}
-
-  Then, analyze the fetched HTML and generate a new, self-contained HTML document that is a visual clone.
+  
+  Analyze the provided HTML and generate a new, self-contained HTML document that is a visual clone.
   This means you should try to inline any critical CSS. You can use placeholder images if necessary.
 
   Please return the complete HTML content of the cloned website.
+  
+  HTML Content:
+  \`\`\`html
+  {{{htmlContent}}}
+  \`\`\`
   `,
 });
 
@@ -50,8 +52,13 @@ const generateVisualCloneFlow = ai.defineFlow(
     inputSchema: GenerateVisualCloneInputSchema,
     outputSchema: GenerateVisualCloneOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
+  async (input) => {
+    const htmlContent = await fetchWebsiteTool({ url: input.websiteUrl });
+    if (htmlContent.startsWith('Error')) {
+        throw new Error(`Failed to fetch website for cloning: ${htmlContent}`);
+    }
+
+    const {output} = await prompt({ htmlContent });
     return output!;
   }
 );

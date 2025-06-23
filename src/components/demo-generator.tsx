@@ -76,8 +76,8 @@ export default function DemoGenerator() {
         setPlacementSuggestions(suggestions.suggestedLocations);
     } catch (error) {
         toast({
-            title: "Error",
-            description: "Could not generate visual clone.",
+            title: "Clone Generation Failed",
+            description: `We couldn't generate a visual clone for this website. ${error instanceof Error ? error.message : ''}`,
             variant: "destructive",
         });
     } finally {
