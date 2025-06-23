@@ -1,40 +1,25 @@
 'use server';
 
 /**
- * @fileOverview A flow to generate a visual clone of a website if iframe embedding is blocked.
+ * @fileOverview A utility to generate a visual clone of a website.
  *
  * - generateVisualClone - A function that handles the visual clone generation process.
  * - GenerateVisualCloneInput - The input type for the generateVisualClone function.
  * - GenerateVisualCloneOutput - The return type for the generateVisualClone function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
 import { fetchWebsite } from '@/lib/fetch-website';
 import * as cheerio from 'cheerio';
 
-const GenerateVisualCloneInputSchema = z.object({
-  websiteUrl: z.string().describe('The URL of the website to clone.'),
-});
-export type GenerateVisualCloneInput = z.infer<typeof GenerateVisualCloneInputSchema>;
+export type GenerateVisualCloneInput = {
+  websiteUrl: string;
+};
 
-const GenerateVisualCloneOutputSchema = z.object({
-  cloneHtml: z.string().describe('The HTML content of the visual clone.'),
-});
-export type GenerateVisualCloneOutput = z.infer<typeof GenerateVisualCloneOutputSchema>;
+export type GenerateVisualCloneOutput = {
+  cloneHtml: string;
+};
 
 export async function generateVisualClone(input: GenerateVisualCloneInput): Promise<GenerateVisualCloneOutput> {
-  return generateVisualCloneFlow(input);
-}
-
-// This flow no longer uses an LLM prompt. It engineers the HTML directly for reliability.
-const generateVisualCloneFlow = ai.defineFlow(
-  {
-    name: 'generateVisualCloneFlow',
-    inputSchema: GenerateVisualCloneInputSchema,
-    outputSchema: GenerateVisualCloneOutputSchema,
-  },
-  async (input) => {
     const htmlContent = await fetchWebsite(input.websiteUrl);
     if (htmlContent.startsWith('Error')) {
         throw new Error(`Failed to fetch website for cloning: ${htmlContent}`);
@@ -82,5 +67,4 @@ const generateVisualCloneFlow = ai.defineFlow(
     const finalHtml = $.html();
     
     return { cloneHtml: finalHtml };
-  }
-);
+}
