@@ -81,6 +81,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   }, [cloneHtml, placementSuggestions]);
   
   const handlePlacementDecision = (selector: string, position: 'before' | 'after', e: React.MouseEvent) => {
+      e.preventDefault();
       e.stopPropagation();
       onSelectPlacement({ selector, position });
       setActiveSuggestion(null);
@@ -143,20 +144,23 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                 sandbox="allow-scripts allow-same-origin"
             />
             {/* This container sits on top of the iframe to hold all interactive overlays */}
-            <div className="absolute inset-0 z-50">
+            <div className="absolute inset-0 z-50 pointer-events-none">
                 {Object.entries(suggestionPositions).map(([selector, style]) => (
                     <div
                         key={selector}
                         style={{ position: 'absolute', ...style}}
                         className={cn(
-                            "group border-2 border-dashed border-accent cursor-pointer transition-all duration-300 hover:bg-accent/20",
-                            "flex flex-col items-center justify-center p-2 gap-4",
-                            activeSuggestion === selector && "bg-accent/20 border-solid"
+                            "group border-2 border-dashed border-accent transition-all duration-300",
+                            "flex flex-col items-center justify-center p-2 gap-4 pointer-events-auto cursor-pointer",
+                            activeSuggestion === selector ? "bg-accent/20 border-solid" : "hover:bg-accent/20"
                         )}
                         onClick={() => handleSuggestionClick(selector)}
                     >
                          {activeSuggestion === selector ? (
-                            <div className='flex flex-col gap-2 rounded-lg bg-background/90 backdrop-blur-sm p-2 shadow-lg' style={{ pointerEvents: 'auto'}}>
+                            <div 
+                                className='flex flex-col gap-2 rounded-lg bg-background/90 backdrop-blur-sm p-2 shadow-lg'
+                                onClick={(e) => e.stopPropagation()}
+                            >
                                 <Button variant="secondary" size="sm" onClick={(e) => handlePlacementDecision(selector, 'before', e)}>
                                     <ArrowUp className="mr-2 h-4 w-4" /> Place Above
                                 </Button>
@@ -197,7 +201,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   }
 
   return (
-    <Card className="shadow-md">
+    <Card className="shadow-md relative">
       <CardHeader>
         <div className="flex justify-between items-start">
             <div>
