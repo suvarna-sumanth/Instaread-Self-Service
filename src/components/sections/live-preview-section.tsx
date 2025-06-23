@@ -23,47 +23,66 @@ type LivePreviewSectionProps = {
   playerConfig: PlayerConfig;
 };
 
+// Sub-component for placement controls to keep the main render clean
+const PlacementControl = ({ style, onPlace }: { style: React.CSSProperties; onPlace: (position: 'before' | 'after') => void }) => {
+    return (
+        <div
+            style={style}
+            // Add pointer-events-auto here so the controls are clickable
+            className="absolute z-40 flex items-center gap-1 rounded-full bg-background p-1 shadow-lg border pointer-events-auto"
+            onClick={(e) => e.stopPropagation()}
+        >
+            <Button variant="ghost" size="sm" className="h-8 px-3" onClick={() => onPlace('before')}>
+                <ArrowUp className="mr-2 h-4 w-4" /> Above
+            </Button>
+            <Separator orientation="vertical" className="h-4" />
+            <Button variant="ghost" size="sm" className="h-8 px-3" onClick={() => onPlace('after')}>
+                <ArrowDown className="mr-2 h-4 w-4" /> Below
+            </Button>
+        </div>
+    );
+};
+
+
 const LivePreviewSection = (props: LivePreviewSectionProps) => {
   const { url, cloneHtml, isLoading, placementSuggestions, selectedPlacement, onSelectPlacement, playerConfig } = props;
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [suggestionPositions, setSuggestionPositions] = useState<Record<string, React.CSSProperties>>({});
+  const [suggestionPositions, setSuggestionPositions] = useState<Record<string, DOMRect>>({});
   const [activeSuggestion, setActiveSuggestion] = useState<string | null>(null);
   const [playerContainer, setPlayerContainer] = useState<HTMLElement | null>(null);
-  
+
+  const calculatePositions = () => {
+    const iframe = iframeRef.current;
+    const doc = iframe?.contentDocument;
+    if (!doc) return;
+
+    const newPositions: Record<string, DOMRect> = {};
+    for (const selector of placementSuggestions) {
+      try {
+        const targetElement = doc.querySelector(selector) as HTMLElement;
+        if (targetElement) {
+          const targetRect = targetElement.getBoundingClientRect();
+          // Filter out very small or off-screen elements
+          if (targetRect.width > 20 && targetRect.height > 10 && targetRect.top >= 0 && targetRect.top < doc.documentElement.clientHeight) {
+            newPositions[selector] = targetRect;
+          }
+        }
+      } catch (e) {
+        console.error(`Invalid selector: ${selector}`, e);
+      }
+    }
+    setSuggestionPositions(newPositions);
+  };
+
+
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
 
-    const calculatePositions = () => {
-      const doc = iframe.contentDocument;
-      if (!doc) return;
-      
-      const newPositions: Record<string, React.CSSProperties> = {};
-      for (const selector of placementSuggestions) {
-        try {
-          const targetElement = doc.querySelector(selector) as HTMLElement;
-          if (targetElement) {
-            const targetRect = targetElement.getBoundingClientRect();
-             if (targetRect.width > 20 && targetRect.height > 10 && targetRect.top >= 0) {
-                newPositions[selector] = {
-                    top: `${targetRect.top + doc.documentElement.scrollTop}px`,
-                    left: `${targetRect.left + doc.documentElement.scrollLeft}px`,
-                    width: `${targetRect.width}px`,
-                    height: `${targetRect.height}px`,
-                };
-              }
-          }
-        } catch (e) {
-          console.error(`Invalid selector: ${selector}`, e);
-        }
-      }
-      setSuggestionPositions(newPositions);
-    };
-
     const setupPlayerAndSuggestions = () => {
         const doc = iframe.contentDocument;
         if (!doc?.body) return;
-        
+
         // 1. Reset previous state by finding and removing any existing player
         const existingPlayer = doc.querySelector('.audioleap-player-container');
         existingPlayer?.remove();
@@ -92,13 +111,12 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
         
         // 3. (Re)calculate suggestion box positions after DOM change
         calculatePositions();
-        setTimeout(calculatePositions, 50); // Recalculate after DOM settles
     }
 
 
     const onLoad = () => {
         const doc = iframe.contentDocument;
-        if (doc) {
+        if (doc) { // Inject host styles into iframe for consistency
             const styleElement = doc.createElement('style');
             styleElement.textContent = Array.from(document.styleSheets)
                 .map(ss => {
@@ -108,8 +126,11 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                 })
                 .join('\n');
             doc.head.appendChild(styleElement);
+            doc.body.style.position = 'relative'; // Ensure body is a positioning context
         }
         setupPlayerAndSuggestions();
+        // Also listen for scrolls inside the iframe to recalculate
+        doc?.addEventListener('scroll', calculatePositions);
     }
     
     if (iframe.contentDocument?.readyState === 'complete') {
@@ -120,8 +141,6 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
 
     const resizeObserver = new ResizeObserver(calculatePositions);
     if(iframe.contentDocument?.body) resizeObserver.observe(iframe.contentDocument.body);
-    
-    iframe.contentDocument?.addEventListener('scroll', calculatePositions);
     
     return () => {
         resizeObserver.disconnect();
@@ -143,6 +162,18 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       onSelectPlacement({ selector: activeSuggestion, position });
       setActiveSuggestion(null);
   };
+
+  const getControlStyle = (targetRect: DOMRect): React.CSSProperties => {
+    if (!iframeRef.current?.contentDocument) return {};
+    const doc = iframeRef.current.contentDocument;
+    return {
+      position: 'absolute',
+      top: `${targetRect.top + doc.documentElement.scrollTop - 45}px`,
+      left: `${targetRect.left + doc.documentElement.scrollLeft + targetRect.width / 2}px`,
+      transform: 'translateX(-50%)',
+    }
+  };
+
 
   const renderPreviewContent = (isMobile: boolean) => {
     if (isLoading) {
@@ -191,45 +222,50 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                 className="w-full h-full border-0"
                 sandbox="allow-scripts allow-same-origin"
             />
-            
-            <div className="absolute inset-0 z-20">
-                {Object.entries(suggestionPositions).map(([selector, style]) => {
+            {playerContainer && ReactDOM.createPortal(
+                <div className="p-2">
+                    <AudioPlayer config={playerConfig} />
+                </div>,
+                playerContainer
+            )}
+            {/* 
+              This overlay holds all interactive elements.
+              `pointer-events-none` allows scrolling and interaction with the iframe below.
+              Individual children (suggestion boxes, controls) will have `pointer-events-auto` to become clickable.
+            */}
+            <div className="absolute inset-0 z-30 pointer-events-none">
+                {activeSuggestion && suggestionPositions[activeSuggestion] && (
+                    <PlacementControl
+                        style={getControlStyle(suggestionPositions[activeSuggestion])}
+                        onPlace={handlePlacementDecision}
+                    />
+                )}
+                {Object.entries(suggestionPositions).map(([selector, rect]) => {
                     const isSelected = selectedPlacement?.selector === selector;
                     const isActive = activeSuggestion === selector;
+                    const doc = iframeRef.current?.contentDocument;
+
+                    if (!doc) return null;
+
+                    const style: React.CSSProperties = {
+                        position: 'absolute',
+                        top: `${rect.top + doc.documentElement.scrollTop}px`,
+                        left: `${rect.left + doc.documentElement.scrollLeft}px`,
+                        width: `${rect.width}px`,
+                        height: `${rect.height}px`,
+                    };
 
                     return (
                         <div
                             key={selector}
-                            style={{ position: 'absolute', ...style }}
+                            style={style}
+                            // Add pointer-events-auto to make this div clickable
                             className={cn(
-                                "transition-all duration-300 cursor-pointer group",
-                                "border-2 border-dashed border-accent hover:bg-accent/10",
-                                { "bg-accent/20 border-solid": isActive || isSelected }
+                                "pointer-events-auto cursor-pointer border-2 border-dashed border-accent hover:bg-accent/10",
+                                { "bg-accent/20 border-solid": isActive, "border-primary border-solid": isSelected }
                             )}
                             onClick={() => handleSuggestionClick(selector)}
                         >
-                            {isActive && (
-                                <div
-                                    className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full py-2 z-30 flex justify-center"
-                                    onClick={(e) => e.stopPropagation()}
-                                >
-                                    <div className="flex items-center gap-1 rounded-full bg-background p-1 shadow-lg border">
-                                       <Button variant="ghost" size="sm" className="h-8 px-3" onClick={() => handlePlacementDecision('before')}>
-                                          <ArrowUp className="mr-2 h-4 w-4" /> Above
-                                       </Button>
-                                       <Separator orientation="vertical" className="h-4" />
-                                       <Button variant="ghost" size="sm" className="h-8 px-3" onClick={() => handlePlacementDecision('after')}>
-                                          <ArrowDown className="mr-2 h-4 w-4" /> Below
-                                       </Button>
-                                    </div>
-                                </div>
-                            )}
-                             
-                             {!(isActive || isSelected) && (
-                                <div className="absolute inset-0 flex items-center justify-center bg-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                                    <span className="text-accent font-semibold text-sm bg-background/80 px-2 py-1 rounded-md">Click to select area</span>
-                                </div>
-                            )}
                         </div>
                     );
                 })}
@@ -251,7 +287,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
               <div>
                   <CardTitle className="font-headline text-2xl">3. Live Preview & Placement</CardTitle>
                   <CardDescription>
-                      Visually place the player on the website clone. Click an orange box to move the player.
+                      Click an orange box to select a location and place the player.
                   </CardDescription>
               </div>
               {url && <Button variant="outline" size="sm" onClick={handleClear}><Pointer className="mr-2 h-4 w-4"/>Clear Placement</Button>}
@@ -276,12 +312,6 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
           </Tabs>
         </CardContent>
       </Card>
-      {playerContainer && ReactDOM.createPortal(
-        <div className="p-2">
-          <AudioPlayer config={playerConfig} />
-        </div>,
-        playerContainer
-      )}
     </>
   );
 };
