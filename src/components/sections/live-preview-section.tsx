@@ -148,23 +148,23 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                         key={selector}
                         style={{...style, zIndex: 999}}
                         className={cn(
-                            "border-2 border-dashed border-accent cursor-pointer transition-all duration-300 hover:bg-accent/20",
+                            "group border-2 border-dashed border-accent cursor-pointer transition-all duration-300 hover:bg-accent/20",
                             "flex flex-col items-center justify-center p-2 gap-4",
                             (selectedPlacement?.selector === selector || activeSuggestion === selector) ? "bg-accent/20 border-solid" : "bg-transparent"
                         )}
                         onClick={() => handleSuggestionClick(selector)}
                     >
                          {activeSuggestion === selector ? (
-                            <div className='flex flex-col md:flex-row gap-2 bg-background/80 p-2 rounded-lg'>
-                                <Button variant="secondary" size="sm" onClick={(e) => handlePlacementDecision(selector, 'before', e)} className="shadow-lg">
+                            <div className='flex flex-col gap-2 rounded-lg bg-background/80 p-2 shadow-lg'>
+                                <Button variant="secondary" size="sm" onClick={(e) => handlePlacementDecision(selector, 'before', e)}>
                                     <ArrowUp className="mr-2 h-4 w-4" /> Place Above
                                 </Button>
-                                <Button variant="secondary" size="sm" onClick={(e) => handlePlacementDecision(selector, 'after', e)} className="shadow-lg">
+                                <Button variant="secondary" size="sm" onClick={(e) => handlePlacementDecision(selector, 'after', e)}>
                                     <ArrowDown className="mr-2 h-4 w-4" /> Place Below
                                 </Button>
                             </div>
                         ) : selectedPlacement?.selector !== selector && (
-                             <div className="m-auto bg-background/80 p-2 rounded-md text-xs text-foreground font-medium shadow-md opacity-0 group-hover:opacity-100 transition-opacity">
+                             <div className="pointer-events-none m-auto rounded-md bg-background/80 p-2 text-xs font-medium text-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100">
                                 Click to place player here
                             </div>
                         )}
@@ -177,7 +177,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                         width: suggestionPositions[selectedPlacement.selector].width,
                         left: suggestionPositions[selectedPlacement.selector].left,
                         top: selectedPlacement.position === 'before'
-                            ? suggestionPositions[selectedPlacement.selector].top
+                            ? `calc(${suggestionPositions[selectedPlacement.selector].top} - 80px)` // Approx height of player
                             : `calc(${suggestionPositions[selectedPlacement.selector].top} + ${suggestionPositions[selectedPlacement.selector].height})`,
                         height: 'auto',
                         zIndex: 998,
