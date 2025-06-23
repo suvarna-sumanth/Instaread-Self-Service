@@ -9,7 +9,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'zod';
 import { fetchWebsiteTool } from '@/ai/tools/fetch-website';
 import * as cheerio from 'cheerio';
 
@@ -27,29 +27,7 @@ export async function generateVisualClone(input: GenerateVisualCloneInput): Prom
   return generateVisualCloneFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'generateVisualClonePrompt',
-  input: {schema: z.object({ htmlContent: z.string() })},
-  output: {schema: GenerateVisualCloneOutputSchema},
-  prompt: `You are an expert web developer tasked with creating a high-fidelity visual clone of a website from its HTML.
-
-  Your goal is to generate a single, self-contained HTML file that visually replicates the original site as closely as possible.
-  
-  The provided HTML has been pre-processed to use absolute URLs for assets like CSS and images, and all <script> tags have been removed.
-  
-  Analyze the provided HTML. Your main task is to inline any critical CSS from the <link> tags to ensure the clone renders correctly without needing external requests for stylesheets.
-  Ensure all image sources and other asset paths remain as absolute URLs.
-  Do not add any <script> tags to your final output.
-
-  Return only the complete, final HTML content of the cloned website.
-  
-  HTML Content to clone:
-  \`\`\`html
-  {{{htmlContent}}}
-  \`\`\`
-  `,
-});
-
+// This flow no longer uses an LLM prompt. It engineers the HTML directly for reliability.
 const generateVisualCloneFlow = ai.defineFlow(
   {
     name: 'generateVisualCloneFlow',
@@ -65,31 +43,44 @@ const generateVisualCloneFlow = ai.defineFlow(
     const $ = cheerio.load(htmlContent);
     const baseUrl = new URL(input.websiteUrl);
 
+    // Add a <base> tag to resolve all relative URLs for images, fonts, etc.
+    if ($('base').length === 0) {
+        $('head').prepend(`<base href="${baseUrl.href}">`);
+    }
+
     // Remove script tags for security and simplicity
     $('script').remove();
 
-    // Resolve relative URLs to absolute ones
-    const resolveUrl = (selector: string, attribute: string) => {
-      $(selector).each((i, el) => {
-        const url = $(el).attr(attribute);
-        if (url) {
+    // Inline CSS stylesheets for a self-contained clone
+    const stylesheetPromises = $('link[rel="stylesheet"]').map(async (i, el) => {
+        const link = $(el);
+        const href = link.attr('href');
+        if (href) {
             try {
-                const absoluteUrl = new URL(url, baseUrl.href).href;
-                $(el).attr(attribute, absoluteUrl);
+                // Resolve the stylesheet URL relative to the base URL
+                const cssUrl = new URL(href, baseUrl.href).href;
+                const response = await fetch(cssUrl);
+
+                if (response.ok) {
+                    const cssContent = await response.text();
+                    // Replace the <link> tag with an inline <style> tag
+                    link.replaceWith(`<style>${cssContent}</style>`);
+                } else {
+                    // If we can't fetch the stylesheet, remove the link to avoid errors
+                    link.remove();
+                }
             } catch (e) {
-                // Ignore invalid URLs (e.g. mailto:, data:, etc.)
+                console.error(`Failed to inline stylesheet ${href}:`, e);
+                link.remove();
             }
         }
-      });
-    };
-    
-    resolveUrl('link[href]', 'href');
-    resolveUrl('img[src]', 'src');
-    resolveUrl('a[href]', 'href');
-    
-    const cleanedHtml = $.html();
+    }).get(); // .get() converts cheerio collection to a plain array
 
-    const {output} = await prompt({ htmlContent: cleanedHtml });
-    return output!;
+    // Wait for all stylesheets to be processed
+    await Promise.all(stylesheetPromises);
+
+    const finalHtml = $.html();
+    
+    return { cloneHtml: finalHtml };
   }
 );
