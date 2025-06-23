@@ -44,7 +44,8 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
           const targetElement = doc.querySelector(selector) as HTMLElement;
           if (targetElement) {
               const targetRect = targetElement.getBoundingClientRect();
-              if (targetRect.width > 20 && targetRect.height > 20) {
+              // Only include suggestions for visible elements of a reasonable size
+              if (targetRect.width > 20 && targetRect.height > 20 && targetRect.top >= 0) {
                 newPositions[selector] = {
                     top: `${targetRect.top + doc.documentElement.scrollTop}px`,
                     left: `${targetRect.left + doc.documentElement.scrollLeft}px`,
@@ -62,7 +63,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
 
     const handleResize = () => setTimeout(calculatePositions, 50);
     const resizeObserver = new ResizeObserver(handleResize);
-    if(iframe) resizeObserver.observe(iframe);
+    if(iframe.contentDocument?.body) resizeObserver.observe(iframe.contentDocument.body);
     
     const iframeDoc = iframe.contentDocument;
     iframeDoc?.addEventListener('scroll', handleResize);
@@ -81,16 +82,13 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   }, [cloneHtml, placementSuggestions]);
   
   const handlePlacementDecision = (selector: string, position: 'before' | 'after', e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
+      e.stopPropagation(); // This is crucial to prevent the suggestion box from toggling off.
       onSelectPlacement({ selector, position });
-      setActiveSuggestion(null);
+      setActiveSuggestion(null); // Close the options after a choice is made.
   };
   
   const handleSuggestionClick = (selector: string) => {
-    // Toggle the active suggestion. If user clicks the same one, it closes.
     setActiveSuggestion(current => (current === selector ? null : selector));
-    // If a final placement was already made, clear it when choosing a new spot.
     if (selectedPlacement) {
         onSelectPlacement(null);
     }
@@ -150,26 +148,26 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                         key={selector}
                         style={{ position: 'absolute', ...style}}
                         className={cn(
-                            "group border-2 border-dashed border-accent transition-all duration-300",
-                            "flex flex-col items-center justify-center p-2 gap-4 pointer-events-auto cursor-pointer",
-                            activeSuggestion === selector ? "bg-accent/20 border-solid" : "hover:bg-accent/20"
+                            "group/suggestion border-2 border-dashed border-accent transition-all duration-300",
+                            "flex flex-col items-center justify-center p-2 gap-2 pointer-events-auto cursor-pointer",
+                            activeSuggestion === selector ? "bg-accent/20 border-solid" : "bg-transparent hover:bg-accent/10"
                         )}
                         onClick={() => handleSuggestionClick(selector)}
                     >
-                         {activeSuggestion === selector ? (
-                            <div 
-                                className='flex flex-col gap-2 rounded-lg bg-background/90 backdrop-blur-sm p-2 shadow-lg'
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                <Button variant="secondary" size="sm" onClick={(e) => handlePlacementDecision(selector, 'before', e)}>
-                                    <ArrowUp className="mr-2 h-4 w-4" /> Place Above
-                                </Button>
-                                <Button variant="secondary" size="sm" onClick={(e) => handlePlacementDecision(selector, 'after', e)}>
-                                    <ArrowDown className="mr-2 h-4 w-4" /> Place Below
-                                </Button>
-                            </div>
-                        ) : selectedPlacement?.selector !== selector && (
-                             <div className="pointer-events-none m-auto rounded-md bg-background/80 p-2 text-xs font-medium text-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100">
+                         <div className={cn(
+                           'flex-col gap-2 rounded-lg bg-background/90 backdrop-blur-sm p-2 shadow-lg',
+                           activeSuggestion === selector ? 'flex' : 'hidden'
+                         )}>
+                            <Button variant="secondary" size="sm" onClick={(e) => handlePlacementDecision(selector, 'before', e)}>
+                                <ArrowUp className="mr-2 h-4 w-4" /> Place Above
+                            </Button>
+                            <Button variant="secondary" size="sm" onClick={(e) => handlePlacementDecision(selector, 'after', e)}>
+                                <ArrowDown className="mr-2 h-4 w-4" /> Place Below
+                            </Button>
+                        </div>
+
+                        {activeSuggestion !== selector && selectedPlacement?.selector !== selector && (
+                             <div className="pointer-events-none rounded-md bg-background/80 p-2 text-xs font-medium text-foreground opacity-0 shadow-md transition-opacity group-hover/suggestion:opacity-100">
                                 Click to place player here
                             </div>
                         )}
@@ -185,7 +183,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                             ? `calc(${suggestionPositions[selectedPlacement.selector].top} - 80px)` // Approx height of player
                             : `calc(${suggestionPositions[selectedPlacement.selector].top} + ${suggestionPositions[selectedPlacement.selector].height})`,
                         height: 'auto',
-                        zIndex: 40, // Below the suggestion overlays
+                        zIndex: 40,
                         pointerEvents: 'none'
                         }}
                         className="transition-all duration-300"
