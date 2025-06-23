@@ -65,9 +65,17 @@ export default function DemoGenerator() {
       });
 
     } catch (error) {
+       let description = `Could not generate a preview for the website. It may be protected.`;
+       if (error instanceof Error) {
+         if (error.message.includes("NOT_FOUND")) {
+            description = "The AI model could not be found. This can be caused by an invalid API key or incorrect Google Cloud project permissions. Please ensure the 'Vertex AI API' is enabled for your project and try again.";
+         } else {
+            description += ` ${error.message}`;
+         }
+       }
        toast({
-        title: "Preview Generation Failed",
-        description: `Could not generate a preview for the website. It may be protected. ${error instanceof Error ? error.message : ''}`,
+        title: "Analysis Failed",
+        description: description,
         variant: "destructive",
       });
     } finally {
