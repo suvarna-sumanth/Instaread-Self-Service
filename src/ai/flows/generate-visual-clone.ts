@@ -11,6 +11,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { fetchWebsiteTool } from '@/ai/tools/fetch-website';
+import * as cheerio from 'cheerio';
 
 const GenerateVisualCloneInputSchema = z.object({
   websiteUrl: z.string().describe('The URL of the website to clone.'),
@@ -30,16 +31,19 @@ const prompt = ai.definePrompt({
   name: 'generateVisualClonePrompt',
   input: {schema: z.object({ htmlContent: z.string() })},
   output: {schema: GenerateVisualCloneOutputSchema},
-  prompt: `You are an expert web developer tasked with creating a visual clone of a website from its HTML.
+  prompt: `You are an expert web developer tasked with creating a high-fidelity visual clone of a website from its HTML.
 
-  Your goal is to generate HTML that closely resembles the original website in appearance.
+  Your goal is to generate a single, self-contained HTML file that visually replicates the original site as closely as possible.
   
-  Analyze the provided HTML and generate a new, self-contained HTML document that is a visual clone.
-  This means you should try to inline any critical CSS. You can use placeholder images if necessary.
+  The provided HTML has been pre-processed to use absolute URLs for assets like CSS and images, and all <script> tags have been removed.
+  
+  Analyze the provided HTML. Your main task is to inline any critical CSS from the <link> tags to ensure the clone renders correctly without needing external requests for stylesheets.
+  Ensure all image sources and other asset paths remain as absolute URLs.
+  Do not add any <script> tags to your final output.
 
-  Please return the complete HTML content of the cloned website.
+  Return only the complete, final HTML content of the cloned website.
   
-  HTML Content:
+  HTML Content to clone:
   \`\`\`html
   {{{htmlContent}}}
   \`\`\`
@@ -58,7 +62,34 @@ const generateVisualCloneFlow = ai.defineFlow(
         throw new Error(`Failed to fetch website for cloning: ${htmlContent}`);
     }
 
-    const {output} = await prompt({ htmlContent });
+    const $ = cheerio.load(htmlContent);
+    const baseUrl = new URL(input.websiteUrl);
+
+    // Remove script tags for security and simplicity
+    $('script').remove();
+
+    // Resolve relative URLs to absolute ones
+    const resolveUrl = (selector: string, attribute: string) => {
+      $(selector).each((i, el) => {
+        const url = $(el).attr(attribute);
+        if (url) {
+            try {
+                const absoluteUrl = new URL(url, baseUrl.href).href;
+                $(el).attr(attribute, absoluteUrl);
+            } catch (e) {
+                // Ignore invalid URLs (e.g. mailto:, data:, etc.)
+            }
+        }
+      });
+    };
+    
+    resolveUrl('link[href]', 'href');
+    resolveUrl('img[src]', 'src');
+    resolveUrl('a[href]', 'href');
+    
+    const cleanedHtml = $.html();
+
+    const {output} = await prompt({ htmlContent: cleanedHtml });
     return output!;
   }
 );
