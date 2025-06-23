@@ -2,7 +2,7 @@
 'use server'
 
 import { generateVisualClone as generateVisualCloneFlow } from '@/ai/flows/generate-visual-clone';
-import { domHeuristicAnalysis } from '@/lib/dom-analysis';
+import { placementAnalysis } from '@/ai/flows/placement-analysis';
 import { analyzeWebsite as analyzeWebsiteFlow, type WebsiteAnalysisOutput } from '@/ai/flows/website-analysis';
 
 // In a real app, you would have error handling, etc.
@@ -14,7 +14,7 @@ export async function getVisualClone(url: string): Promise<string> {
 }
 
 export async function getPlacementSuggestions(html: string) {
-    const result = await domHeuristicAnalysis({ htmlContent: html });
+    const result = await placementAnalysis({ htmlContent: html });
     return result;
 }
 
