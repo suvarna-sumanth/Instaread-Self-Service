@@ -43,15 +43,17 @@ export default function DemoGenerator() {
     setPlacementSuggestions([]);
     
     try {
-      const [analysisResult, html] = await Promise.all([
+      // We now always generate the clone first.
+      const html = await getVisualClone(newUrl);
+      setCloneHtml(html);
+
+      // Then, run analysis and placement suggestions in parallel.
+      const [analysisResult, suggestions] = await Promise.all([
         analyzeWebsite(newUrl),
-        getVisualClone(newUrl),
+        getPlacementSuggestions(html),
       ]);
       
       setAnalysis(analysisResult);
-      setCloneHtml(html);
-      
-      const suggestions = await getPlacementSuggestions(html);
       setPlacementSuggestions(suggestions.suggestedLocations);
 
       toast({

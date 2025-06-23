@@ -1,3 +1,5 @@
+import type { WebsiteAnalysisOutput } from '@/ai/flows/website-analysis';
+
 export type PlayerConfig = {
   design: 'A' | 'B';
   showAds: boolean;
@@ -6,18 +8,7 @@ export type PlayerConfig = {
   audioFileName: string;
 };
 
-export type AnalysisResult = {
-  colors: {
-    primary: string;
-    background: string;
-    text: string;
-  };
-  fonts: {
-    headline: string;
-    body: string;
-  };
-  techStack: string[];
-} | null;
+export type AnalysisResult = WebsiteAnalysisOutput | null;
 
 
 export type PlacementSuggestion = {
