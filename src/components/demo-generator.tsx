@@ -53,7 +53,11 @@ export default function DemoGenerator() {
       
       setAnalysis(analysisResult);
       setPlacementSuggestions(suggestions.suggestedLocations);
-      setSelectedPlacement(null);
+      if (suggestions.suggestedLocations.length > 0) {
+        setSelectedPlacement({ selector: suggestions.suggestedLocations[0], position: 'before' });
+      } else {
+        setSelectedPlacement(null);
+      }
 
       toast({
         title: "Analysis & Preview Ready",
@@ -74,13 +78,13 @@ export default function DemoGenerator() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 p-4 md:p-8">
-        <aside className="lg:col-span-2 flex flex-col gap-8">
+      <div className="flex flex-col lg:flex-row gap-8 p-4 md:p-8">
+        <aside className="lg:w-2/5 xl:w-1/3 flex flex-col gap-8">
           <WebsiteAnalysisSection onAnalyze={handleAnalyze} analysis={analysis} isLoading={isLoading} />
           <PlayerConfigSection config={playerConfig} setConfig={setPlayerConfig} />
           <IntegrationCodeSection playerConfig={playerConfig} selectedPlacement={selectedPlacement} websiteUrl={url} />
         </aside>
-        <main className="lg:col-span-3">
+        <main className="lg:w-3/5 xl:w-2/3">
           <LivePreviewSection
             url={url}
             cloneHtml={cloneHtml}
