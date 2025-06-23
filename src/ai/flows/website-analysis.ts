@@ -39,6 +39,7 @@ export async function analyzeWebsite(input: WebsiteAnalysisInput): Promise<Websi
 
 const prompt = ai.definePrompt({
   name: 'websiteAnalysisPrompt',
+  model: 'googleai/gemini-2.0-flash',
   input: { schema: z.object({ htmlContent: z.string() }) },
   output: { schema: WebsiteAnalysisOutputSchema },
   prompt: `You are an expert web developer and designer. Analyze the provided HTML and any inline/linked CSS to identify the website's design system.
