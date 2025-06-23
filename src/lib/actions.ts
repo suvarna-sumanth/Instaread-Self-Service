@@ -2,7 +2,7 @@
 'use server'
 
 import { generateVisualClone } from '@/ai/flows/generate-visual-clone';
-import { domHeuristicAnalysis } from '@/ai/flows/dom-heuristic-analysis';
+import { domHeuristicAnalysis } from '@/lib/dom-analysis';
 import { analyzeWebsite as analyzeWebsiteFlow, type WebsiteAnalysisOutput } from '@/ai/flows/website-analysis';
 
 // In a real app, you would have error handling, etc.

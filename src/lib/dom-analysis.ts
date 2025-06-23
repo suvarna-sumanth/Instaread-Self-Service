@@ -1,12 +1,12 @@
 'use server';
 
 /**
- * @fileOverview This file implements the DOM heuristic analysis flow.
+ * @fileOverview This file implements the DOM heuristic analysis.
  *
  * It analyzes the DOM structure of a website clone to identify suitable locations for an audio player.
  *
  * @remarks
- * - domHeuristicAnalysis - The main function that triggers the DOM analysis flow.
+ * - domHeuristicAnalysis - The main function that triggers the DOM analysis.
  * - DomHeuristicAnalysisInput - The input type for the domHeuristicAnalysis function.
  * - DomHeuristicAnalysisOutput - The output type for the domHeuristicAnalysis function.
  */
