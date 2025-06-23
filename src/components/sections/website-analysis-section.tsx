@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Palette, Type, Cpu, Loader2, DollarSign } from 'lucide-react';
+import { Palette, Type, Cpu, Loader2 } from 'lucide-react';
 
 const FormSchema = z.object({
   url: z.string().url({ message: "Please enter a valid URL." }),
@@ -33,8 +33,6 @@ const WebsiteAnalysisSection = ({ onAnalyze, analysis, isLoading }: WebsiteAnaly
   const onSubmit: SubmitHandler<z.infer<typeof FormSchema>> = (data) => {
     onAnalyze(data.url);
   };
-  
-  const usage = analysis?.usage;
 
   return (
     <Card className="shadow-md">
@@ -91,18 +89,6 @@ const WebsiteAnalysisSection = ({ onAnalyze, analysis, isLoading }: WebsiteAnaly
                 {analysis.techStack.map(tech => <Badge key={tech} variant="secondary">{tech}</Badge>)}
               </div>
             </div>
-            {usage && (
-               <div className="mt-6 space-y-2">
-                <Separator />
-                <h3 className="text-lg font-semibold flex items-center gap-2 mb-2"><DollarSign size={20} className="text-primary" />LLM Usage</h3>
-                <div className="text-sm text-muted-foreground grid grid-cols-2 gap-x-4 gap-y-1">
-                  <span>Input Tokens:</span><span className="font-mono text-right">{usage.inputTokens}</span>
-                  <span>Output Tokens:</span><span className="font-mono text-right">{usage.outputTokens}</span>
-                  <span className="font-semibold">Total Tokens:</span><span className="font-mono font-semibold text-right">{usage.totalTokens}</span>
-                </div>
-                 <p className="text-xs text-muted-foreground/80 pt-2">Usage data is provided for estimation purposes.</p>
-              </div>
-            )}
           </div>
         )}
       </CardContent>

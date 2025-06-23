@@ -19,32 +19,7 @@ export async function getPlacementSuggestions(html: string) {
 }
 
 export async function analyzeWebsite(url: string): Promise<WebsiteAnalysisOutput> {
-    console.log(`Analyzing website: ${url}`);
-    // MOCK: Bypassing the real AI call to avoid Google Cloud configuration issues.
-    // In a real scenario, you would re-enable the line below.
-    // const result = await analyzeWebsiteFlow({ url });
-    
-    // Returning mock data instead.
-    const mockResult: WebsiteAnalysisOutput = {
-        colors: {
-            primary: '#1a73e8',
-            background: '#ffffff',
-            text: '#202124',
-        },
-        fonts: {
-            headline: 'Google Sans, sans-serif',
-            body: 'Roboto, sans-serif',
-        },
-        techStack: ['Mocked Data', 'React'],
-        usage: {
-            inputTokens: 0,
-            outputTokens: 0,
-            totalTokens: 0,
-        }
-    };
-
-    // Simulate a network delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    return mockResult;
+    console.log(`Analyzing website with OpenAI: ${url}`);
+    const result = await analyzeWebsiteFlow({ url });
+    return result;
 }
