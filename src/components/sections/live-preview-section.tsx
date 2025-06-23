@@ -81,18 +81,22 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     }
   }, [cloneHtml, placementSuggestions]);
   
-  const handlePlacementDecision = (selector: string, position: 'before' | 'after', e: React.MouseEvent) => {
-      e.stopPropagation(); // This is crucial to prevent the suggestion box from toggling off.
-      onSelectPlacement({ selector, position });
-      setActiveSuggestion(null); // Close the options after a choice is made.
-  };
-  
   const handleSuggestionClick = (selector: string) => {
-    setActiveSuggestion(current => (current === selector ? null : selector));
+    // If a player is already placed, clear it first.
     if (selectedPlacement) {
         onSelectPlacement(null);
     }
-  }
+    // Toggle the active suggestion. Clicking the same one again closes the menu.
+    setActiveSuggestion(current => (current === selector ? null : selector));
+  };
+  
+  const handlePlacementDecision = (position: 'before' | 'after', e: React.MouseEvent) => {
+      e.stopPropagation(); // Stop click from propagating to other elements
+      if (!activeSuggestion) return; // Should not happen, but a good guard
+      
+      onSelectPlacement({ selector: activeSuggestion, position });
+      setActiveSuggestion(null); // Close the options menu after a choice is made.
+  };
 
   const renderPreviewContent = (isMobile: boolean) => {
     if (isLoading) {
@@ -142,38 +146,48 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                 sandbox="allow-scripts allow-same-origin"
             />
             {/* This container sits on top of the iframe to hold all interactive overlays */}
-            <div className="absolute inset-0 z-50 pointer-events-none">
+            <div className="absolute inset-0 z-10 pointer-events-none">
+                {/* Renders the simple, clickable suggestion boxes */}
                 {Object.entries(suggestionPositions).map(([selector, style]) => (
-                    <div
+                     <div
                         key={selector}
                         style={{ position: 'absolute', ...style}}
                         className={cn(
-                            "group/suggestion border-2 border-dashed border-accent transition-all duration-300",
-                            "flex flex-col items-center justify-center p-2 gap-2 pointer-events-auto cursor-pointer",
-                            activeSuggestion === selector ? "bg-accent/20 border-solid" : "bg-transparent hover:bg-accent/10"
+                            "transition-all duration-300 pointer-events-auto cursor-pointer flex items-center justify-center",
+                            "border-2 border-dashed border-accent hover:bg-accent/10",
+                            { "bg-accent/20 border-solid": activeSuggestion === selector }
                         )}
                         onClick={() => handleSuggestionClick(selector)}
+                        title={`Click to select placement for element: ${selector}`}
                     >
-                         <div className={cn(
-                           'flex-col gap-2 rounded-lg bg-background/90 backdrop-blur-sm p-2 shadow-lg',
-                           activeSuggestion === selector ? 'flex' : 'hidden'
-                         )}>
-                            <Button variant="secondary" size="sm" onClick={(e) => handlePlacementDecision(selector, 'before', e)}>
-                                <ArrowUp className="mr-2 h-4 w-4" /> Place Above
-                            </Button>
-                            <Button variant="secondary" size="sm" onClick={(e) => handlePlacementDecision(selector, 'after', e)}>
-                                <ArrowDown className="mr-2 h-4 w-4" /> Place Below
-                            </Button>
-                        </div>
-
-                        {activeSuggestion !== selector && selectedPlacement?.selector !== selector && (
-                             <div className="pointer-events-none rounded-md bg-background/80 p-2 text-xs font-medium text-foreground opacity-0 shadow-md transition-opacity group-hover/suggestion:opacity-100">
+                        {!activeSuggestion && (
+                             <div className="pointer-events-none rounded-md bg-background/80 p-2 text-xs font-medium text-foreground shadow-md">
                                 Click to place player here
                             </div>
                         )}
                     </div>
                 ))}
 
+                {/* Renders the "Above/Below" buttons over the active suggestion */}
+                {activeSuggestion && suggestionPositions[activeSuggestion] && (
+                    <div
+                        style={{
+                            position: 'absolute',
+                            ...suggestionPositions[activeSuggestion],
+                        }}
+                        className="z-20 pointer-events-auto flex flex-col items-center justify-center gap-2 rounded-lg bg-background/80 backdrop-blur-sm p-2 shadow-lg"
+                    >
+                        <p className='text-xs font-bold text-center'>Place Player</p>
+                        <Button variant="secondary" size="sm" className="w-full" onClick={(e) => handlePlacementDecision('before', e)}>
+                           <ArrowUp className="mr-2 h-4 w-4" /> Above
+                       </Button>
+                       <Button variant="secondary" size="sm" className="w-full" onClick={(e) => handlePlacementDecision('after', e)}>
+                           <ArrowDown className="mr-2 h-4 w-4" /> Below
+                       </Button>
+                   </div>
+                )}
+
+                {/* Renders the actual player preview once a placement is selected */}
                 {selectedPlacement && suggestionPositions[selectedPlacement.selector] && (
                     <div style={{
                         position: 'absolute',
@@ -183,7 +197,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                             ? `calc(${suggestionPositions[selectedPlacement.selector].top} - 80px)` // Approx height of player
                             : `calc(${suggestionPositions[selectedPlacement.selector].top} + ${suggestionPositions[selectedPlacement.selector].height})`,
                         height: 'auto',
-                        zIndex: 40,
+                        zIndex: 30, // Highest z-index to be on top
                         pointerEvents: 'none'
                         }}
                         className="transition-all duration-300"
