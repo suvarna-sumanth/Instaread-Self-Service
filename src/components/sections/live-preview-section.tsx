@@ -10,6 +10,7 @@ import AudioPlayer from '@/components/ui/audio-player';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from '../ui/button';
+import { Separator } from '../ui/separator';
 
 type LivePreviewSectionProps = {
   url: string;
@@ -88,7 +89,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   
   const handleSuggestionClick = (selector: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setActiveSuggestion(current => (current === selector ? null : selector));
+    setActiveSuggestion(selector);
   };
   
   const handlePlacementDecision = (position: 'before' | 'after', e: React.MouseEvent) => {
@@ -109,17 +110,17 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
         position: 'absolute',
         width: targetPos.width,
         left: targetPos.left,
-        top: selectedPlacement.position === 'before' ? targetPos.top : `calc(${targetPos.top} + ${targetPos.height})`,
-        transform: selectedPlacement.position === 'before' ? 'translateY(-100%)' : 'translateY(0)',
-        zIndex: 40,
-        pointerEvents: 'none',
+        top: selectedPlacement.position === 'after' 
+            ? `calc(${targetPos.top} + ${targetPos.height})`
+            : targetPos.top,
+        transform: selectedPlacement.position === 'before'
+            ? 'translateY(-100%)'
+            : 'translateY(0)',
     };
 
     return (
-        <div style={playerStyle} className="transition-transform duration-300 animate-in fade-in">
-            <div style={{ pointerEvents: 'auto' }} className="p-2">
-                <AudioPlayer config={playerConfig} />
-            </div>
+        <div style={playerStyle} className="transition-all duration-300 animate-in fade-in p-2 pointer-events-auto">
+            <AudioPlayer config={playerConfig} />
         </div>
     );
   };
@@ -171,49 +172,53 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                 className="w-full h-full border-0"
                 sandbox="allow-scripts allow-same-origin"
             />
-            <div className="absolute inset-0 z-10 pointer-events-none">
-                {Object.entries(suggestionPositions).map(([selector, style]) => (
-                     <div
-                        key={selector}
-                        style={{ position: 'absolute', ...style}}
-                        className={cn(
-                            "transition-all duration-300 pointer-events-auto cursor-pointer flex items-center justify-center",
-                            "border-2 border-dashed border-accent hover:bg-accent/10",
-                            { "bg-accent/20 border-solid": activeSuggestion === selector }
-                        )}
-                        onClick={(e) => handleSuggestionClick(selector, e)}
-                        title={`Click to select placement for element: ${selector}`}
-                    >
-                        {activeSuggestion !== selector && !selectedPlacement && (
-                             <div className="pointer-events-none rounded-md bg-background/80 p-2 text-xs font-medium text-foreground shadow-md">
-                                Click to place player here
-                            </div>
-                        )}
-                    </div>
-                ))}
-            </div>
-
-            {activeSuggestion && suggestionPositions[activeSuggestion] && (
-                <div
-                    style={{
-                        position: 'absolute',
-                        ...suggestionPositions[activeSuggestion],
-                    }}
-                    className="z-20 pointer-events-auto flex flex-col items-center justify-center gap-2 rounded-lg bg-background/80 p-2 shadow-lg"
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <p className='text-xs font-bold text-center'>Place Player</p>
-                    <Button variant="secondary" size="sm" className="w-full" onClick={(e) => handlePlacementDecision('before', e)}>
-                        <ArrowUp className="mr-2 h-4 w-4" /> Above
-                    </Button>
-                    <Button variant="secondary" size="sm" className="w-full" onClick={(e) => handlePlacementDecision('after', e)}>
-                        <ArrowDown className="mr-2 h-4 w-4" /> Below
-                    </Button>
+            <div className="absolute inset-0 pointer-events-none">
+                
+                {/* Player rendered at the bottom of the stack */}
+                <div className="absolute inset-0 z-10 pointer-events-none">
+                    {renderPlayer()}
                 </div>
-            )}
-            
-            <div className="absolute inset-0 z-30 pointer-events-none">
-              {renderPlayer()}
+                
+                {/* Suggestion boxes on top of the player */}
+                <div className="absolute inset-0 z-20 pointer-events-none">
+                    {Object.entries(suggestionPositions).map(([selector, style]) => (
+                         <div
+                            key={selector}
+                            style={{ position: 'absolute', ...style}}
+                            className={cn(
+                                "transition-all duration-300 pointer-events-auto cursor-pointer flex items-center justify-center",
+                                "border-2 border-dashed border-accent hover:bg-accent/10",
+                                { "bg-accent/20 border-solid": activeSuggestion === selector || selectedPlacement?.selector === selector }
+                            )}
+                            onClick={(e) => handleSuggestionClick(selector, e)}
+                            title={`Click to select placement for element: ${selector}`}
+                        >
+                        </div>
+                    ))}
+                </div>
+
+                {/* The action buttons go on top of everything */}
+                {activeSuggestion && suggestionPositions[activeSuggestion] && (
+                    <div
+                        style={{
+                            position: 'absolute',
+                            top: suggestionPositions[activeSuggestion].top,
+                            left: `calc(${suggestionPositions[activeSuggestion].left} + ${suggestionPositions[activeSuggestion].width} / 2)`,
+                            transform: 'translateX(-50%) translateY(-100%)',
+                            marginTop: '-8px' // Space from the element
+                        }}
+                        className="z-30 pointer-events-auto flex items-center gap-1 rounded-full bg-background p-1 shadow-lg animate-in fade-in"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <Button variant="ghost" size="sm" className="h-8 px-3" onClick={(e) => handlePlacementDecision('before', e)}>
+                            <ArrowUp className="mr-2 h-4 w-4" /> Above
+                        </Button>
+                        <Separator orientation="vertical" className="h-4" />
+                        <Button variant="ghost" size="sm" className="h-8 px-3" onClick={(e) => handlePlacementDecision('after', e)}>
+                            <ArrowDown className="mr-2 h-4 w-4" /> Below
+                        </Button>
+                    </div>
+                )}
             </div>
         </div>
     )
