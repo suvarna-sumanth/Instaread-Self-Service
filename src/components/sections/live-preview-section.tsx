@@ -15,8 +15,6 @@ type LivePreviewSectionProps = {
   url: string;
   cloneHtml: string | null;
   isLoading: boolean;
-  onIframeError: () => void;
-  iframeError: boolean;
   placementSuggestions: string[];
   selectedPlacement: string | null;
   onSelectPlacement: (selector: string | null) => void;
@@ -24,7 +22,7 @@ type LivePreviewSectionProps = {
 };
 
 const LivePreviewSection = (props: LivePreviewSectionProps) => {
-  const { url, cloneHtml, isLoading, onIframeError, iframeError, placementSuggestions, selectedPlacement, onSelectPlacement, playerConfig } = props;
+  const { url, cloneHtml, isLoading, placementSuggestions, selectedPlacement, onSelectPlacement, playerConfig } = props;
   const previewRef = useRef<HTMLDivElement>(null);
   const [playerStyle, setPlayerStyle] = useState<React.CSSProperties>({});
   
@@ -47,16 +45,6 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
 
 
   const renderPreviewContent = (isMobile: boolean) => {
-    if (!url) {
-      return (
-        <div className="flex flex-col items-center justify-center h-full text-center p-8">
-            <Info className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="font-semibold text-lg">Live Preview</h3>
-            <p className="text-muted-foreground">Enter a URL to start generating your demo.</p>
-        </div>
-      );
-    }
-
     if (isLoading) {
       return (
           <div className="p-4 space-y-4">
@@ -69,11 +57,21 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       );
     }
     
-    if (iframeError && !cloneHtml) {
+    if (!url) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-center p-8">
+            <Info className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="font-semibold text-lg">Live Preview</h3>
+            <p className="text-muted-foreground">Enter a URL to start generating your demo.</p>
+        </div>
+      );
+    }
+
+    if (!cloneHtml) {
         return (
             <Alert variant="destructive" className="m-4">
-                <AlertTitle>Clone Generation Failed</AlertTitle>
-                <AlertDescription>We couldn't generate a visual clone for this website. Please try a different URL.</AlertDescription>
+                <AlertTitle>Preview Generation Failed</AlertTitle>
+                <AlertDescription>We couldn't generate a visual clone for this website. It may be protected. Please try a different URL.</AlertDescription>
             </Alert>
         );
     }
@@ -84,59 +82,52 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       "transition-all duration-300"
     );
 
-    const iframeSrc = iframeError ? undefined : url;
-    const iframeSrcDoc = iframeError && cloneHtml ? cloneHtml : undefined;
-
     return (
         <div className={previewContainerClasses}>
             <div ref={previewRef} className="w-full h-full">
                 <iframe
                     title="Website Preview"
-                    src={iframeSrc}
-                    srcDoc={iframeSrcDoc}
+                    srcDoc={cloneHtml}
                     className="w-full h-full border-0"
-                    onError={onIframeError}
                     sandbox="allow-scripts allow-same-origin"
                 />
             </div>
-            {iframeError && cloneHtml && (
-                <>
-                    {placementSuggestions.map(selector => {
-                        const targetElement = previewRef.current?.querySelector(selector);
-                        if (!targetElement) return null;
-                        const containerRect = previewRef.current!.getBoundingClientRect();
-                        const targetRect = targetElement.getBoundingClientRect();
-                        const style: React.CSSProperties = {
-                            position: 'absolute',
-                            top: targetRect.top - containerRect.top,
-                            left: targetRect.left - containerRect.left,
-                            width: targetRect.width,
-                            height: targetRect.height,
-                            zIndex: 5,
-                        };
-                        return (
-                            <div
-                                key={selector}
-                                style={style}
-                                className={cn(
-                                    "border-2 border-dashed border-accent cursor-pointer transition-all duration-300 bg-accent/20 hover:bg-accent/40 flex items-center justify-center",
-                                    selectedPlacement === selector && "border-solid border-primary bg-primary/30"
-                                )}
-                                onClick={() => onSelectPlacement(selector)}
-                            >
-                                <div className="bg-background/80 p-1 rounded-sm text-xs text-foreground">
-                                    {selector}
-                                </div>
+            <>
+                {placementSuggestions.map(selector => {
+                    const targetElement = previewRef.current?.querySelector(selector);
+                    if (!targetElement) return null;
+                    const containerRect = previewRef.current!.getBoundingClientRect();
+                    const targetRect = targetElement.getBoundingClientRect();
+                    const style: React.CSSProperties = {
+                        position: 'absolute',
+                        top: targetRect.top - containerRect.top,
+                        left: targetRect.left - containerRect.left,
+                        width: targetRect.width,
+                        height: targetRect.height,
+                        zIndex: 5,
+                    };
+                    return (
+                        <div
+                            key={selector}
+                            style={style}
+                            className={cn(
+                                "border-2 border-dashed border-accent cursor-pointer transition-all duration-300 bg-accent/20 hover:bg-accent/40 flex items-center justify-center",
+                                selectedPlacement === selector && "border-solid border-primary bg-primary/30"
+                            )}
+                            onClick={() => onSelectPlacement(selector)}
+                        >
+                            <div className="bg-background/80 p-1 rounded-sm text-xs text-foreground">
+                                {selector}
                             </div>
-                        )
-                    })}
-                    {selectedPlacement && (
-                        <div style={playerStyle} className="transition-all duration-300">
-                           <AudioPlayer config={playerConfig} />
                         </div>
-                    )}
-                </>
-            )}
+                    )
+                })}
+                {selectedPlacement && (
+                    <div style={playerStyle} className="transition-all duration-300">
+                       <AudioPlayer config={playerConfig} />
+                    </div>
+                )}
+            </>
         </div>
     )
   }
@@ -148,10 +139,10 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
             <div>
                 <CardTitle className="font-headline text-2xl">3. Live Preview & Placement</CardTitle>
                 <CardDescription>
-                    {iframeError ? "Visually place the player on the website clone." : "View a live preview of the website."}
+                    Visually place the player on the website clone.
                 </CardDescription>
             </div>
-            {iframeError && <Button variant="outline" size="sm" onClick={() => onSelectPlacement(null)}><Pointer className="mr-2 h-4 w-4"/>Clear Placement</Button>}
+            {placementSuggestions.length > 0 && <Button variant="outline" size="sm" onClick={() => onSelectPlacement(null)}><Pointer className="mr-2 h-4 w-4"/>Clear Placement</Button>}
         </div>
       </CardHeader>
       <CardContent>

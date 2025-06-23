@@ -23,7 +23,6 @@ export default function DemoGenerator() {
   });
   const [cloneHtml, setCloneHtml] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [iframeError, setIframeError] = useState(false);
   const [placementSuggestions, setPlacementSuggestions] = useState<string[]>([]);
   const [selectedPlacement, setSelectedPlacement] = useState<string | null>(null);
 
@@ -40,46 +39,32 @@ export default function DemoGenerator() {
     setAnalysis(null);
     setUrl(newUrl);
     setCloneHtml(null);
-    setIframeError(false);
     setSelectedPlacement(null);
     setPlacementSuggestions([]);
     
     try {
-      const analysisResult = await analyzeWebsite(newUrl);
+      const [analysisResult, html] = await Promise.all([
+        analyzeWebsite(newUrl),
+        getVisualClone(newUrl),
+      ]);
+      
       setAnalysis(analysisResult);
+      setCloneHtml(html);
+      
+      const suggestions = await getPlacementSuggestions(html);
+      setPlacementSuggestions(suggestions.suggestedLocations);
+
       toast({
-        title: "Analysis Complete",
-        description: "Website styles and tech stack identified.",
+        title: "Analysis & Preview Ready",
+        description: "Website preview is generated and ready for placement.",
       });
+
     } catch (error) {
        toast({
-        title: "Analysis Failed",
-        description: `Could not analyze the website. Attempting to load preview directly. ${error instanceof Error ? error.message : ''}`,
+        title: "Preview Generation Failed",
+        description: `Could not generate a preview for the website. It may be protected. ${error instanceof Error ? error.message : ''}`,
         variant: "destructive",
       });
-    } finally {
-        setIsLoading(false);
-    }
-  };
-  
-  const handleIframeError = async () => {
-    setIframeError(true);
-    setIsLoading(true);
-    toast({
-        title: "Iframe Blocked",
-        description: "Attempting to generate a visual clone as a fallback.",
-    });
-    try {
-        const html = await getVisualClone(url);
-        setCloneHtml(html);
-        const suggestions = await getPlacementSuggestions(html);
-        setPlacementSuggestions(suggestions.suggestedLocations);
-    } catch (error) {
-        toast({
-            title: "Automatic Clone Failed",
-            description: `We couldn't automatically generate a preview for this site. It may be protected. ${error instanceof Error ? error.message : ''}`,
-            variant: "destructive",
-        });
     } finally {
         setIsLoading(false);
     }
@@ -99,8 +84,6 @@ export default function DemoGenerator() {
             url={url}
             cloneHtml={cloneHtml}
             isLoading={isLoading}
-            onIframeError={handleIframeError}
-            iframeError={iframeError}
             placementSuggestions={placementSuggestions}
             selectedPlacement={selectedPlacement}
             onSelectPlacement={setSelectedPlacement}
