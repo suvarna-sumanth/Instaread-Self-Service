@@ -3,11 +3,9 @@
 import { genkitNextJS } from '@genkit-ai/next';
 import { ai } from '@/ai/genkit';
 
-// Explicitly import flows to register them with the Genkit API endpoint.
-import '@/ai/flows/website-analysis';
-
-// The other files in the /flows directory (generate-visual-clone and
-// placement-analysis) were refactored into regular async functions and are
-// called directly by Server Actions, so they do not need to be registered here.
+// By not importing any flows here, we are only setting up the Genkit
+// endpoint but not registering any specific flows to be publicly available
+// via HTTP. The flows are still available to be called directly from
+// server-side code (like Server Actions), which resolves a startup conflict.
 
 export const { GET, POST } = genkitNextJS({ ai });
