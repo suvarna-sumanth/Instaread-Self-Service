@@ -56,6 +56,11 @@ export default function DemoGenerator() {
       setAnalysis(analysisResult);
       setPlacementSuggestions(suggestions.suggestedLocations);
 
+      // Auto-select the first suggestion as the default placement.
+      if (suggestions.suggestedLocations?.length > 0) {
+        setSelectedPlacement(suggestions.suggestedLocations[0]);
+      }
+
       toast({
         title: "Analysis & Preview Ready",
         description: "Website preview is generated and ready for placement.",

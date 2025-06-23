@@ -23,25 +23,63 @@ type LivePreviewSectionProps = {
 
 const LivePreviewSection = (props: LivePreviewSectionProps) => {
   const { url, cloneHtml, isLoading, placementSuggestions, selectedPlacement, onSelectPlacement, playerConfig } = props;
-  const previewRef = useRef<HTMLDivElement>(null);
-  const [playerStyle, setPlayerStyle] = useState<React.CSSProperties>({});
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [suggestionPositions, setSuggestionPositions] = useState<Record<string, React.CSSProperties>>({});
   
   useEffect(() => {
-    if (selectedPlacement && previewRef.current) {
-      const containerRect = previewRef.current.getBoundingClientRect();
-      const targetElement = previewRef.current.querySelector(selectedPlacement);
-      if (targetElement) {
-        const targetRect = targetElement.getBoundingClientRect();
-        setPlayerStyle({
-          position: 'absolute',
-          top: `${targetRect.top - containerRect.top}px`,
-          left: `${targetRect.left - containerRect.left}px`,
-          width: `${targetRect.width}px`,
-          zIndex: 10,
-        });
+    const iframe = iframeRef.current;
+    if (!iframe || !cloneHtml || placementSuggestions.length === 0) {
+      setSuggestionPositions({});
+      return;
+    };
+
+    const calculatePositions = () => {
+      const doc = iframe.contentDocument;
+      if (!doc) return;
+      
+      const newPositions: Record<string, React.CSSProperties> = {};
+      for (const selector of placementSuggestions) {
+        try {
+          const targetElement = doc.querySelector(selector) as HTMLElement;
+          if (targetElement) {
+              const targetRect = targetElement.getBoundingClientRect();
+              newPositions[selector] = {
+                  position: 'absolute',
+                  top: `${targetRect.top}px`,
+                  left: `${targetRect.left}px`,
+                  width: `${targetRect.width}px`,
+                  height: `${targetRect.height}px`,
+              };
+          }
+        } catch (e) {
+            console.error(`Invalid selector: ${selector}`, e);
+        }
       }
+      setSuggestionPositions(newPositions);
+    };
+
+    // Recalculate positions if the iframe resizes (e.g. switching between desktop/mobile tabs)
+    const handleResize = () => {
+        // A small delay to allow layout to settle
+        setTimeout(calculatePositions, 50);
     }
-  }, [selectedPlacement, cloneHtml]);
+    const resizeObserver = new ResizeObserver(handleResize);
+    resizeObserver.observe(iframe);
+    
+    // Initial calculation on load
+    iframe.onload = calculatePositions;
+    // Also run if already loaded
+    if (iframe.contentDocument?.readyState === 'complete') {
+        calculatePositions();
+    }
+
+    return () => {
+        resizeObserver.disconnect();
+        if (iframe) {
+            iframe.onload = null;
+        }
+    }
+  }, [cloneHtml, placementSuggestions]);
 
 
   const renderPreviewContent = (isMobile: boolean) => {
@@ -84,46 +122,31 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
 
     return (
         <div className={previewContainerClasses}>
-            <div ref={previewRef} className="w-full h-full">
-                <iframe
-                    title="Website Preview"
-                    srcDoc={cloneHtml}
-                    className="w-full h-full border-0"
-                    sandbox="allow-scripts allow-same-origin"
-                />
-            </div>
+            <iframe
+                ref={iframeRef}
+                title="Website Preview"
+                srcDoc={cloneHtml}
+                className="w-full h-full border-0"
+                sandbox="allow-scripts allow-same-origin"
+            />
             <>
-                {placementSuggestions.map(selector => {
-                    const targetElement = previewRef.current?.querySelector(selector);
-                    if (!targetElement) return null;
-                    const containerRect = previewRef.current!.getBoundingClientRect();
-                    const targetRect = targetElement.getBoundingClientRect();
-                    const style: React.CSSProperties = {
-                        position: 'absolute',
-                        top: targetRect.top - containerRect.top,
-                        left: targetRect.left - containerRect.left,
-                        width: targetRect.width,
-                        height: targetRect.height,
-                        zIndex: 5,
-                    };
-                    return (
-                        <div
-                            key={selector}
-                            style={style}
-                            className={cn(
-                                "border-2 border-dashed border-accent cursor-pointer transition-all duration-300 bg-accent/20 hover:bg-accent/40 flex items-center justify-center",
-                                selectedPlacement === selector && "border-solid border-primary bg-primary/30"
-                            )}
-                            onClick={() => onSelectPlacement(selector)}
-                        >
-                            <div className="bg-background/80 p-1 rounded-sm text-xs text-foreground">
-                                {selector}
-                            </div>
+                {Object.entries(suggestionPositions).map(([selector, style]) => (
+                    <div
+                        key={selector}
+                        style={style}
+                        className={cn(
+                            "border-2 border-dashed border-accent cursor-pointer transition-all duration-300 bg-accent/20 hover:bg-accent/40 flex items-center justify-center",
+                            selectedPlacement === selector && "border-solid border-primary bg-primary/30"
+                        )}
+                        onClick={() => onSelectPlacement(selector)}
+                    >
+                        <div className="bg-background/80 p-1 rounded-sm text-xs text-foreground">
+                            {selector}
                         </div>
-                    )
-                })}
-                {selectedPlacement && (
-                    <div style={playerStyle} className="transition-all duration-300">
+                    </div>
+                ))}
+                {selectedPlacement && suggestionPositions[selectedPlacement] && (
+                    <div style={{ ...suggestionPositions[selectedPlacement], height: 'auto', zIndex: 10 }} className="transition-all duration-300">
                        <AudioPlayer config={playerConfig} />
                     </div>
                 )}
