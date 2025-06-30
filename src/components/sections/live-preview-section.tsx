@@ -67,113 +67,73 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   const [stagedPlacement, setStagedPlacement] = useState<{ selector: string } | null>(null);
   
 
-  // Effect 1: Setup interactivity (hovering and clicking) in the iframe
-  useEffect(() => {
-    console.log('[LivePreview] Interactivity effect triggered. cloneHtml updated.');
+  const handleIframeLoad = () => {
+    console.log('[LivePreview] Iframe onLoad event fired.');
     const iframe = iframeRef.current;
     if (!iframe) {
-        console.log('[LivePreview] Iframe ref is not available yet.');
+        console.error('[LivePreview] Iframe ref not available in onLoad handler.');
+        return;
+    }
+    const doc = iframe.contentDocument;
+    if (!doc?.body) {
+        console.error('[LivePreview] Iframe document or body not found!');
         return;
     }
 
-    let cleanup: (() => void) | undefined;
+    console.log('[LivePreview] Iframe document body found. Attaching event listeners.');
 
-    const setupInteractivity = () => {
-        console.log('[LivePreview] Running setupInteractivity...');
-        const doc = iframe.contentDocument;
-        if (!doc?.body) {
-            console.error('[LivePreview] Iframe document or body not found!');
-            return;
-        }
+    let lastHovered: HTMLElement | null = null;
+    let originalOutline: string | null = null;
 
-        console.log('[LivePreview] Iframe document body found. Attaching event listeners.');
-
-        let lastHovered: HTMLElement | null = null;
-        let originalOutline: string | null = null;
-
-        const handleMouseOver = (e: MouseEvent) => {
-            const target = e.target as HTMLElement;
-            if (target && target !== lastHovered) {
-                if (lastHovered) {
-                    lastHovered.style.outline = originalOutline || '';
-                }
-                lastHovered = target;
-                originalOutline = target.style.outline;
-                // Don't highlight the player itself or the helper elements
-                if (!target.closest('.audioleap-player-container')) {
-                    target.style.outline = '2px dashed hsl(var(--accent))';
-                }
-            }
-        };
-
-        const handleMouseOut = () => {
+    const handleMouseOver = (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (target && target !== lastHovered) {
             if (lastHovered) {
                 lastHovered.style.outline = originalOutline || '';
-                lastHovered = null;
-                originalOutline = null;
             }
-        };
-
-        const handleClick = (e: MouseEvent) => {
-            console.log('[LivePreview] Click event captured inside iframe!', e);
-            e.preventDefault();
-            e.stopPropagation();
-            const target = e.target as HTMLElement;
-            if (target && !target.closest('.audioleap-player-container')) {
-                const selector = generateSelector(target);
-                console.log(`[LivePreview] Generated selector: "${selector}"`);
-                if (selector) {
-                    console.log('[LivePreview] Staging placement...');
-                    setStagedPlacement({ selector });
-                } else {
-                    console.warn('[LivePreview] Could not generate a valid selector for the clicked element.');
-                }
-            } else {
-                 console.log('[LivePreview] Click was on the player container, ignoring.');
+            lastHovered = target;
+            originalOutline = target.style.outline;
+            // Don't highlight the player itself or the helper elements
+            if (!target.closest('.audioleap-player-container')) {
+                target.style.outline = '2px dashed hsl(var(--accent))';
             }
-        };
-        
-        doc.body.addEventListener('mouseover', handleMouseOver);
-        doc.body.addEventListener('mouseout', handleMouseOut);
-        doc.body.addEventListener('click', handleClick);
-        console.log('[LivePreview] Event listeners attached.');
-
-
-        return () => {
-            console.log('[LivePreview] Cleaning up interactivity event listeners.');
-            if (doc?.body) {
-                doc.body.removeEventListener('mouseover', handleMouseOver);
-                doc.body.removeEventListener('mouseout', handleMouseOut);
-                doc.body.removeEventListener('click', handleClick);
-            }
-        };
+        }
     };
 
-    const onLoad = () => {
-        console.log('[LivePreview] Iframe onLoad event fired.');
-        cleanup = setupInteractivity();
+    const handleMouseOut = () => {
+        if (lastHovered) {
+            lastHovered.style.outline = originalOutline || '';
+            lastHovered = null;
+            originalOutline = null;
+        }
+    };
+
+    const handleClick = (e: MouseEvent) => {
+        console.log('[LivePreview] Click event captured inside iframe!', e);
+        e.preventDefault();
+        e.stopPropagation();
+        const target = e.target as HTMLElement;
+        if (target && !target.closest('.audioleap-player-container')) {
+            const selector = generateSelector(target);
+            console.log(`[LivePreview] Generated selector: "${selector}"`);
+            if (selector) {
+                console.log('[LivePreview] Staging placement...');
+                setStagedPlacement({ selector });
+            } else {
+                console.warn('[LivePreview] Could not generate a valid selector for the clicked element.');
+            }
+        } else {
+             console.log('[LivePreview] Click was on the player container, ignoring.');
+        }
     };
     
-    iframe.addEventListener('load', onLoad);
-    console.log('[LivePreview] "load" event listener attached to iframe.');
+    doc.body.addEventListener('mouseover', handleMouseOver);
+    doc.body.addEventListener('mouseout', handleMouseOut);
+    doc.body.addEventListener('click', handleClick);
+    console.log('[LivePreview] Event listeners attached.');
+  };
 
-    // Check if the document is already loaded (can happen with srcDoc)
-    if (iframe.contentDocument?.readyState === 'complete') {
-        console.log('[LivePreview] Iframe was already loaded, setting up interactivity immediately.');
-        cleanup = setupInteractivity();
-    }
-
-    return () => {
-      console.log('[LivePreview] Interactivity effect cleanup function running.');
-      if (iframe) {
-        iframe.removeEventListener('load', onLoad);
-      }
-      cleanup?.();
-    };
-  }, [cloneHtml]);
-
-
-  // Effect 2: Place the actual player when a placement is confirmed
+  // Effect to place the actual player when a placement is confirmed
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe || !iframe.contentDocument) return;
@@ -272,6 +232,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                 srcDoc={cloneHtml}
                 className="w-full h-full border-0"
                 sandbox="allow-scripts allow-same-origin"
+                onLoad={handleIframeLoad}
             />
             {playerContainer && ReactDOM.createPortal(
                 <div className="p-2">
