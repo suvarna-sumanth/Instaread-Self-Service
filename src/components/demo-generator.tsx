@@ -59,8 +59,8 @@ export default function DemoGenerator() {
                 });
             } else {
                  toast({
-                    title: "Auto-Find Disabled",
-                    description: "Proceeding with the provided URL. For best results, paste a direct article link.",
+                    title: "Continuing with Homepage",
+                    description: "Could not auto-detect an article. Proceeding with the provided URL.",
                 });
             }
         }
