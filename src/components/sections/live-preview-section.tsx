@@ -213,7 +213,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
 
     const previewContainerClasses = cn(
       "bg-white rounded-lg overflow-hidden w-full relative", 
-      isMobile ? "h-[640px] w-[360px] shadow-2xl border-[10px] border-black rounded-[40px]" : "h-[600px] shadow-lg",
+      isMobile ? "h-[640px] w-[360px] shadow-2xl border-[10px] border-black rounded-[40px]" : "h-full shadow-lg",
       "transition-all duration-300"
     );
 
@@ -261,7 +261,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
             </DialogContent>
         </Dialog>
 
-      <Card className="shadow-md relative">
+      <Card className="shadow-md relative h-full flex flex-col">
         <CardHeader>
           <div className="flex justify-between items-start">
               <div>
@@ -273,14 +273,14 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
               {selectedPlacement && <Button variant="outline" size="sm" onClick={handleClearPlacement}><Pointer className="mr-2 h-4 w-4"/>Clear Placement</Button>}
           </div>
         </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="desktop" className="w-full">
+        <CardContent className="flex flex-col flex-grow p-6 pt-0">
+          <Tabs defaultValue="desktop" className="w-full flex flex-col flex-grow">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="desktop"><Monitor className="mr-2 h-4 w-4"/>Desktop</TabsTrigger>
               <TabsTrigger value="mobile"><Smartphone className="mr-2 h-4 w-4"/>Mobile</TabsTrigger>
             </TabsList>
-            <TabsContent value="desktop">
-              <div className="bg-muted/50 rounded-lg p-4 mt-4 flex items-center justify-center">
+            <TabsContent value="desktop" className="flex-grow">
+              <div className="bg-muted/50 rounded-lg p-4 mt-4 h-full">
                   {renderPreviewContent(false)}
               </div>
             </TabsContent>
