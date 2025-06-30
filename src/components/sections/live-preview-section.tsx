@@ -194,7 +194,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                 </div>,
                 playerContainer
             )}
-            <div className="absolute inset-0 z-50">
+            <div className="absolute inset-0 z-50 pointer-events-none">
                 {Object.entries(suggestionPositions).map(([selector, rect]) => {
                     const isSelected = selectedPlacement?.selector === selector;
                     const doc = iframeRef.current?.contentDocument;
@@ -214,7 +214,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                             key={selector}
                             style={style}
                             className={cn(
-                                "cursor-pointer border-2 border-dashed border-accent hover:bg-accent/10 transition-colors",
+                                "cursor-pointer border-2 border-dashed border-accent hover:bg-accent/10 transition-colors pointer-events-auto",
                                 { "border-primary border-solid bg-primary/10": isSelected }
                             )}
                             onClick={() => handleSuggestionClick(selector)}
