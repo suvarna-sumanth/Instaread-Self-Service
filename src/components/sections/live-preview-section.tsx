@@ -18,6 +18,7 @@ type LivePreviewSectionProps = {
   url: string;
   cloneHtml: string | null;
   isLoading: boolean;
+  statusText: string;
   selectedPlacement: Placement;
   onSelectPlacement: (placement: Placement) => void;
   playerConfig: PlayerConfig;
@@ -61,7 +62,7 @@ const generateSelector = (el: Element): string => {
 
 
 const LivePreviewSection = (props: LivePreviewSectionProps) => {
-  const { url, cloneHtml, isLoading, selectedPlacement, onSelectPlacement, playerConfig } = props;
+  const { url, cloneHtml, isLoading, statusText, selectedPlacement, onSelectPlacement, playerConfig } = props;
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [playerContainer, setPlayerContainer] = useState<HTMLElement | null>(null);
   const [stagedPlacement, setStagedPlacement] = useState<{ selector: string } | null>(null);
@@ -184,7 +185,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
           <div className="p-4 space-y-4">
             <div className="flex items-center justify-center gap-2 text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin" />
-                <p>Analyzing and rendering preview...</p>
+                <p>{statusText || 'Analyzing and rendering preview...'}</p>
             </div>
             <Skeleton className="h-[400px] w-full" />
           </div>

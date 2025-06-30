@@ -7,8 +7,9 @@ import WebsiteAnalysisSection from '@/components/sections/website-analysis-secti
 import PlayerConfigSection from '@/components/sections/player-config-section';
 import IntegrationCodeSection from '@/components/sections/integration-code-section';
 import LivePreviewSection from '@/components/sections/live-preview-section';
-import { getVisualClone, analyzeWebsite } from '@/lib/actions';
+import { getVisualClone, analyzeWebsite, findArticleUrl } from '@/lib/actions';
 import { useToast } from "@/hooks/use-toast";
+import { isLikelyHomepage } from '@/lib/url-utils';
 
 export default function DemoGenerator() {
   const { toast } = useToast();
@@ -23,6 +24,7 @@ export default function DemoGenerator() {
   });
   const [cloneHtml, setCloneHtml] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [statusText, setStatusText] = useState('');
   const [selectedPlacement, setSelectedPlacement] = useState<Placement>(null);
 
   const handleAnalyze = async (newUrl: string) => {
@@ -35,34 +37,50 @@ export default function DemoGenerator() {
         return;
     };
     setIsLoading(true);
+    setStatusText('Starting analysis...');
     setAnalysis(null);
-    setUrl(newUrl);
     setCloneHtml(null);
     setSelectedPlacement(null);
-    
-    try {
-      // We no longer need Promise.all, as placement is now manual.
-      const html = await getVisualClone(newUrl);
-      setCloneHtml(html);
+    setUrl(newUrl); // Set initial URL for reference
 
-      const analysisResult = await analyzeWebsite(newUrl);
-      setAnalysis(analysisResult);
-      
-      toast({
-        title: "Analysis Complete",
-        description: "Click an element in the live preview to place the player.",
-      });
+    let urlToProcess = newUrl;
+
+    try {
+        if (await isLikelyHomepage(newUrl)) {
+            setStatusText('Homepage detected. Finding a sample article...');
+            const articleUrl = await findArticleUrl(newUrl);
+            urlToProcess = articleUrl;
+            setUrl(articleUrl); // Update the URL state to the article URL
+            toast({
+                title: "Article Found!",
+                description: `Now analyzing: ${articleUrl}`,
+            });
+        }
+        
+        setStatusText('Generating visual preview...');
+        const html = await getVisualClone(urlToProcess);
+        setCloneHtml(html);
+
+        setStatusText('Analyzing website design...');
+        const analysisResult = await analyzeWebsite(urlToProcess);
+        setAnalysis(analysisResult);
+        
+        toast({
+            title: "Analysis Complete",
+            description: "Click an element in the live preview to place the player.",
+        });
 
     } catch (error) {
        console.error("[DemoGenerator] Analysis failed:", error);
        const description = error instanceof Error ? error.message : "An unexpected error occurred.";
        toast({
         title: "Analysis Failed",
-        description: `Could not generate a preview for the website. ${description}`,
+        description: `Could not complete the process. ${description}`,
         variant: "destructive",
       });
     } finally {
         setIsLoading(false);
+        setStatusText('');
     }
   };
 
@@ -71,7 +89,12 @@ export default function DemoGenerator() {
       <Header />
       <div className="flex flex-col lg:flex-row gap-8 p-4 md:p-8">
         <aside className="lg:w-2/5 xl:w-1/3 flex flex-col gap-8">
-          <WebsiteAnalysisSection onAnalyze={handleAnalyze} analysis={analysis} isLoading={isLoading} />
+          <WebsiteAnalysisSection 
+            onAnalyze={handleAnalyze} 
+            analysis={analysis} 
+            isLoading={isLoading} 
+            statusText={statusText}
+          />
           <PlayerConfigSection config={playerConfig} setConfig={setPlayerConfig} />
           <IntegrationCodeSection playerConfig={playerConfig} selectedPlacement={selectedPlacement} websiteUrl={url} />
         </aside>
@@ -80,6 +103,7 @@ export default function DemoGenerator() {
             url={url}
             cloneHtml={cloneHtml}
             isLoading={isLoading}
+            statusText={statusText}
             selectedPlacement={selectedPlacement}
             onSelectPlacement={setSelectedPlacement}
             playerConfig={playerConfig}

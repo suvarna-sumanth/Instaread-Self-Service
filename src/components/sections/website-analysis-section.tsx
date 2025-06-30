@@ -20,9 +20,10 @@ type WebsiteAnalysisSectionProps = {
   onAnalyze: (url: string) => void;
   analysis: AnalysisResult;
   isLoading: boolean;
+  statusText: string;
 };
 
-const WebsiteAnalysisSection = ({ onAnalyze, analysis, isLoading }: WebsiteAnalysisSectionProps) => {
+const WebsiteAnalysisSection = ({ onAnalyze, analysis, isLoading, statusText }: WebsiteAnalysisSectionProps) => {
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
@@ -38,7 +39,7 @@ const WebsiteAnalysisSection = ({ onAnalyze, analysis, isLoading }: WebsiteAnaly
     <Card className="shadow-md">
       <CardHeader>
         <CardTitle className="font-headline text-2xl">1. Website Analysis</CardTitle>
-        <CardDescription>Enter a website URL to extract design tokens and tech stack.</CardDescription>
+        <CardDescription>Enter a website URL. If it's a homepage, we'll find an article.</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -62,7 +63,13 @@ const WebsiteAnalysisSection = ({ onAnalyze, analysis, isLoading }: WebsiteAnaly
             </Button>
           </form>
         </Form>
-        {analysis && (
+        {isLoading && statusText && (
+          <div className="mt-4 text-sm text-muted-foreground flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <p>{statusText}</p>
+          </div>
+        )}
+        {analysis && !isLoading && (
           <div className="mt-6 space-y-4 animate-in fade-in duration-500">
             <Separator />
             <div>
