@@ -27,135 +27,118 @@ type LivePreviewSectionProps = {
 const LivePreviewSection = (props: LivePreviewSectionProps) => {
   const { url, cloneHtml, isLoading, placementSuggestions, selectedPlacement, onSelectPlacement, playerConfig } = props;
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [suggestionPositions, setSuggestionPositions] = useState<Record<string, DOMRect>>({});
   const [placementCandidate, setPlacementCandidate] = useState<string | null>(null);
   const [playerContainer, setPlayerContainer] = useState<HTMLElement | null>(null);
 
-  // Effect to calculate suggestion positions when iframe content or suggestions change
+  // This single effect manages all interactions with the iframe's content.
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
-    
-    console.log('[LivePreview] Effect triggered: Calculating suggestion positions. Suggestions:', placementSuggestions);
 
-    const calculatePositions = () => {
-      const doc = iframe?.contentDocument;
-      if (!doc) {
-        console.log('[LivePreview] calculatePositions: Iframe document not ready.');
-        return;
-      }
+    // We keep track of listeners to clean them up properly.
+    const listeners: { element: HTMLElement; type: string; listener: EventListener }[] = [];
 
-      const newPositions: Record<string, DOMRect> = {};
-      for (const selector of placementSuggestions) {
+    const handleInteractionSetup = () => {
+      const doc = iframe.contentDocument;
+      if (!doc?.body) return;
+
+      // --- Cleanup Phase ---
+      // 1. Remove any old player instance.
+      doc.querySelector('.audioleap-player-container')?.remove();
+      setPlayerContainer(null);
+      // 2. Remove old suggestion highlights and listeners.
+      listeners.forEach(({ element, type, listener }) => element.removeEventListener(type, listener));
+      listeners.length = 0;
+      doc.querySelectorAll('[data-audioleap-suggestion]').forEach(el => {
+        const htmlEl = el as HTMLElement;
+        htmlEl.style.outline = '';
+        htmlEl.style.cursor = '';
+        htmlEl.removeAttribute('data-audioleap-suggestion');
+      });
+
+      // --- Setup Phase ---
+      // 1. Add new suggestion highlights and listeners.
+      placementSuggestions.forEach(selector => {
         try {
-          const targetElement = doc.querySelector(selector) as HTMLElement;
-          if (targetElement) {
-            const targetRect = targetElement.getBoundingClientRect();
-            // Filter out very small or off-screen elements
-            if (targetRect.width > 20 && targetRect.height > 10 && targetRect.top >= 0 && targetRect.top < doc.documentElement.clientHeight) {
-              newPositions[selector] = targetRect;
-            }
+          const element = doc.querySelector(selector) as HTMLElement;
+          if (element) {
+            element.style.outline = '2px dashed hsl(var(--accent))';
+            element.style.cursor = 'pointer';
+            element.setAttribute('data-audioleap-suggestion', 'true');
+            
+            const clickListener = (e: Event) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleSuggestionClick(selector);
+            };
+
+            element.addEventListener('click', clickListener);
+            listeners.push({ element, type: 'click', listener: clickListener });
           }
         } catch (e) {
-          console.error(`[LivePreview] Invalid selector: ${selector}`, e);
+          // Ignore invalid selectors
+        }
+      });
+
+      // 2. Place the player if a placement is selected.
+      if (selectedPlacement) {
+        try {
+          const targetEl = doc.querySelector(selectedPlacement.selector) as HTMLElement;
+          if (targetEl) {
+            // Highlight the selected element
+            targetEl.style.outline = '3px solid hsl(var(--primary))';
+            
+            // Create and inject the portal for the React player component.
+            const portalRoot = doc.createElement('div');
+            portalRoot.className = 'audioleap-player-container';
+            if (selectedPlacement.position === 'before') {
+              targetEl.parentNode?.insertBefore(portalRoot, targetEl);
+            } else {
+              targetEl.parentNode?.insertBefore(portalRoot, targetEl.nextSibling);
+            }
+            // This state update will trigger a re-render and activate the portal.
+            setPlayerContainer(portalRoot);
+          }
+        } catch (e) {
+          console.error("[LivePreview] Error placing player:", e);
+          setPlayerContainer(null);
         }
       }
-      console.log('[LivePreview] Calculated positions:', newPositions);
-      setSuggestionPositions(newPositions);
     };
 
     const onLoad = () => {
-        console.log('[LivePreview] Iframe onLoad event fired.');
-        const doc = iframe.contentDocument;
-        if (doc) { // Inject host styles into iframe for consistency
-            const styleElement = doc.createElement('style');
-            styleElement.textContent = Array.from(document.styleSheets)
-                .map(ss => {
-                    try {
-                        return Array.from(ss.cssRules).map(rule => rule.cssText).join('\n');
-                    } catch (e) { return ''; }
-                })
-                .join('\n');
-            doc.head.appendChild(styleElement);
-            doc.body.style.position = 'relative'; // Ensure body is a positioning context
-        }
-        calculatePositions();
-        // Also listen for scrolls inside the iframe to recalculate
-        doc?.addEventListener('scroll', calculatePositions);
+        handleInteractionSetup();
+        // Re-run setup on internal iframe scroll to reposition if needed (rare)
+        iframe.contentDocument?.addEventListener('scroll', handleInteractionSetup);
     }
     
     if (iframe.contentDocument?.readyState === 'complete') {
-        console.log('[LivePreview] Iframe already loaded.');
       onLoad();
     } else {
-        console.log('[LivePreview] Attaching onLoad listener to iframe.');
-      iframe.onload = onLoad;
+      iframe.addEventListener('load', onLoad);
     }
 
-    const resizeObserver = new ResizeObserver(calculatePositions);
-    if(iframe.contentDocument?.body) resizeObserver.observe(iframe.contentDocument.body);
-    
     return () => {
-        console.log('[LivePreview] Cleaning up effect for position calculation.');
-        resizeObserver.disconnect();
-        iframe.contentDocument?.removeEventListener('scroll', calculatePositions);
-        if (iframe) iframe.onload = null;
-    }
-  }, [cloneHtml, placementSuggestions]);
+      if (iframe) {
+        iframe.removeEventListener('load', onLoad);
+        iframe.contentDocument?.removeEventListener('scroll', handleInteractionSetup);
+        listeners.forEach(({ element, type, listener }) => element.removeEventListener(type, listener));
+      }
+    };
+  }, [cloneHtml, placementSuggestions, selectedPlacement]);
 
-  // Effect to place the player in the DOM when selectedPlacement changes
-  useEffect(() => {
-    const iframe = iframeRef.current;
-    const doc = iframe?.contentDocument;
-    if (!doc?.body) return;
-
-    console.log('[LivePreview] Effect triggered: Placing player for selection:', selectedPlacement);
-
-    // 1. Clean up old player instance
-    const existingPlayer = doc.querySelector('.audioleap-player-container');
-    existingPlayer?.remove();
-    setPlayerContainer(null);
-
-    // 2. If a placement is selected, create and inject the new player container
-    if (selectedPlacement) {
-        try {
-            const targetEl = doc.querySelector(selectedPlacement.selector) as HTMLElement;
-            if (targetEl) {
-                const portalRoot = doc.createElement('div');
-                portalRoot.className = 'audioleap-player-container';
-                
-                if (selectedPlacement.position === 'before') {
-                    targetEl.parentNode?.insertBefore(portalRoot, targetEl);
-                } else {
-                    targetEl.parentNode?.insertBefore(portalRoot, targetEl.nextSibling);
-                }
-                // This state update will trigger a re-render and activate the portal
-                console.log('[LivePreview] Player container created. Setting state to trigger portal render.');
-                setPlayerContainer(portalRoot);
-            } else {
-                console.error('[LivePreview] Could not find target element for selector:', selectedPlacement.selector);
-            }
-        } catch (e) {
-            console.error("[LivePreview] Error placing player:", e);
-            setPlayerContainer(null);
-        }
-    }
-  }, [selectedPlacement]);
 
   const handleSuggestionClick = (selector: string) => {
-    console.log(`[LivePreview] Suggestion clicked: ${selector}`);
     setPlacementCandidate(selector);
   };
   
   const handlePlacementConfirm = (position: 'before' | 'after') => {
       if (!placementCandidate) return;
-      console.log(`[LivePreview] Placement confirmed for selector '${placementCandidate}' at position '${position}'`);
       onSelectPlacement({ selector: placementCandidate, position });
-      setPlacementCandidate(null); // Close the dialog
+      setPlacementCandidate(null);
   };
 
   const handlePlacementCancel = () => {
-    console.log('[LivePreview] Placement cancelled.');
     setPlacementCandidate(null);
   };
 
@@ -212,35 +195,6 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                 </div>,
                 playerContainer
             )}
-            <div className="absolute inset-0 z-50 pointer-events-none">
-                {Object.entries(suggestionPositions).map(([selector, rect]) => {
-                    const isSelected = selectedPlacement?.selector === selector;
-                    const doc = iframeRef.current?.contentDocument;
-
-                    if (!doc) return null;
-
-                    const style: React.CSSProperties = {
-                        position: 'absolute',
-                        top: `${rect.top + doc.documentElement.scrollTop}px`,
-                        left: `${rect.left + doc.documentElement.scrollLeft}px`,
-                        width: `${rect.width}px`,
-                        height: `${rect.height}px`,
-                    };
-
-                    return (
-                        <div
-                            key={selector}
-                            style={style}
-                            className={cn(
-                                "cursor-pointer border-2 border-dashed border-accent hover:bg-accent/10 transition-colors pointer-events-auto",
-                                { "border-primary border-solid bg-primary/10": isSelected }
-                            )}
-                            onClick={() => handleSuggestionClick(selector)}
-                        >
-                        </div>
-                    );
-                })}
-            </div>
         </div>
     )
   }
@@ -257,7 +211,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
               <div>
                   <CardTitle className="font-headline text-2xl">3. Live Preview & Placement</CardTitle>
                   <CardDescription>
-                      Click an orange box to select a location and place the player.
+                      Click a dashed box in the preview to choose a location for the player.
                   </CardDescription>
               </div>
               {url && <Button variant="outline" size="sm" onClick={handleClear}><Pointer className="mr-2 h-4 w-4"/>Clear Placement</Button>}
