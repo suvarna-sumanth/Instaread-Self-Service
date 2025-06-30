@@ -8,7 +8,6 @@
  * - PlacementAnalysisOutput - The return type for the placementAnalysis function.
  */
 import * as cheerio from 'cheerio';
-import OpenAI from 'openai';
 
 export type PlacementAnalysisInput = {
   htmlContent: string;
@@ -19,118 +18,65 @@ export type PlacementAnalysisOutput = {
   reasoning: string;
 };
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
+// This function is now the single source of truth for placement.
+// It uses a series of prioritized selectors to find the best spot.
 async function cheerioAnalysis(htmlContent: string): Promise<PlacementAnalysisOutput> {
     const $ = cheerio.load(htmlContent);
 
-    // Prioritized list of selectors to find the best placement for the player.
-    // The goal is to place the player just before the main article content starts.
+    // Prioritized list of selectors to find the main content area.
+    // The goal is to place the player *before* this main content block.
     const candidateSelectors = [
-      // Common class names for the main content block. Placing BEFORE these is ideal.
+      // Most specific and common names for article content containers
       '.entry-content',
       '.post-content',
-      '.article-content',
       '.article-body',
+      '.article-content',
+      'article.post',
 
-      // If no specific content div is found, try placing it AFTER the main headline.
-      // We do this by selecting the element immediately following h1 and placing our player before it.
-      'h1 + *',
-
-      // Fallback: place as the first child inside a broader content container.
-      'article > *:first-child',
-      'main > *:first-child',
+      // Broader containers
+      'article',
+      'main',
     ];
 
-    const suggestedLocations: string[] = [];
-    const addedElements = new Set<cheerio.Element>();
+    let bestSelector: string | null = null;
 
     for (const selector of candidateSelectors) {
-      const elements = $(selector);
-      if (elements.length > 0) {
-          const firstElement = elements.get(0);
-          if (firstElement && !addedElements.has(firstElement)) {
-              suggestedLocations.push(selector);
-              addedElements.add(firstElement);
+      const element = $(selector).first();
+      if (element.length > 0) {
+          // Check if the element contains a reasonable amount of text to be considered "main content".
+          // This helps avoid picking up small, irrelevant <article> or <main> tags.
+          if (element.text().trim().length > 200) {
+            bestSelector = selector;
+            break; // Found a good candidate, stop searching.
           }
       }
-      if (suggestedLocations.length >= 3) { // Get a few options
-          break;
-      }
     }
 
-    // Ensure there's at least one fallback suggestion
-    if (suggestedLocations.length === 0) {
-      suggestedLocations.push('body');
+    // If no good candidate was found, fall back to the first one that exists.
+    if (!bestSelector) {
+        for (const selector of candidateSelectors) {
+            if ($(selector).length > 0) {
+                bestSelector = selector;
+                break;
+            }
+        }
     }
+    
+    // As a final fallback, place it at the beginning of the body.
+    const finalSelector = bestSelector || 'body > *:first-child';
 
     return {
-      suggestedLocations: [...new Set(suggestedLocations)], // Remove potential duplicates
+      suggestedLocations: [finalSelector],
       reasoning:
-        "Based on the website's structure, we suggest placing the player just before the main content begins. This is typically after the main headline or at the start of the primary article container.",
+        "We've automatically identified the main content block of the article and placed the player directly above it for optimal visibility.",
     };
-}
-
-
-async function aiAnalysis(htmlContent: string): Promise<PlacementAnalysisOutput> {
-    const truncatedHtml = htmlContent.substring(0, 100000);
-    const prompt = `You are an expert web developer. Analyze the provided HTML and determine the single best CSS selector to insert an audio player.
-The player should be placed immediately **before** the main article content begins. This is usually after any headlines, sub-headlines, author information, and introductory images, but **before the first paragraph of the actual article body.**
-
-IMPORTANT: The provided HTML may have had its JavaScript removed. You MUST choose a selector that exists in the provided HTML. Do not invent or assume selectors based on common frameworks like WordPress if they are not present. Prefer structural selectors (e.g., 'article > p:first-of-type') over complex, framework-specific class names.
-
-Return a valid JSON object with this exact structure: { "selector": "your-css-selector", "reasoning": "A brief explanation for your choice." }
-
-HTML Content:
-\`\`\`html
-${truncatedHtml}
-\`\`\`
-`;
-    
-    try {
-        const response = await openai.chat.completions.create({
-            model: 'gpt-4o-mini',
-            messages: [{ role: 'user', content: prompt }],
-            response_format: { type: "json_object" },
-        });
-
-        const content = response.choices[0].message.content;
-        if (!content) {
-            throw new Error('OpenAI returned an empty response for placement analysis.');
-        }
-
-        const result = JSON.parse(content) as { selector: string, reasoning: string };
-        
-        return {
-            suggestedLocations: [result.selector],
-            reasoning: result.reasoning,
-        };
-    } catch (error) {
-        console.error("[aiAnalysis] Error analyzing placement with OpenAI:", error);
-        throw new Error("Failed to analyze placement due to an OpenAI API error.");
-    }
 }
 
 
 export async function placementAnalysis(
   input: PlacementAnalysisInput
 ): Promise<PlacementAnalysisOutput> {
-    const useAiAnalysis = process.env.ENABLE_AI_PLACEMENT_ANALYSIS === 'true';
-
-    if (useAiAnalysis) {
-        if (!process.env.OPENAI_API_KEY) {
-            throw new Error('OPENAI_API_KEY is not set in the environment, but AI placement analysis is enabled.');
-        }
-        try {
-            return await aiAnalysis(input.htmlContent);
-        } catch (e) {
-            console.error('[placementAnalysis] AI placement analysis failed, falling back to standard analysis.', e);
-            // Fallback to cheerio if AI fails
-            return await cheerioAnalysis(input.htmlContent);
-        }
-    }
-    
+    // The AI-based analysis was proving unreliable due to the sanitized preview environment.
+    // This deterministic approach is much more consistent.
     return await cheerioAnalysis(input.htmlContent);
 }
