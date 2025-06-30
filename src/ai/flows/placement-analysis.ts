@@ -24,16 +24,19 @@ export async function placementAnalysis(
     const { htmlContent } = input;
     const $ = cheerio.load(htmlContent);
 
+    // Prioritized list of selectors to find the best placement for the player.
     const candidateSelectors = [
-      'h1',
-      'header',
-      '.entry-header',
+      'article',
+      '.entry-content',
+      '.post-content',
+      '.post',
+      'main[role="main"]',
       'main',
       '[role="main"]',
-      'article',
       '.content',
-      '.post',
-      '.entry-content',
+      '.entry-header',
+      'header',
+      'h1',
     ];
 
     const suggestedLocations: string[] = [];
@@ -61,6 +64,6 @@ export async function placementAnalysis(
     return {
       suggestedLocations: [...new Set(suggestedLocations)], // Remove potential duplicates
       reasoning:
-        'These locations were identified as primary content areas suitable for placing an audio player based on common HTML structures like headings and main content containers.',
+        'These locations were identified as primary content areas suitable for placing an audio player based on common HTML structures like articles, main content containers, and headings.',
     };
 }

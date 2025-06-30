@@ -56,12 +56,12 @@ export default function DemoGenerator() {
       if (suggestions.suggestedLocations.length > 0) {
         setSelectedPlacement({ selector: suggestions.suggestedLocations[0], position: 'before' });
       } else {
-        setSelectedPlacement(null);
+        setSelectedPlacement({ selector: 'body', position: 'before' });
       }
 
       toast({
-        title: "Analysis & Preview Ready",
-        description: "Click a suggested area in the preview to place the player.",
+        title: "Analysis Complete",
+        description: "Preview generated with the player automatically placed.",
       });
 
     } catch (error) {
@@ -90,7 +90,6 @@ export default function DemoGenerator() {
             url={url}
             cloneHtml={cloneHtml}
             isLoading={isLoading}
-            placementSuggestions={placementSuggestions}
             selectedPlacement={selectedPlacement}
             onSelectPlacement={setSelectedPlacement}
             playerConfig={playerConfig}

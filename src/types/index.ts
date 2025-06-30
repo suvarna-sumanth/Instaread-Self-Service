@@ -14,9 +14,3 @@ export type Placement = {
   selector: string;
   position: 'before' | 'after';
 } | null;
-
-
-export type PlacementSuggestion = {
-  selector: string;
-  element: HTMLElement;
-};
