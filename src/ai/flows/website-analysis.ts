@@ -30,10 +30,6 @@ export type WebsiteAnalysisOutput = {
   techStack: string[];
 };
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 const mockAnalysis: WebsiteAnalysisOutput = {
     colors: {
       primary: '#3B82F6', // A nice blue
@@ -51,16 +47,21 @@ export async function analyzeWebsite(input: WebsiteAnalysisInput): Promise<Websi
   const useAiAnalysis = process.env.ENABLE_AI_ANALYSIS === 'true';
 
   // If AI analysis is disabled, or if it's enabled but the key is missing, use mock data.
+  // This prevents the app from crashing if the key is not provided.
   if (!useAiAnalysis || !process.env.OPENAI_API_KEY) {
-    if (useAiAnalysis) {
+    if (useAiAnalysis && !process.env.OPENAI_API_KEY) {
         console.warn("AI analysis is enabled, but the OPENAI_API_KEY is not set. Falling back to mock data.");
-    } else {
+    } else if (!useAiAnalysis) {
         console.log('AI analysis is disabled. Returning mock data.');
     }
     return mockAnalysis;
   }
 
   // At this point, we know AI is enabled AND the key is present.
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+  
   const htmlContent = await fetchWebsite(input.url);
   if (htmlContent.startsWith('Error')) {
     throw new Error(`Failed to fetch website: ${htmlContent}`);
