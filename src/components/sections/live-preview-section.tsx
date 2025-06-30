@@ -52,68 +52,32 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   const [activeSuggestion, setActiveSuggestion] = useState<string | null>(null);
   const [playerContainer, setPlayerContainer] = useState<HTMLElement | null>(null);
 
-  const calculatePositions = () => {
-    const iframe = iframeRef.current;
-    const doc = iframe?.contentDocument;
-    if (!doc) return;
-
-    const newPositions: Record<string, DOMRect> = {};
-    for (const selector of placementSuggestions) {
-      try {
-        const targetElement = doc.querySelector(selector) as HTMLElement;
-        if (targetElement) {
-          const targetRect = targetElement.getBoundingClientRect();
-          // Filter out very small or off-screen elements
-          if (targetRect.width > 20 && targetRect.height > 10 && targetRect.top >= 0 && targetRect.top < doc.documentElement.clientHeight) {
-            newPositions[selector] = targetRect;
-          }
-        }
-      } catch (e) {
-        console.error(`Invalid selector: ${selector}`, e);
-      }
-    }
-    setSuggestionPositions(newPositions);
-  };
-
-
+  // Effect to calculate suggestion positions when iframe content or suggestions change
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
+    
+    const calculatePositions = () => {
+      const doc = iframe?.contentDocument;
+      if (!doc) return;
 
-    const setupPlayerAndSuggestions = () => {
-        const doc = iframe.contentDocument;
-        if (!doc?.body) return;
-
-        // 1. Reset previous state by finding and removing any existing player
-        const existingPlayer = doc.querySelector('.audioleap-player-container');
-        existingPlayer?.remove();
-        setPlayerContainer(null);
-        
-        // 2. Inject a portal container for the player if a placement is selected
-        if (selectedPlacement) {
-            try {
-                const targetEl = doc.querySelector(selectedPlacement.selector) as HTMLElement;
-                if (targetEl) {
-                    const portalRoot = doc.createElement('div');
-                    portalRoot.className = 'audioleap-player-container';
-                    
-                    if (selectedPlacement.position === 'before') {
-                        targetEl.parentNode?.insertBefore(portalRoot, targetEl);
-                    } else {
-                        targetEl.parentNode?.insertBefore(portalRoot, targetEl.nextSibling);
-                    }
-                    setPlayerContainer(portalRoot);
-                }
-            } catch (e) {
-                console.error("Error placing player:", e);
-                setPlayerContainer(null);
+      const newPositions: Record<string, DOMRect> = {};
+      for (const selector of placementSuggestions) {
+        try {
+          const targetElement = doc.querySelector(selector) as HTMLElement;
+          if (targetElement) {
+            const targetRect = targetElement.getBoundingClientRect();
+            // Filter out very small or off-screen elements
+            if (targetRect.width > 20 && targetRect.height > 10 && targetRect.top >= 0 && targetRect.top < doc.documentElement.clientHeight) {
+              newPositions[selector] = targetRect;
             }
+          }
+        } catch (e) {
+          console.error(`Invalid selector: ${selector}`, e);
         }
-        
-        // 3. (Re)calculate suggestion box positions after DOM change
-        calculatePositions();
-    }
-
+      }
+      setSuggestionPositions(newPositions);
+    };
 
     const onLoad = () => {
         const doc = iframe.contentDocument;
@@ -129,7 +93,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
             doc.head.appendChild(styleElement);
             doc.body.style.position = 'relative'; // Ensure body is a positioning context
         }
-        setupPlayerAndSuggestions();
+        calculatePositions();
         // Also listen for scrolls inside the iframe to recalculate
         doc?.addEventListener('scroll', calculatePositions);
     }
@@ -146,13 +110,43 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     return () => {
         resizeObserver.disconnect();
         iframe.contentDocument?.removeEventListener('scroll', calculatePositions);
-        if (iframe?.contentDocument) {
-            const existingPlayer = iframe.contentDocument.querySelector('.audioleap-player-container');
-            existingPlayer?.remove();
-        }
         if (iframe) iframe.onload = null;
     }
-  }, [cloneHtml, selectedPlacement, placementSuggestions]);
+  }, [cloneHtml, placementSuggestions]);
+
+  // Effect to place the player in the DOM when selectedPlacement changes
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    const doc = iframe?.contentDocument;
+    if (!doc?.body) return;
+
+    // 1. Clean up old player instance
+    const existingPlayer = doc.querySelector('.audioleap-player-container');
+    existingPlayer?.remove();
+    setPlayerContainer(null);
+
+    // 2. If a placement is selected, create and inject the new player container
+    if (selectedPlacement) {
+        try {
+            const targetEl = doc.querySelector(selectedPlacement.selector) as HTMLElement;
+            if (targetEl) {
+                const portalRoot = doc.createElement('div');
+                portalRoot.className = 'audioleap-player-container';
+                
+                if (selectedPlacement.position === 'before') {
+                    targetEl.parentNode?.insertBefore(portalRoot, targetEl);
+                } else {
+                    targetEl.parentNode?.insertBefore(portalRoot, targetEl.nextSibling);
+                }
+                // This state update will trigger a re-render and activate the portal
+                setPlayerContainer(portalRoot);
+            }
+        } catch (e) {
+            console.error("Error placing player:", e);
+            setPlayerContainer(null);
+        }
+    }
+  }, [selectedPlacement]);
 
   const handleSuggestionClick = (selector: string) => {
     setActiveSuggestion(prev => (prev === selector ? null : selector));
