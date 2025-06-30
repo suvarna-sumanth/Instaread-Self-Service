@@ -40,13 +40,11 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       const doc = iframe?.contentDocument;
       if (!doc) return;
 
-      console.log('[DEBUG] Placement suggestions to find:', placementSuggestions);
       const newPositions: Record<string, DOMRect> = {};
       for (const selector of placementSuggestions) {
         try {
           const targetElement = doc.querySelector(selector) as HTMLElement;
           if (targetElement) {
-            console.log('[DEBUG] Found element for selector:', selector, targetElement);
             const targetRect = targetElement.getBoundingClientRect();
             // Filter out very small or off-screen elements
             if (targetRect.width > 20 && targetRect.height > 10 && targetRect.top >= 0 && targetRect.top < doc.documentElement.clientHeight) {
@@ -54,15 +52,13 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
             }
           }
         } catch (e) {
-          console.error(`[DEBUG] Invalid selector: ${selector}`, e);
+          console.error(`Invalid selector: ${selector}`, e);
         }
       }
-      console.log('[DEBUG] Calculated suggestion positions:', newPositions);
       setSuggestionPositions(newPositions);
     };
 
     const onLoad = () => {
-        console.log('[DEBUG] Iframe finished loading. Attaching styles and calculating positions.');
         const doc = iframe.contentDocument;
         if (doc) { // Inject host styles into iframe for consistency
             const styleElement = doc.createElement('style');
@@ -91,7 +87,6 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     if(iframe.contentDocument?.body) resizeObserver.observe(iframe.contentDocument.body);
     
     return () => {
-        console.log('[DEBUG] Cleaning up LivePreviewSection effects.');
         resizeObserver.disconnect();
         iframe.contentDocument?.removeEventListener('scroll', calculatePositions);
         if (iframe) iframe.onload = null;
@@ -111,7 +106,6 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
 
     // 2. If a placement is selected, create and inject the new player container
     if (selectedPlacement) {
-        console.log('[DEBUG] Placing player at:', selectedPlacement);
         try {
             const targetEl = doc.querySelector(selectedPlacement.selector) as HTMLElement;
             if (targetEl) {
@@ -125,30 +119,25 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                 }
                 // This state update will trigger a re-render and activate the portal
                 setPlayerContainer(portalRoot);
-            } else {
-                 console.log('[DEBUG] Target element for placement not found:', selectedPlacement.selector);
             }
         } catch (e) {
-            console.error("[DEBUG] Error placing player:", e);
+            console.error("Error placing player:", e);
             setPlayerContainer(null);
         }
     }
   }, [selectedPlacement]);
 
   const handleSuggestionClick = (selector: string) => {
-    console.log('[DEBUG] Suggestion area clicked! Selector:', selector);
     setPlacementCandidate(selector);
   };
   
   const handlePlacementConfirm = (position: 'before' | 'after') => {
       if (!placementCandidate) return;
-      console.log('[DEBUG] Confirming placement for:', placementCandidate, 'Position:', position);
       onSelectPlacement({ selector: placementCandidate, position });
       setPlacementCandidate(null); // Close the dialog
   };
 
   const handlePlacementCancel = () => {
-    console.log('[DEBUG] Placement cancelled.');
     setPlacementCandidate(null);
   };
 
@@ -205,7 +194,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                 </div>,
                 playerContainer
             )}
-            <div className="absolute inset-0 z-30 pointer-events-none">
+            <div className="absolute inset-0 z-50">
                 {Object.entries(suggestionPositions).map(([selector, rect]) => {
                     const isSelected = selectedPlacement?.selector === selector;
                     const doc = iframeRef.current?.contentDocument;
@@ -225,7 +214,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                             key={selector}
                             style={style}
                             className={cn(
-                                "pointer-events-auto cursor-pointer border-2 border-dashed border-accent hover:bg-accent/10 transition-colors",
+                                "cursor-pointer border-2 border-dashed border-accent hover:bg-accent/10 transition-colors",
                                 { "border-primary border-solid bg-primary/10": isSelected }
                             )}
                             onClick={() => handleSuggestionClick(selector)}
