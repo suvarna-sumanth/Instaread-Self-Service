@@ -34,9 +34,29 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+const mockAnalysis: WebsiteAnalysisOutput = {
+    colors: {
+      primary: '#3B82F6', // A nice blue
+      background: '#F9FAFB', // Light gray
+      text: '#1F2937', // Dark gray
+    },
+    fonts: {
+      headline: 'Poppins, sans-serif',
+      body: 'Inter, sans-serif',
+    },
+    techStack: ['React', 'Next.js', 'Mock Data'],
+};
+
 export async function analyzeWebsite(input: WebsiteAnalysisInput): Promise<WebsiteAnalysisOutput> {
+  const useAiAnalysis = process.env.ENABLE_AI_ANALYSIS === 'true';
+
+  if (!useAiAnalysis) {
+    console.log('AI analysis is disabled. Returning mock data.');
+    return mockAnalysis;
+  }
+  
   if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY is not set in the environment.');
+    throw new Error('OPENAI_API_KEY is not set in the environment, but AI analysis is enabled.');
   }
 
   const htmlContent = await fetchWebsite(input.url);
