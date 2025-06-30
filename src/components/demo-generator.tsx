@@ -42,20 +42,28 @@ export default function DemoGenerator() {
     setSelectedPlacement(null);
     setPlacementSuggestions([]);
     
+    console.log(`[DemoGenerator] Starting analysis for URL: ${newUrl}`);
     try {
+      console.log("[DemoGenerator] Getting visual clone...");
       const html = await getVisualClone(newUrl);
       setCloneHtml(html);
+      console.log("[DemoGenerator] Visual clone received.");
 
       const [analysisResult, suggestions] = await Promise.all([
         analyzeWebsite(newUrl),
         getPlacementSuggestions(html),
       ]);
       
+      console.log("[DemoGenerator] Analysis and suggestions received.");
+      console.log("[DemoGenerator] Placement suggestions:", suggestions);
+
       setAnalysis(analysisResult);
       setPlacementSuggestions(suggestions.suggestedLocations);
       if (suggestions.suggestedLocations.length > 0) {
+        console.log(`[DemoGenerator] Setting selected placement to: ${suggestions.suggestedLocations[0]}`);
         setSelectedPlacement({ selector: suggestions.suggestedLocations[0], position: 'before' });
       } else {
+        console.log("[DemoGenerator] No suggestions found, falling back to 'body'.");
         setSelectedPlacement({ selector: 'body', position: 'before' });
       }
 
@@ -65,6 +73,7 @@ export default function DemoGenerator() {
       });
 
     } catch (error) {
+       console.error("[DemoGenerator] Analysis failed:", error);
        const description = error instanceof Error ? error.message : "An unexpected error occurred.";
        toast({
         title: "Analysis Failed",
@@ -72,6 +81,7 @@ export default function DemoGenerator() {
         variant: "destructive",
       });
     } finally {
+        console.log("[DemoGenerator] Analysis process finished.");
         setIsLoading(false);
     }
   };

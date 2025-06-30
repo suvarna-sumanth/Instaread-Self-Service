@@ -88,25 +88,32 @@ ${truncatedHtml}
 \`\`\`
 `;
     
+    console.log("[aiAnalysis] Starting AI placement analysis.");
     try {
+        console.log("[aiAnalysis] Calling OpenAI API...");
         const response = await openai.chat.completions.create({
             model: 'gpt-4o-mini',
             messages: [{ role: 'user', content: prompt }],
             response_format: { type: "json_object" },
         });
 
+        console.log("[aiAnalysis] OpenAI response received.");
         const content = response.choices[0].message.content;
         if (!content) {
+            console.error('[aiAnalysis] OpenAI returned an empty response.');
             throw new Error('OpenAI returned an empty response for placement analysis.');
         }
 
+        console.log("[aiAnalysis] Raw content from OpenAI:", content);
         const result = JSON.parse(content) as { selector: string, reasoning: string };
+        console.log("[aiAnalysis] Parsed result:", result);
+        
         return {
             suggestedLocations: [result.selector],
             reasoning: result.reasoning,
         };
     } catch (error) {
-        console.error("Error analyzing placement with OpenAI:", error);
+        console.error("[aiAnalysis] Error analyzing placement with OpenAI:", error);
         throw new Error("Failed to analyze placement due to an OpenAI API error.");
     }
 }
@@ -118,19 +125,20 @@ export async function placementAnalysis(
     const useAiAnalysis = process.env.ENABLE_AI_PLACEMENT_ANALYSIS === 'true';
 
     if (useAiAnalysis) {
-        console.log('Using AI for placement analysis.');
+        console.log('[placementAnalysis] Using AI for placement analysis.');
         if (!process.env.OPENAI_API_KEY) {
+            console.error('[placementAnalysis] OPENAI_API_KEY is not set, but AI placement analysis is enabled.');
             throw new Error('OPENAI_API_KEY is not set in the environment, but AI placement analysis is enabled.');
         }
         try {
             return await aiAnalysis(input.htmlContent);
         } catch (e) {
-            console.error('AI placement analysis failed, falling back to standard analysis.', e);
+            console.error('[placementAnalysis] AI placement analysis failed, falling back to standard analysis.', e);
             // Fallback to cheerio if AI fails
             return await cheerioAnalysis(input.htmlContent);
         }
     }
     
-    console.log('Using standard (Cheerio) for placement analysis.');
+    console.log('[placementAnalysis] Using standard (Cheerio) for placement analysis.');
     return await cheerioAnalysis(input.htmlContent);
 }

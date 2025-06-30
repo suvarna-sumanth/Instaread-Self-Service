@@ -32,8 +32,12 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     if (!iframe) return;
 
     const setupPlayer = () => {
+        console.log('[LivePreview] setupPlayer called.');
         const doc = iframe.contentDocument;
-        if (!doc?.body) return;
+        if (!doc?.body) {
+            console.log('[LivePreview] Iframe document or body not ready.');
+            return;
+        }
 
         // Clean up any old player instance and highlights
         doc.querySelector('.audioleap-player-container')?.remove();
@@ -42,27 +46,38 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
             el.removeAttribute('data-audioleap-placement-highlight');
         });
         setPlayerContainer(null);
+        console.log('[LivePreview] Old player cleaned up.');
 
         if (selectedPlacement) {
+            console.log(`[LivePreview] A placement is selected:`, selectedPlacement);
             try {
+                console.log(`[LivePreview] Querying for selector: "${selectedPlacement.selector}"`);
                 const targetEl = doc.querySelector(selectedPlacement.selector) as HTMLElement;
                 if (targetEl) {
+                    console.log('[LivePreview] Target element found:', targetEl);
                     targetEl.style.outline = '3px solid hsl(var(--primary))';
                     targetEl.setAttribute('data-audioleap-placement-highlight', 'true');
                     
                     const portalRoot = doc.createElement('div');
                     portalRoot.className = 'audioleap-player-container';
                     if (selectedPlacement.position === 'before') {
+                        console.log('[LivePreview] Inserting player before target.');
                         targetEl.parentNode?.insertBefore(portalRoot, targetEl);
                     } else {
+                        console.log('[LivePreview] Inserting player after target.');
                         targetEl.parentNode?.insertBefore(portalRoot, targetEl.nextSibling);
                     }
                     setPlayerContainer(portalRoot);
+                    console.log('[LivePreview] Player container set.');
+                } else {
+                    console.error(`[LivePreview] Could not find target element for selector: "${selectedPlacement.selector}"`);
                 }
             } catch (e) {
                 console.error("[LivePreview] Error placing player:", e);
                 setPlayerContainer(null);
             }
+        } else {
+            console.log('[LivePreview] No placement selected.');
         }
     };
 
