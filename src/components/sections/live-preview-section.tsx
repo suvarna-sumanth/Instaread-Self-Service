@@ -112,18 +112,27 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
         console.log('[LivePreview] Click event captured inside iframe!', e);
         e.preventDefault();
         e.stopPropagation();
-        const target = e.target as HTMLElement;
-        if (target && !target.closest('.audioleap-player-container')) {
-            const selector = generateSelector(target);
+
+        const doc = iframeRef.current?.contentDocument;
+        if (!doc) {
+            console.error('[LivePreview] Could not access iframe document on click.');
+            return;
+        }
+        
+        // Use elementFromPoint for a more reliable way to get the clicked element.
+        const clickedEl = doc.elementFromPoint(e.clientX, e.clientY);
+
+        if (clickedEl && !clickedEl.closest('.audioleap-player-container')) {
+            const selector = generateSelector(clickedEl);
             console.log(`[LivePreview] Generated selector: "${selector}"`);
             if (selector) {
                 console.log('[LivePreview] Staging placement...');
                 setStagedPlacement({ selector });
             } else {
-                console.warn('[LivePreview] Could not generate a valid selector for the clicked element.');
+                console.warn('[LivePreview] Could not generate a valid selector for the clicked element.', clickedEl);
             }
         } else {
-             console.log('[LivePreview] Click was on the player container, ignoring.');
+             console.log('[LivePreview] Click was on the player container or element not found. Ignoring.');
         }
     };
     
