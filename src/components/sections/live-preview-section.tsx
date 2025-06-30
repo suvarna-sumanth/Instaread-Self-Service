@@ -12,7 +12,7 @@ import AudioPlayer from '@/components/ui/audio-player';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from '../ui/button';
-import { Separator } from '../ui/separator';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 type LivePreviewSectionProps = {
   url: string;
@@ -24,32 +24,11 @@ type LivePreviewSectionProps = {
   playerConfig: PlayerConfig;
 };
 
-// Sub-component for placement controls to keep the main render clean
-const PlacementControl = ({ style, onPlace }: { style: React.CSSProperties; onPlace: (position: 'before' | 'after') => void }) => {
-    return (
-        <div
-            style={style}
-            // Add pointer-events-auto here so the controls are clickable
-            className="absolute z-40 flex items-center gap-1 rounded-full bg-background p-1 shadow-lg border pointer-events-auto"
-            onClick={(e) => e.stopPropagation()}
-        >
-            <Button variant="ghost" size="sm" className="h-8 px-3" onClick={() => onPlace('before')}>
-                <ArrowUp className="mr-2 h-4 w-4" /> Above
-            </Button>
-            <Separator orientation="vertical" className="h-4" />
-            <Button variant="ghost" size="sm" className="h-8 px-3" onClick={() => onPlace('after')}>
-                <ArrowDown className="mr-2 h-4 w-4" /> Below
-            </Button>
-        </div>
-    );
-};
-
-
 const LivePreviewSection = (props: LivePreviewSectionProps) => {
   const { url, cloneHtml, isLoading, placementSuggestions, selectedPlacement, onSelectPlacement, playerConfig } = props;
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [suggestionPositions, setSuggestionPositions] = useState<Record<string, DOMRect>>({});
-  const [activeSuggestion, setActiveSuggestion] = useState<string | null>(null);
+  const [placementCandidate, setPlacementCandidate] = useState<string | null>(null);
   const [playerContainer, setPlayerContainer] = useState<HTMLElement | null>(null);
 
   // Effect to calculate suggestion positions when iframe content or suggestions change
@@ -149,26 +128,18 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   }, [selectedPlacement]);
 
   const handleSuggestionClick = (selector: string) => {
-    setActiveSuggestion(prev => (prev === selector ? null : selector));
+    setPlacementCandidate(selector);
   };
   
-  const handlePlacementDecision = (position: 'before' | 'after') => {
-      if (!activeSuggestion) return;
-      onSelectPlacement({ selector: activeSuggestion, position });
-      setActiveSuggestion(null);
+  const handlePlacementConfirm = (position: 'before' | 'after') => {
+      if (!placementCandidate) return;
+      onSelectPlacement({ selector: placementCandidate, position });
+      setPlacementCandidate(null); // Close the dialog
   };
 
-  const getControlStyle = (targetRect: DOMRect): React.CSSProperties => {
-    if (!iframeRef.current?.contentDocument) return {};
-    const doc = iframeRef.current.contentDocument;
-    return {
-      position: 'absolute',
-      top: `${targetRect.top + doc.documentElement.scrollTop - 45}px`,
-      left: `${targetRect.left + doc.documentElement.scrollLeft + targetRect.width / 2}px`,
-      transform: 'translateX(-50%)',
-    }
+  const handlePlacementCancel = () => {
+    setPlacementCandidate(null);
   };
-
 
   const renderPreviewContent = (isMobile: boolean) => {
     if (isLoading) {
@@ -223,21 +194,9 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                 </div>,
                 playerContainer
             )}
-            {/* 
-              This overlay holds all interactive elements.
-              `pointer-events-none` allows scrolling and interaction with the iframe below.
-              Individual children (suggestion boxes, controls) will have `pointer-events-auto` to become clickable.
-            */}
             <div className="absolute inset-0 z-30 pointer-events-none">
-                {activeSuggestion && suggestionPositions[activeSuggestion] && (
-                    <PlacementControl
-                        style={getControlStyle(suggestionPositions[activeSuggestion])}
-                        onPlace={handlePlacementDecision}
-                    />
-                )}
                 {Object.entries(suggestionPositions).map(([selector, rect]) => {
                     const isSelected = selectedPlacement?.selector === selector;
-                    const isActive = activeSuggestion === selector;
                     const doc = iframeRef.current?.contentDocument;
 
                     if (!doc) return null;
@@ -254,10 +213,9 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                         <div
                             key={selector}
                             style={style}
-                            // Add pointer-events-auto to make this div clickable
                             className={cn(
-                                "pointer-events-auto cursor-pointer border-2 border-dashed border-accent hover:bg-accent/10",
-                                { "bg-accent/20 border-solid": isActive, "border-primary border-solid": isSelected }
+                                "pointer-events-auto cursor-pointer border-2 border-dashed border-accent hover:bg-accent/10 transition-colors",
+                                { "border-primary border-solid bg-primary/10": isSelected }
                             )}
                             onClick={() => handleSuggestionClick(selector)}
                         >
@@ -271,7 +229,6 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
 
   const handleClear = () => {
     onSelectPlacement(null);
-    setActiveSuggestion(null);
   }
 
   return (
@@ -307,6 +264,26 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
           </Tabs>
         </CardContent>
       </Card>
+      
+      <AlertDialog open={!!placementCandidate} onOpenChange={(isOpen) => !isOpen && handlePlacementCancel()}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Placement</AlertDialogTitle>
+            <AlertDialogDescription>
+              Where would you like to place the audio player relative to the selected element?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handlePlacementCancel}>Cancel</AlertDialogCancel>
+            <Button variant="outline" onClick={() => handlePlacementConfirm('before')}>
+              <ArrowUp className="mr-2 h-4 w-4" /> Place Above
+            </Button>
+            <Button onClick={() => handlePlacementConfirm('after')}>
+              <ArrowDown className="mr-2 h-4 w-4" /> Place Below
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
