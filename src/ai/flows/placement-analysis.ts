@@ -8,6 +8,7 @@
  * - PlacementAnalysisOutput - The return type for the placementAnalysis function.
  */
 import * as cheerio from 'cheerio';
+import OpenAI from 'openai';
 
 export type PlacementAnalysisInput = {
   htmlContent: string;
@@ -18,10 +19,11 @@ export type PlacementAnalysisOutput = {
   reasoning: string;
 };
 
-export async function placementAnalysis(
-  input: PlacementAnalysisInput
-): Promise<PlacementAnalysisOutput> {
-    const { htmlContent } = input;
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+async function cheerioAnalysis(htmlContent: string): Promise<PlacementAnalysisOutput> {
     const $ = cheerio.load(htmlContent);
 
     // Prioritized list of selectors to find the best placement for the player.
@@ -69,4 +71,66 @@ export async function placementAnalysis(
       reasoning:
         "Based on the website's structure, we suggest placing the player just before the main content begins. This is typically after the main headline or at the start of the primary article container.",
     };
+}
+
+
+async function aiAnalysis(htmlContent: string): Promise<PlacementAnalysisOutput> {
+    const truncatedHtml = htmlContent.substring(0, 100000);
+    const prompt = `You are an expert web developer. Analyze the provided HTML and determine the single best CSS selector to insert an audio player.
+The player should be placed immediately **before** the main article content begins. This is usually after any headlines, sub-headlines, author information, and introductory images, but **before the first paragraph of the actual article body.**
+
+Return a valid JSON object with this exact structure: { "selector": "your-css-selector", "reasoning": "A brief explanation for your choice." }
+Be as specific as possible with the selector to avoid ambiguity.
+
+HTML Content:
+\`\`\`html
+${truncatedHtml}
+\`\`\`
+`;
+    
+    try {
+        const response = await openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [{ role: 'user', content: prompt }],
+            response_format: { type: "json_object" },
+        });
+
+        const content = response.choices[0].message.content;
+        if (!content) {
+            throw new Error('OpenAI returned an empty response for placement analysis.');
+        }
+
+        const result = JSON.parse(content) as { selector: string, reasoning: string };
+        return {
+            suggestedLocations: [result.selector],
+            reasoning: result.reasoning,
+        };
+    } catch (error) {
+        console.error("Error analyzing placement with OpenAI:", error);
+        throw new Error("Failed to analyze placement due to an OpenAI API error.");
+    }
+}
+
+
+export async function placementAnalysis(
+  input: PlacementAnalysisInput
+): Promise<PlacementAnalysisOutput> {
+    const useAiAnalysis = process.env.ENABLE_AI_PLACEMENT_ANALYSIS === 'true';
+
+    if (useAiAnalysis) {
+        console.log('Using AI for placement analysis.');
+        if (!process.env.OPENAI_API_KEY) {
+            throw new Error('OPENAI_API_KEY is not set in the environment, but AI placement analysis is enabled.');
+        }
+        try {
+            return await aiAnalysis(input.htmlContent);
+        } catch (e) {
+            console.error('AI placement analysis failed, falling back to standard analysis.', e);
+            // Fallback to cheerio if AI fails
+            return await cheerioAnalysis(input.htmlContent);
+        }
+    }
+    
+    console.log('Using standard (Cheerio) for placement analysis.');
+    return await cheerioAnalysis(input.htmlContent);
 }
