@@ -1,17 +1,17 @@
-
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import type { PlayerConfig, Placement } from '@/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from '@/components/ui/skeleton';
-import { Monitor, Smartphone, Loader2, Info, Pointer } from 'lucide-react';
+import { Monitor, Smartphone, Loader2, Info, Pointer, MousePointerClick } from 'lucide-react';
 import AudioPlayer from '@/components/ui/audio-player';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from '../ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 
 type LivePreviewSectionProps = {
   url: string;
@@ -22,74 +22,181 @@ type LivePreviewSectionProps = {
   playerConfig: PlayerConfig;
 };
 
+// Helper function to generate a stable CSS selector for an element.
+const generateSelector = (el: Element): string => {
+    if (!(el instanceof Element)) return '';
+    const path: string[] = [];
+    while (el.nodeType === Node.ELEMENT_NODE) {
+        let selector = el.nodeName.toLowerCase();
+        if (el.id) {
+            // IDs are supposed to be unique, so we can stop here.
+            // Escape special characters for use in querySelector
+            const escapedId = el.id.replace(/([^\w\d_-]+)/g, '\\$1');
+            selector += `#${escapedId}`;
+            path.unshift(selector);
+            break;
+        } else {
+            // Find the element's position among its siblings of the same type
+            let sib: Element | null = el;
+            let nth = 1;
+            while ((sib = sib.previousElementSibling)) {
+                if (sib.nodeName.toLowerCase() === selector) {
+                    nth++;
+                }
+            }
+            if (nth !== 1) {
+                selector += `:nth-of-type(${nth})`;
+            }
+        }
+        path.unshift(selector);
+        if (el.parentElement) {
+           el = el.parentElement;
+        } else {
+           break;
+        }
+    }
+    return path.join(' > ');
+};
+
+
 const LivePreviewSection = (props: LivePreviewSectionProps) => {
   const { url, cloneHtml, isLoading, selectedPlacement, onSelectPlacement, playerConfig } = props;
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [playerContainer, setPlayerContainer] = useState<HTMLElement | null>(null);
+  const [stagedPlacement, setStagedPlacement] = useState<{ selector: string } | null>(null);
+  
 
+  // Effect 1: Setup interactivity (hovering and clicking) in the iframe
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
 
-    const setupPlayer = () => {
+    let cleanup: (() => void) | undefined;
+
+    const setupInteractivity = () => {
         const doc = iframe.contentDocument;
-        if (!doc?.body) {
-            return;
-        }
+        if (!doc?.body) return;
 
-        // Clean up any old player instance and highlights
-        doc.querySelector('.audioleap-player-container')?.remove();
-        doc.querySelectorAll('[data-audioleap-placement-highlight]').forEach(el => {
-            (el as HTMLElement).style.outline = '';
-            el.removeAttribute('data-audioleap-placement-highlight');
-        });
-        setPlayerContainer(null);
+        let lastHovered: HTMLElement | null = null;
+        let originalOutline: string | null = null;
 
-        if (selectedPlacement) {
-            try {
-                const targetEl = doc.querySelector(selectedPlacement.selector) as HTMLElement;
-                if (targetEl) {
-                    targetEl.style.outline = '3px solid hsl(var(--primary))';
-                    targetEl.setAttribute('data-audioleap-placement-highlight', 'true');
-                    
-                    const portalRoot = doc.createElement('div');
-                    portalRoot.className = 'audioleap-player-container';
-                    if (selectedPlacement.position === 'before') {
-                        targetEl.parentNode?.insertBefore(portalRoot, targetEl);
-                    } else {
-                        targetEl.parentNode?.insertBefore(portalRoot, targetEl.nextSibling);
-                    }
-                    setPlayerContainer(portalRoot);
-                } else {
-                    console.error(`[LivePreview] Could not find target element for selector: "${selectedPlacement.selector}"`);
+        const handleMouseOver = (e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            if (target && target !== lastHovered) {
+                if (lastHovered) {
+                    lastHovered.style.outline = originalOutline || '';
                 }
-            } catch (e) {
-                console.error("[LivePreview] Error placing player:", e);
-                setPlayerContainer(null);
+                lastHovered = target;
+                originalOutline = target.style.outline;
+                // Don't highlight the player itself or the helper elements
+                if (!target.closest('.audioleap-player-container')) {
+                    target.style.outline = '2px dashed hsl(var(--accent))';
+                }
             }
-        }
+        };
+
+        const handleMouseOut = () => {
+            if (lastHovered) {
+                lastHovered.style.outline = originalOutline || '';
+                lastHovered = null;
+                originalOutline = null;
+            }
+        };
+
+        const handleClick = (e: MouseEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const target = e.target as HTMLElement;
+            if (target && !target.closest('.audioleap-player-container')) {
+                const selector = generateSelector(target);
+                if (selector) {
+                    setStagedPlacement({ selector });
+                }
+            }
+        };
+        
+        doc.body.addEventListener('mouseover', handleMouseOver);
+        doc.body.addEventListener('mouseout', handleMouseOut);
+        doc.body.addEventListener('click', handleClick);
+
+        return () => {
+            if (doc?.body) {
+                doc.body.removeEventListener('mouseover', handleMouseOver);
+                doc.body.removeEventListener('mouseout', handleMouseOut);
+                doc.body.removeEventListener('click', handleClick);
+            }
+        };
     };
 
     const onLoad = () => {
-        setupPlayer();
+        cleanup = setupInteractivity();
     };
     
     iframe.addEventListener('load', onLoad);
-    
     if (iframe.contentDocument?.readyState === 'complete') {
-        onLoad();
+        cleanup = setupInteractivity();
     }
 
     return () => {
       if (iframe) {
         iframe.removeEventListener('load', onLoad);
       }
+      cleanup?.();
     };
-  }, [cloneHtml, selectedPlacement]);
+  }, [cloneHtml]);
+
+
+  // Effect 2: Place the actual player when a placement is confirmed
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe || !iframe.contentDocument) return;
+    
+    const doc = iframe.contentDocument;
+
+    // Always clean up previous instances first
+    doc.querySelector('.audioleap-player-container')?.remove();
+    doc.querySelectorAll('[data-audioleap-placement-highlight]').forEach(el => {
+        (el as HTMLElement).style.outline = '';
+        el.removeAttribute('data-audioleap-placement-highlight');
+    });
+    setPlayerContainer(null);
+
+    if (selectedPlacement?.selector) {
+        try {
+            const targetEl = doc.querySelector(selectedPlacement.selector) as HTMLElement;
+            if (targetEl) {
+                const portalRoot = doc.createElement('div');
+                portalRoot.className = 'audioleap-player-container';
+                
+                if (selectedPlacement.position === 'before') {
+                    targetEl.parentNode?.insertBefore(portalRoot, targetEl);
+                } else {
+                    targetEl.parentNode?.insertBefore(portalRoot, targetEl.nextSibling);
+                }
+                setPlayerContainer(portalRoot);
+                
+                // Highlight the element we attached to
+                targetEl.style.outline = '3px solid hsl(var(--primary))';
+                targetEl.setAttribute('data-audioleap-placement-highlight', 'true');
+            } else {
+                 console.warn(`[LivePreview] Could not find target element for selector: "${selectedPlacement.selector}"`);
+            }
+        } catch (e) {
+             console.error(`[LivePreview] Error processing selector "${selectedPlacement.selector}":`, e);
+        }
+    }
+  }, [selectedPlacement, cloneHtml]);
 
 
   const handleClearPlacement = () => {
     onSelectPlacement(null);
+  };
+
+  const handlePlacementChoice = (position: 'before' | 'after') => {
+    if (stagedPlacement) {
+        onSelectPlacement({ selector: stagedPlacement.selector, position });
+        setStagedPlacement(null);
+    }
   };
 
   const renderPreviewContent = (isMobile: boolean) => {
@@ -151,16 +258,38 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
 
   return (
     <>
+        <Dialog open={!!stagedPlacement} onOpenChange={() => setStagedPlacement(null)}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Confirm Player Placement</DialogTitle>
+                    <DialogDescription>
+                        Where would you like to place the audio player relative to the selected element?
+                    </DialogDescription>
+                </DialogHeader>
+                 <div className="text-xs text-muted-foreground bg-muted p-2 rounded-md break-all">
+                   Selector: <code>{stagedPlacement?.selector}</code>
+                 </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => handlePlacementChoice('before')}>
+                        Place Before
+                    </Button>
+                    <Button onClick={() => handlePlacementChoice('after')}>
+                        Place After
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
       <Card className="shadow-md relative">
         <CardHeader>
           <div className="flex justify-between items-start">
               <div>
                   <CardTitle className="font-headline text-2xl">3. Live Preview & Placement</CardTitle>
-                  <CardDescription>
-                      The player is automatically placed in a suggested location.
+                  <CardDescription className="flex items-center gap-2">
+                     <MousePointerClick className="h-4 w-4" /> Click an element in the preview to place the player.
                   </CardDescription>
               </div>
-              {url && <Button variant="outline" size="sm" onClick={handleClearPlacement}><Pointer className="mr-2 h-4 w-4"/>Clear Placement</Button>}
+              {selectedPlacement && <Button variant="outline" size="sm" onClick={handleClearPlacement}><Pointer className="mr-2 h-4 w-4"/>Clear Placement</Button>}
           </div>
         </CardHeader>
         <CardContent>

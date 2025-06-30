@@ -7,7 +7,7 @@ import WebsiteAnalysisSection from '@/components/sections/website-analysis-secti
 import PlayerConfigSection from '@/components/sections/player-config-section';
 import IntegrationCodeSection from '@/components/sections/integration-code-section';
 import LivePreviewSection from '@/components/sections/live-preview-section';
-import { getVisualClone, getPlacementSuggestions, analyzeWebsite } from '@/lib/actions';
+import { getVisualClone, analyzeWebsite } from '@/lib/actions';
 import { useToast } from "@/hooks/use-toast";
 
 export default function DemoGenerator() {
@@ -23,7 +23,6 @@ export default function DemoGenerator() {
   });
   const [cloneHtml, setCloneHtml] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [placementSuggestions, setPlacementSuggestions] = useState<string[]>([]);
   const [selectedPlacement, setSelectedPlacement] = useState<Placement>(null);
 
   const handleAnalyze = async (newUrl: string) => {
@@ -40,28 +39,18 @@ export default function DemoGenerator() {
     setUrl(newUrl);
     setCloneHtml(null);
     setSelectedPlacement(null);
-    setPlacementSuggestions([]);
     
     try {
+      // We no longer need Promise.all, as placement is now manual.
       const html = await getVisualClone(newUrl);
       setCloneHtml(html);
 
-      const [analysisResult, suggestions] = await Promise.all([
-        analyzeWebsite(newUrl),
-        getPlacementSuggestions(html),
-      ]);
-      
+      const analysisResult = await analyzeWebsite(newUrl);
       setAnalysis(analysisResult);
-      setPlacementSuggestions(suggestions.suggestedLocations);
-      if (suggestions.suggestedLocations.length > 0) {
-        setSelectedPlacement({ selector: suggestions.suggestedLocations[0], position: 'before' });
-      } else {
-        setSelectedPlacement({ selector: 'body', position: 'before' });
-      }
-
+      
       toast({
         title: "Analysis Complete",
-        description: "Preview generated with the player automatically placed.",
+        description: "Click an element in the live preview to place the player.",
       });
 
     } catch (error) {
