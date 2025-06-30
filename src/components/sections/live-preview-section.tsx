@@ -36,9 +36,14 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     const iframe = iframeRef.current;
     if (!iframe) return;
     
+    console.log('[LivePreview] Effect triggered: Calculating suggestion positions. Suggestions:', placementSuggestions);
+
     const calculatePositions = () => {
       const doc = iframe?.contentDocument;
-      if (!doc) return;
+      if (!doc) {
+        console.log('[LivePreview] calculatePositions: Iframe document not ready.');
+        return;
+      }
 
       const newPositions: Record<string, DOMRect> = {};
       for (const selector of placementSuggestions) {
@@ -52,13 +57,15 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
             }
           }
         } catch (e) {
-          console.error(`Invalid selector: ${selector}`, e);
+          console.error(`[LivePreview] Invalid selector: ${selector}`, e);
         }
       }
+      console.log('[LivePreview] Calculated positions:', newPositions);
       setSuggestionPositions(newPositions);
     };
 
     const onLoad = () => {
+        console.log('[LivePreview] Iframe onLoad event fired.');
         const doc = iframe.contentDocument;
         if (doc) { // Inject host styles into iframe for consistency
             const styleElement = doc.createElement('style');
@@ -78,8 +85,10 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     }
     
     if (iframe.contentDocument?.readyState === 'complete') {
+        console.log('[LivePreview] Iframe already loaded.');
       onLoad();
     } else {
+        console.log('[LivePreview] Attaching onLoad listener to iframe.');
       iframe.onload = onLoad;
     }
 
@@ -87,6 +96,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     if(iframe.contentDocument?.body) resizeObserver.observe(iframe.contentDocument.body);
     
     return () => {
+        console.log('[LivePreview] Cleaning up effect for position calculation.');
         resizeObserver.disconnect();
         iframe.contentDocument?.removeEventListener('scroll', calculatePositions);
         if (iframe) iframe.onload = null;
@@ -98,6 +108,8 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     const iframe = iframeRef.current;
     const doc = iframe?.contentDocument;
     if (!doc?.body) return;
+
+    console.log('[LivePreview] Effect triggered: Placing player for selection:', selectedPlacement);
 
     // 1. Clean up old player instance
     const existingPlayer = doc.querySelector('.audioleap-player-container');
@@ -118,26 +130,32 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                     targetEl.parentNode?.insertBefore(portalRoot, targetEl.nextSibling);
                 }
                 // This state update will trigger a re-render and activate the portal
+                console.log('[LivePreview] Player container created. Setting state to trigger portal render.');
                 setPlayerContainer(portalRoot);
+            } else {
+                console.error('[LivePreview] Could not find target element for selector:', selectedPlacement.selector);
             }
         } catch (e) {
-            console.error("Error placing player:", e);
+            console.error("[LivePreview] Error placing player:", e);
             setPlayerContainer(null);
         }
     }
   }, [selectedPlacement]);
 
   const handleSuggestionClick = (selector: string) => {
+    console.log(`[LivePreview] Suggestion clicked: ${selector}`);
     setPlacementCandidate(selector);
   };
   
   const handlePlacementConfirm = (position: 'before' | 'after') => {
       if (!placementCandidate) return;
+      console.log(`[LivePreview] Placement confirmed for selector '${placementCandidate}' at position '${position}'`);
       onSelectPlacement({ selector: placementCandidate, position });
       setPlacementCandidate(null); // Close the dialog
   };
 
   const handlePlacementCancel = () => {
+    console.log('[LivePreview] Placement cancelled.');
     setPlacementCandidate(null);
   };
 
