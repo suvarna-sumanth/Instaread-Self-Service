@@ -25,9 +25,9 @@ type LivePreviewSectionProps = {
 
 // Helper function to generate a stable CSS selector for an element.
 const generateSelector = (el: Element): string => {
-    if (!(el instanceof Element)) return '';
+    // The `while` loop's `nodeType` check is more robust than `instanceof` across iframe boundaries.
     const path: string[] = [];
-    while (el.nodeType === Node.ELEMENT_NODE) {
+    while (el && el.nodeType === Node.ELEMENT_NODE) {
         let selector = el.nodeName.toLowerCase();
         if (el.id) {
             // IDs are supposed to be unique, so we can stop here.
@@ -68,19 +68,14 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   
 
   const handleIframeLoad = () => {
-    console.log('[LivePreview] Iframe onLoad event fired.');
     const iframe = iframeRef.current;
     if (!iframe) {
-        console.error('[LivePreview] Iframe ref not available in onLoad handler.');
         return;
     }
     const doc = iframe.contentDocument;
     if (!doc?.body) {
-        console.error('[LivePreview] Iframe document or body not found!');
         return;
     }
-
-    console.log('[LivePreview] Iframe document body found. Attaching event listeners.');
 
     let lastHovered: HTMLElement | null = null;
     let originalOutline: string | null = null;
@@ -109,37 +104,27 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     };
 
     const handleClick = (e: MouseEvent) => {
-        console.log('[LivePreview] Click event captured inside iframe!', e);
         e.preventDefault();
         e.stopPropagation();
 
         const doc = iframeRef.current?.contentDocument;
         if (!doc) {
-            console.error('[LivePreview] Could not access iframe document on click.');
             return;
         }
         
-        // Use elementFromPoint for a more reliable way to get the clicked element.
         const clickedEl = doc.elementFromPoint(e.clientX, e.clientY);
 
         if (clickedEl && !clickedEl.closest('.audioleap-player-container')) {
             const selector = generateSelector(clickedEl);
-            console.log(`[LivePreview] Generated selector: "${selector}"`);
             if (selector) {
-                console.log('[LivePreview] Staging placement...');
                 setStagedPlacement({ selector });
-            } else {
-                console.warn('[LivePreview] Could not generate a valid selector for the clicked element.', clickedEl);
             }
-        } else {
-             console.log('[LivePreview] Click was on the player container or element not found. Ignoring.');
         }
     };
     
     doc.body.addEventListener('mouseover', handleMouseOver);
     doc.body.addEventListener('mouseout', handleMouseOut);
     doc.body.addEventListener('click', handleClick);
-    console.log('[LivePreview] Event listeners attached.');
   };
 
   // Effect to place the actual player when a placement is confirmed
@@ -174,8 +159,6 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                 // Highlight the element we attached to
                 targetEl.style.outline = '3px solid hsl(var(--primary))';
                 targetEl.setAttribute('data-audioleap-placement-highlight', 'true');
-            } else {
-                 console.warn(`[LivePreview] Could not find target element for selector: "${selectedPlacement.selector}"`);
             }
         } catch (e) {
              console.error(`[LivePreview] Error processing selector "${selectedPlacement.selector}":`, e);
