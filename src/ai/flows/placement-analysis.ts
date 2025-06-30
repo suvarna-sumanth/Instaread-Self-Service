@@ -79,8 +79,9 @@ async function aiAnalysis(htmlContent: string): Promise<PlacementAnalysisOutput>
     const prompt = `You are an expert web developer. Analyze the provided HTML and determine the single best CSS selector to insert an audio player.
 The player should be placed immediately **before** the main article content begins. This is usually after any headlines, sub-headlines, author information, and introductory images, but **before the first paragraph of the actual article body.**
 
+IMPORTANT: The provided HTML may have had its JavaScript removed. You MUST choose a selector that exists in the provided HTML. Do not invent or assume selectors based on common frameworks like WordPress if they are not present. Prefer structural selectors (e.g., 'article > p:first-of-type') over complex, framework-specific class names.
+
 Return a valid JSON object with this exact structure: { "selector": "your-css-selector", "reasoning": "A brief explanation for your choice." }
-Be as specific as possible with the selector to avoid ambiguity.
 
 HTML Content:
 \`\`\`html
@@ -88,25 +89,19 @@ ${truncatedHtml}
 \`\`\`
 `;
     
-    console.log("[aiAnalysis] Starting AI placement analysis.");
     try {
-        console.log("[aiAnalysis] Calling OpenAI API...");
         const response = await openai.chat.completions.create({
             model: 'gpt-4o-mini',
             messages: [{ role: 'user', content: prompt }],
             response_format: { type: "json_object" },
         });
 
-        console.log("[aiAnalysis] OpenAI response received.");
         const content = response.choices[0].message.content;
         if (!content) {
-            console.error('[aiAnalysis] OpenAI returned an empty response.');
             throw new Error('OpenAI returned an empty response for placement analysis.');
         }
 
-        console.log("[aiAnalysis] Raw content from OpenAI:", content);
         const result = JSON.parse(content) as { selector: string, reasoning: string };
-        console.log("[aiAnalysis] Parsed result:", result);
         
         return {
             suggestedLocations: [result.selector],
@@ -125,9 +120,7 @@ export async function placementAnalysis(
     const useAiAnalysis = process.env.ENABLE_AI_PLACEMENT_ANALYSIS === 'true';
 
     if (useAiAnalysis) {
-        console.log('[placementAnalysis] Using AI for placement analysis.');
         if (!process.env.OPENAI_API_KEY) {
-            console.error('[placementAnalysis] OPENAI_API_KEY is not set, but AI placement analysis is enabled.');
             throw new Error('OPENAI_API_KEY is not set in the environment, but AI placement analysis is enabled.');
         }
         try {
@@ -139,6 +132,5 @@ export async function placementAnalysis(
         }
     }
     
-    console.log('[placementAnalysis] Using standard (Cheerio) for placement analysis.');
     return await cheerioAnalysis(input.htmlContent);
 }
