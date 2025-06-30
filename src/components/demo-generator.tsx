@@ -59,8 +59,8 @@ export default function DemoGenerator() {
                 });
             } else {
                  toast({
-                    title: "Continuing with Homepage",
-                    description: "Could not auto-detect an article. Proceeding with the provided URL.",
+                    title: "Article Detection Failed",
+                    description: "Couldn't find one automatically. Proceeding with the homepage. You can also paste a direct article URL.",
                 });
             }
         }

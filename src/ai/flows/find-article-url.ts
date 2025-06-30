@@ -52,8 +52,8 @@ export async function findArticleUrl(input: FindArticleUrlInput): Promise<FindAr
       if (href && text && text.length > 10) { // Only consider links with meaningful text
           try {
               const absoluteUrl = new URL(href, baseUrl.href).href;
-              // Simple filter: must be from the same domain, have a longer path, and not be a file
-              if (absoluteUrl.startsWith(baseUrl.origin) && new URL(absoluteUrl).pathname.length > 5 && !/\.(jpg|jpeg|png|gif|pdf|zip)$/i.test(absoluteUrl)) {
+              // Simple filter: must be from the same domain and not be a file/resource link
+              if (absoluteUrl.startsWith(baseUrl.origin) && !/\.(jpg|jpeg|png|gif|pdf|zip)$/i.test(absoluteUrl)) {
                   // If we already have this URL, don't overwrite it. First one wins.
                   if (!links.has(absoluteUrl)) {
                       links.set(absoluteUrl, text);
@@ -70,22 +70,25 @@ export async function findArticleUrl(input: FindArticleUrlInput): Promise<FindAr
       return null;
   }
 
-  const linkList = Array.from(links.entries()).slice(0, 100).map(([url, text]) => `"${text}": "${url}"`).join('\n');
+  const linkList = Array.from(links.entries()).slice(0, 150).map(([url, text]) => `"${text}": "${url}"`).join('\n');
 
-  const prompt = `You are a web crawler expert. Your task is to analyze the following list of links from ${input.domainUrl} and identify the single best URL that points to a specific news article or blog post. Each line is formatted as "Link Text": "URL". The link text provides crucial context.
+  const prompt = `You are an expert web crawler. Your primary goal is to find one single URL that points to a news article or blog post from the provided list of links. The website is ${input.domainUrl}.
 
-Follow these rules strictly:
-1.  **Analyze Link Text:** The link text is the most important clue. It should sound like a headline (e.g., "Kia goes hard with tradie-friendly Tasman").
-2.  **Select a Specific Article:** The URL must lead to a single, unique piece of content, not a list of articles.
-3.  **Avoid Navigation & Generic Links:** Do NOT select URLs where the link text is generic like "Read More", "News", "Category", "Features", "Home", "All", "View More", or a single word.
-4.  **Avoid Non-Article Paths:** Do NOT select URLs that are for categories, tags, archives, or sections (e.g., containing '/category/', '/section/', '/arts/', '/topic/', '/author/').
-5.  **Return Only One URL:** Your final output must be the single best URL you found.
-6.  **Handle Failure:** If you cannot confidently identify a valid article URL from the list, you MUST return null for the "articleUrl" value.
+The list is formatted as "Link Text": "URL".
 
-List of Links (Text and URL) to analyze:
+Analyze the list and select the single BEST option based on these criteria, in order of importance:
+1.  **Prioritize Headline Text:** The link's text is the strongest indicator. It should be a sentence or a descriptive title, like a real headline.
+2.  **Analyze URL Structure:** Good article URLs often have long paths, dates (e.g., /2024/05/20/), or topic words like 'article', 'post', or 'feature'.
+3.  **Avoid List/Category Pages:** Do NOT choose links that clearly lead to a category, section, tag, or author page (e.g., text is "More Stories", "Travel", "Food & Drink" or URL contains '/category/', '/topic/').
+4.  **Avoid Generic Links:** Do NOT choose links with generic text like "Read More", "Home", "About", or "Contact".
+
+From the list below, pick the one URL that is most likely a specific article.
+
+List of Links:
 ${linkList}
 
-Return the response as a valid JSON object with a single key "articleUrl". The JSON object must have this exact structure: { "articleUrl": "..." } or { "articleUrl": null }
+Return your answer as a valid JSON object with a single key "articleUrl". The value must be the full URL you selected. If, after careful analysis, you are certain that NO valid article link exists in this list, and only then, return null for the "articleUrl" value.
+The JSON object must have this exact structure: { "articleUrl": "..." } or { "articleUrl": null }
 `;
 
   try {
