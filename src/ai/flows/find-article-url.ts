@@ -61,13 +61,15 @@ export async function findArticleUrl(input: FindArticleUrlInput): Promise<FindAr
 
   const linkList = Array.from(links).slice(0, 150).join('\n'); // Limit links to save tokens
 
-  const prompt = `You are a web crawler expert. From the following list of URLs extracted from ${input.domainUrl}, identify the single best URL that points to a news article or blog post.
+  const prompt = `You are a web crawler expert. Your task is to analyze the following list of URLs from ${input.domainUrl} and identify the single best URL that points to a specific news article or blog post.
 
-  - It should be a specific article, not a category or homepage.
-  - Prioritize URLs with path segments that look like articles (e.g., containing dates, long titles, etc.).
-  - Return a single URL.
+  Follow these rules strictly:
+  1.  **Select a specific article:** The URL must lead to a single, unique piece of content, not a list of articles.
+  2.  **Avoid index/category pages:** Do NOT select URLs that are for categories, tags, archives, or sections (e.g., containing '/category/', '/section/', '/arts/', '/food-drink/', '/topic/').
+  3.  **Prioritize article-like paths:** Good article URLs often have long, descriptive path segments that look like a headline (e.g., '/feature/how-to-make-the-best-burger/'). URLs with dates like '/2024/05/21/' are also strong candidates.
+  4.  **Return only one URL:** Your final output must be the single best URL you found.
 
-  List of URLs:
+  List of URLs to analyze:
   ${linkList}
 
   Return the response as a valid JSON object with a single key "articleUrl". The JSON object must have this exact structure: { "articleUrl": "..." }

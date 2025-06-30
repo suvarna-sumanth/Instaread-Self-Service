@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react';
 import type { AnalysisResult } from '@/types';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,19 +18,29 @@ const FormSchema = z.object({
 });
 
 type WebsiteAnalysisSectionProps = {
+  url: string;
   onAnalyze: (url: string) => void;
   analysis: AnalysisResult;
   isLoading: boolean;
   statusText: string;
 };
 
-const WebsiteAnalysisSection = ({ onAnalyze, analysis, isLoading, statusText }: WebsiteAnalysisSectionProps) => {
+const WebsiteAnalysisSection = ({ url, onAnalyze, analysis, isLoading, statusText }: WebsiteAnalysisSectionProps) => {
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
       url: "https://example.com"
     }
   });
+
+  const { setValue } = form;
+
+  useEffect(() => {
+    // Sync the input field if the parent's URL state changes.
+    if (url) {
+        setValue('url', url, { shouldValidate: true });
+    }
+  }, [url, setValue]);
 
   const onSubmit: SubmitHandler<z.infer<typeof FormSchema>> = (data) => {
     onAnalyze(data.url);

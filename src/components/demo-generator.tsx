@@ -90,6 +90,7 @@ export default function DemoGenerator() {
       <div className="flex flex-col lg:flex-row gap-8 p-4 md:p-8">
         <aside className="lg:w-2/5 xl:w-1/3 flex flex-col gap-8">
           <WebsiteAnalysisSection 
+            url={url}
             onAnalyze={handleAnalyze} 
             analysis={analysis} 
             isLoading={isLoading} 
