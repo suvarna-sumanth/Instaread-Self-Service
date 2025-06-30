@@ -50,15 +50,17 @@ const mockAnalysis: WebsiteAnalysisOutput = {
 export async function analyzeWebsite(input: WebsiteAnalysisInput): Promise<WebsiteAnalysisOutput> {
   const useAiAnalysis = process.env.ENABLE_AI_ANALYSIS === 'true';
 
-  if (!useAiAnalysis) {
-    console.log('AI analysis is disabled. Returning mock data.');
+  // If AI analysis is disabled, or if it's enabled but the key is missing, use mock data.
+  if (!useAiAnalysis || !process.env.OPENAI_API_KEY) {
+    if (useAiAnalysis) {
+        console.warn("AI analysis is enabled, but the OPENAI_API_KEY is not set. Falling back to mock data.");
+    } else {
+        console.log('AI analysis is disabled. Returning mock data.');
+    }
     return mockAnalysis;
   }
-  
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY is not set in the environment, but AI analysis is enabled.');
-  }
 
+  // At this point, we know AI is enabled AND the key is present.
   const htmlContent = await fetchWebsite(input.url);
   if (htmlContent.startsWith('Error')) {
     throw new Error(`Failed to fetch website: ${htmlContent}`);
