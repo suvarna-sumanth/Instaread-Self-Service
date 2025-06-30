@@ -50,7 +50,7 @@ const WebsiteAnalysisSection = ({ url, onAnalyze, analysis, isLoading, statusTex
     <Card className="shadow-md">
       <CardHeader>
         <CardTitle className="font-headline text-2xl">1. Website Analysis</CardTitle>
-        <CardDescription>Enter a website URL. If it's a homepage, we'll find an article.</CardDescription>
+        <CardDescription>Enter a website URL to generate a demo.</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>

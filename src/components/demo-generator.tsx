@@ -7,9 +7,8 @@ import WebsiteAnalysisSection from '@/components/sections/website-analysis-secti
 import PlayerConfigSection from '@/components/sections/player-config-section';
 import IntegrationCodeSection from '@/components/sections/integration-code-section';
 import LivePreviewSection from '@/components/sections/live-preview-section';
-import { getVisualClone, analyzeWebsite, findArticleUrl } from '@/lib/actions';
+import { getVisualClone, analyzeWebsite } from '@/lib/actions';
 import { useToast } from "@/hooks/use-toast";
-import { isLikelyHomepage } from '@/lib/url-utils';
 
 export default function DemoGenerator() {
   const { toast } = useToast();
@@ -41,36 +40,15 @@ export default function DemoGenerator() {
     setAnalysis(null);
     setCloneHtml(null);
     setSelectedPlacement(null);
-    setUrl(newUrl); // Set initial URL for reference
-
-    let urlToProcess = newUrl;
+    setUrl(newUrl);
 
     try {
-        if (await isLikelyHomepage(newUrl)) {
-            setStatusText('Homepage detected. Finding a sample article...');
-            const foundArticleUrl = await findArticleUrl(newUrl);
-            
-            if (foundArticleUrl) {
-                urlToProcess = foundArticleUrl;
-                setUrl(foundArticleUrl); // Update the URL state to the article URL
-                toast({
-                    title: "Article Found!",
-                    description: `Now analyzing: ${foundArticleUrl}`,
-                });
-            } else {
-                 toast({
-                    title: "Article Detection Failed",
-                    description: "Couldn't find one automatically. Proceeding with the homepage. You can also paste a direct article URL.",
-                });
-            }
-        }
-        
         setStatusText('Generating visual preview...');
-        const html = await getVisualClone(urlToProcess);
+        const html = await getVisualClone(newUrl);
         setCloneHtml(html);
 
         setStatusText('Analyzing website design...');
-        const analysisResult = await analyzeWebsite(urlToProcess);
+        const analysisResult = await analyzeWebsite(newUrl);
         setAnalysis(analysisResult);
         
         toast({
