@@ -25,18 +25,21 @@ export async function placementAnalysis(
     const $ = cheerio.load(htmlContent);
 
     // Prioritized list of selectors to find the best placement for the player.
+    // The goal is to place the player just before the main article content starts.
     const candidateSelectors = [
-      'article',
+      // Common class names for the main content block. Placing BEFORE these is ideal.
       '.entry-content',
       '.post-content',
-      '.post',
-      'main[role="main"]',
-      'main',
-      '[role="main"]',
-      '.content',
-      '.entry-header',
-      'header',
-      'h1',
+      '.article-content',
+      '.article-body',
+
+      // If no specific content div is found, try placing it AFTER the main headline.
+      // We do this by selecting the element immediately following h1 and placing our player before it.
+      'h1 + *',
+
+      // Fallback: place as the first child inside a broader content container.
+      'article > *:first-child',
+      'main > *:first-child',
     ];
 
     const suggestedLocations: string[] = [];
@@ -51,7 +54,7 @@ export async function placementAnalysis(
               addedElements.add(firstElement);
           }
       }
-      if (suggestedLocations.length >= 5) {
+      if (suggestedLocations.length >= 3) { // Get a few options
           break;
       }
     }
@@ -64,6 +67,6 @@ export async function placementAnalysis(
     return {
       suggestedLocations: [...new Set(suggestedLocations)], // Remove potential duplicates
       reasoning:
-        'These locations were identified as primary content areas suitable for placing an audio player based on common HTML structures like articles, main content containers, and headings.',
+        "Based on the website's structure, we suggest placing the player just before the main content begins. This is typically after the main headline or at the start of the primary article container.",
     };
 }
