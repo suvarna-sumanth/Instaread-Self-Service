@@ -48,13 +48,21 @@ export default function DemoGenerator() {
     try {
         if (await isLikelyHomepage(newUrl)) {
             setStatusText('Homepage detected. Finding a sample article...');
-            const articleUrl = await findArticleUrl(newUrl);
-            urlToProcess = articleUrl;
-            setUrl(articleUrl); // Update the URL state to the article URL
-            toast({
-                title: "Article Found!",
-                description: `Now analyzing: ${articleUrl}`,
-            });
+            const foundArticleUrl = await findArticleUrl(newUrl);
+            
+            if (foundArticleUrl) {
+                urlToProcess = foundArticleUrl;
+                setUrl(foundArticleUrl); // Update the URL state to the article URL
+                toast({
+                    title: "Article Found!",
+                    description: `Now analyzing: ${foundArticleUrl}`,
+                });
+            } else {
+                 toast({
+                    title: "Auto-Find Disabled",
+                    description: "Proceeding with the provided URL. For best results, paste a direct article link.",
+                });
+            }
         }
         
         setStatusText('Generating visual preview...');

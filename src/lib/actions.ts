@@ -18,8 +18,8 @@ export async function analyzeWebsite(url: string): Promise<WebsiteAnalysisOutput
     return result;
 }
 
-export async function findArticleUrl(domainUrl: string): Promise<string> {
+export async function findArticleUrl(domainUrl: string): Promise<string | null> {
     console.log(`Finding article on domain: ${domainUrl}`);
     const result = await findArticleUrlFlow({ domainUrl });
-    return result.articleUrl;
+    return result ? result.articleUrl : null;
 }

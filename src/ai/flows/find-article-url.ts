@@ -20,14 +20,15 @@ export type FindArticleUrlOutput = {
   articleUrl: string;
 };
 
-export async function findArticleUrl(input: FindArticleUrlInput): Promise<FindArticleUrlOutput> {
+// Return null on failure to allow for fallback logic in the UI
+export async function findArticleUrl(input: FindArticleUrlInput): Promise<FindArticleUrlOutput | null> {
   const useAiAnalysis = process.env.ENABLE_AI_ANALYSIS === 'true';
 
   if (!useAiAnalysis || !process.env.OPENAI_API_KEY) {
       if (useAiAnalysis) {
         console.warn("AI analysis is enabled, but OPENAI_API_KEY is missing. Cannot find article URL.");
       }
-      throw new Error("AI analysis is not enabled or configured, so I can't find an article automatically.");
+      return null;
   }
   
   const openai = new OpenAI({
@@ -36,7 +37,8 @@ export async function findArticleUrl(input: FindArticleUrlInput): Promise<FindAr
 
   const htmlContent = await fetchWebsite(input.domainUrl);
   if (htmlContent.startsWith('Error')) {
-    throw new Error(`Failed to fetch homepage: ${htmlContent}`);
+    console.error(`Failed to fetch homepage for article finding: ${htmlContent}`);
+    return null;
   }
 
   // Use cheerio to extract all links to reduce the payload to the LLM
@@ -84,19 +86,21 @@ export async function findArticleUrl(input: FindArticleUrlInput): Promise<FindAr
 
     const content = response.choices[0].message.content;
     if (!content) {
-      throw new Error('OpenAI returned an empty response.');
+      console.error('OpenAI returned an empty response.');
+      return null;
     }
 
     const result = JSON.parse(content) as FindArticleUrlOutput;
     
     if (!result.articleUrl || !result.articleUrl.startsWith('http')) {
-        throw new Error('AI could not identify a valid article URL.');
+        console.error('AI could not identify a valid article URL.');
+        return null;
     }
 
     return result;
 
   } catch (error) {
     console.error("Error finding article URL with OpenAI:", error);
-    throw new Error("AI failed to identify an article URL from the homepage.");
+    return null;
   }
 }
