@@ -8,12 +8,14 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { PlusCircle, XCircle, Loader2, Download, Terminal } from 'lucide-react';
+import { PlusCircle, XCircle, Loader2, Download, Terminal, Eye } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { wordpressPluginSchema, type WordpressPluginFormData } from '@/lib/schemas';
 import { generateWordPressPlugin, getWorkflowRunResult } from '@/lib/github-actions';
 import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 
 
 const WordpressPluginForm = () => {
@@ -23,6 +25,7 @@ const WordpressPluginForm = () => {
     const [progress, setProgress] = useState(0);
     const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [previewContent, setPreviewContent] = useState<{ config: string; plugin: string } | null>(null);
 
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -70,16 +73,41 @@ const WordpressPluginForm = () => {
         stopPolling();
     };
 
-    // Effect to clean up intervals and timeouts on component unmount
     useEffect(() => {
         return () => stopPolling();
     }, []);
 
+    const handlePreview = async () => {
+        const isValid = await form.trigger();
+        if (!isValid) {
+            toast({
+                title: "Invalid Form",
+                description: "Please fill out all required fields correctly before previewing.",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        const data = form.getValues();
+        const configJson = JSON.stringify(data, null, 2);
+        
+        const pluginJson = JSON.stringify({
+            name: `Instaread Audio Player - ${data.publication}`,
+            version: data.version,
+            download_url: `[Generated on build in: https://github.com/OWNER/REPO/releases/download/${data.partner_id}-v${data.version}/${data.partner_id}-v${data.version}.zip]`,
+            requires: "5.6",
+            tested: "6.5",
+            sections: {
+              changelog: `<h4>${data.version}</h4><ul><li>Partner-specific build for ${data.publication}</li></ul>`
+            }
+        }, null, 2);
+
+        setPreviewContent({ config: configJson, plugin: pluginJson });
+    };
+
     const onSubmit = async (data: WordpressPluginFormData) => {
-        // Clear previous results before starting
         setDownloadUrl(null);
         setErrorMessage(null);
-
         setIsLoading(true);
         setLoadingMessage('Triggering build...');
         setProgress(10);
@@ -96,7 +124,7 @@ const WordpressPluginForm = () => {
                 setProgress(25);
 
                 const POLLING_INTERVAL = 10000;
-                const POLLING_TIMEOUT = 300000; // 5 minutes
+                const POLLING_TIMEOUT = 300000; 
 
                 timeoutRef.current = setTimeout(() => {
                     stopPolling();
@@ -155,6 +183,7 @@ const WordpressPluginForm = () => {
     const isFormDisabled = isLoading || !!downloadUrl || !!errorMessage;
 
     return (
+    <Dialog onOpenChange={() => setPreviewContent(null)}>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 p-1">
                 <fieldset disabled={isFormDisabled} className="space-y-8">
@@ -252,8 +281,9 @@ const WordpressPluginForm = () => {
                                 <div key={field.id} className="p-4 border rounded-lg relative space-y-4">
                                     <button
                                         type="button"
-                                        onClick={() => remove(index)}
+                                        onClick={() => fields.length > 1 ? remove(index) : null}
                                         className="absolute -top-3 -right-3 bg-background rounded-full p-0.5 text-muted-foreground hover:text-destructive disabled:opacity-50"
+                                        disabled={fields.length <= 1}
                                     >
                                         <XCircle className="h-6 w-6" />
                                     </button>
@@ -309,10 +339,16 @@ const WordpressPluginForm = () => {
                 </fieldset>
 
                 {!isFormDisabled && (
-                    <Button type="submit" className="w-full">
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin hidden" />
-                        Generate WordPress Plugin
-                    </Button>
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <DialogTrigger asChild>
+                            <Button type="button" variant="outline" className="w-full" onClick={handlePreview}>
+                                <Eye className="mr-2" /> Preview & Verify
+                            </Button>
+                        </DialogTrigger>
+                        <Button type="submit" className="w-full">
+                           {isLoading ? <Loader2 className="mr-2 animate-spin" /> : "Generate Plugin"}
+                        </Button>
+                    </div>
                 )}
             </form>
             
@@ -348,8 +384,35 @@ const WordpressPluginForm = () => {
                     </Button>
                 </div>
             )}
+
+            <DialogContent className="max-w-2xl">
+                 <DialogHeader>
+                    <DialogTitle>Configuration Preview</DialogTitle>
+                </DialogHeader>
+                {previewContent && (
+                     <Tabs defaultValue="config" className="w-full">
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="config">config.json</TabsTrigger>
+                            <TabsTrigger value="plugin">plugin.json</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="config">
+                            <pre className="bg-muted rounded-md p-4 text-sm overflow-x-auto mt-4 max-h-[50vh]">
+                                <code className="font-code text-muted-foreground">{previewContent.config}</code>
+                            </pre>
+                        </TabsContent>
+                        <TabsContent value="plugin">
+                             <pre className="bg-muted rounded-md p-4 text-sm overflow-x-auto mt-4 max-h-[50vh]">
+                                <code className="font-code text-muted-foreground">{previewContent.plugin}</code>
+                            </pre>
+                        </TabsContent>
+                    </Tabs>
+                )}
+            </DialogContent>
         </Form>
+    </Dialog>
     );
 };
 
 export default WordpressPluginForm;
+
+    
