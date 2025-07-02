@@ -120,24 +120,22 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   };
 
   // Effect to inject/update the web component player.
-  // This now fully replaces the player on every change to ensure the web component re-initializes correctly.
+  // This now fully replaces the player AND its script on every change to force re-initialization.
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe?.contentWindow?.document || !url) return;
     
     const doc = iframe.contentWindow.document;
+    const scriptSrc = "https://instaread.co/js/instaread.player.js";
 
     // Defer the DOM manipulation to the next animation frame.
     // This prevents race conditions and ensures the browser has processed any
     // pending removals before we attempt to add new elements.
     requestAnimationFrame(() => {
-      // Always remove the existing player to ensure a clean slate for re-injection.
-      const existingPlayer = doc.getElementById('instaread-player-instance');
-      if (existingPlayer) {
-          existingPlayer.remove();
-      }
-      
-      // Always remove the highlight from the previously selected element.
+      // 1. Clean up from any previous run.
+      // Always remove the existing player, script, and highlight to ensure a clean slate.
+      doc.getElementById('instaread-player-instance')?.remove();
+      doc.querySelector(`script[src="${scriptSrc}"]`)?.remove();
       const highlightedEl = doc.querySelector('[data-instaread-placement-highlight]') as HTMLElement | null;
       if (highlightedEl) {
           highlightedEl.style.outline = '';
@@ -149,7 +147,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
           return;
       }
 
-      // Now, inject a fresh player based on the current config.
+      // 2. Inject a fresh player and script based on the current config.
       try {
           const targetEl = doc.querySelector(selectedPlacement.selector) as HTMLElement;
           if (!targetEl) {
@@ -157,19 +155,9 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
               return;
           };
 
-          // 1. Ensure the script is present. This only runs once per iframe load.
-          const scriptSrc = "https://instaread.co/js/instaread.player.js";
-          if (!doc.head.querySelector(`script[src="${scriptSrc}"]`)) {
-              const script = doc.createElement('script');
-              script.src = scriptSrc;
-              script.type = 'module';
-              script.crossOrigin = 'anonymous';
-              doc.head.appendChild(script);
-          }
-          
-          // 2. Create and configure the NEW player element.
+          // 2a. Create and configure the NEW player element.
           const playerElement = doc.createElement('instaread-player');
-          playerElement.id = 'instaread-player-instance'; // Give it a consistent ID to find it next time.
+          playerElement.id = 'instaread-player-instance';
 
           const { design, showAds, enableMetrics, audioFileName } = playerConfig;
           const publication = design === 'A' ? 'usnews.com' : 'flyingmag';
@@ -183,14 +171,21 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
           playerElement.setAttribute('data-enable-metrics', String(enableMetrics));
           playerElement.setAttribute('data-audio-track-url', `path/to/${audioFileName || 'sample.mp3'}`);
           
-          // 3. Inject the new player into the DOM.
+          // 2b. Inject the new player into the DOM.
           if (selectedPlacement.position === 'before') {
               targetEl.parentNode?.insertBefore(playerElement, targetEl);
           } else {
               targetEl.parentNode?.insertBefore(playerElement, targetEl.nextSibling);
           }
           
-          // 4. Highlight the target element.
+          // 2c. Create and inject the NEW script element to force re-initialization.
+          const script = doc.createElement('script');
+          script.src = scriptSrc;
+          script.type = 'module';
+          script.crossOrigin = 'anonymous';
+          doc.head.appendChild(script);
+          
+          // 2d. Highlight the target element.
           targetEl.style.outline = '3px solid hsl(var(--primary))';
           targetEl.setAttribute('data-instaread-placement-highlight', 'true');
 
