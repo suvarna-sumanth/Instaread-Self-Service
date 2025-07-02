@@ -2,13 +2,11 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react';
-import ReactDOM from 'react-dom';
 import type { PlayerConfig, Placement } from '@/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Monitor, Smartphone, Loader2, Info, Pointer, MousePointerClick } from 'lucide-react';
-import AudioPlayer from '@/components/ui/audio-player';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from '../ui/button';
@@ -64,27 +62,14 @@ const generateSelector = (el: Element): string => {
 const LivePreviewSection = (props: LivePreviewSectionProps) => {
   const { url, cloneHtml, isLoading, statusText, selectedPlacement, onSelectPlacement, playerConfig } = props;
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [playerContainer, setPlayerContainer] = useState<HTMLElement | null>(null);
   const [stagedPlacement, setStagedPlacement] = useState<{ selector: string } | null>(null);
   
 
   const handleIframeLoad = () => {
     const iframe = iframeRef.current;
-    if (!iframe) {
-        return;
-    }
+    if (!iframe) return;
     const doc = iframe.contentDocument;
-    if (!doc?.body) {
-        return;
-    }
-
-    // Copy all style and link tags from the parent document to the iframe's head.
-    // This is crucial for ensuring that React components portaled into the iframe
-    // (like our AudioPlayer) are styled correctly using the app's main stylesheet.
-    const parentStyles = document.querySelectorAll('style, link[rel="stylesheet"]');
-    parentStyles.forEach(styleEl => {
-        doc.head.appendChild(styleEl.cloneNode(true));
-    });
+    if (!doc?.body) return;
 
     let lastHovered: HTMLElement | null = null;
     let originalOutline: string | null = null;
@@ -98,7 +83,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
             lastHovered = target;
             originalOutline = target.style.outline;
             // Don't highlight the player itself or the helper elements
-            if (!target.closest('.instaread-player-container')) {
+            if (!target.closest('instaread-player')) {
                 target.style.outline = '2px dashed hsl(var(--accent))';
             }
         }
@@ -117,13 +102,11 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
         e.stopPropagation();
 
         const doc = iframeRef.current?.contentDocument;
-        if (!doc) {
-            return;
-        }
+        if (!doc) return;
         
         const clickedEl = doc.elementFromPoint(e.clientX, e.clientY);
 
-        if (clickedEl && !clickedEl.closest('.instaread-player-container')) {
+        if (clickedEl && !clickedEl.closest('instaread-player')) {
             const selector = generateSelector(clickedEl);
             if (selector) {
                 setStagedPlacement({ selector });
@@ -136,36 +119,56 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     doc.body.addEventListener('click', handleClick);
   };
 
-  // Effect to place the actual player when a placement is confirmed
+  // Effect to inject the web component player when a placement is confirmed
   useEffect(() => {
     const iframe = iframeRef.current;
-    if (!iframe || !iframe.contentDocument) return;
+    if (!iframe?.contentDocument) return;
     
     const doc = iframe.contentDocument;
 
     // Always clean up previous instances first
-    doc.querySelector('.instaread-player-container')?.remove();
+    doc.getElementById('instaread-player-instance')?.remove();
     doc.querySelectorAll('[data-instaread-placement-highlight]').forEach(el => {
         (el as HTMLElement).style.outline = '';
         el.removeAttribute('data-instaread-placement-highlight');
     });
-    setPlayerContainer(null);
 
-    if (selectedPlacement?.selector) {
+    if (selectedPlacement?.selector && url) {
         try {
             const targetEl = doc.querySelector(selectedPlacement.selector) as HTMLElement;
             if (targetEl) {
-                const portalRoot = doc.createElement('div');
-                portalRoot.className = 'instaread-player-container';
-                
-                if (selectedPlacement.position === 'before') {
-                    targetEl.parentNode?.insertBefore(portalRoot, targetEl);
-                } else {
-                    targetEl.parentNode?.insertBefore(portalRoot, targetEl.nextSibling);
+                // 1. Inject the web component script if it's not already there.
+                if (!doc.head.querySelector('script[src="https://instaread.co/js/instaread.player.js"]')) {
+                    const script = doc.createElement('script');
+                    script.src = 'https://instaread.co/js/instaread.player.js';
+                    script.type = 'module';
+                    script.crossOrigin = 'anonymous';
+                    doc.head.appendChild(script);
                 }
-                setPlayerContainer(portalRoot);
+
+                // 2. Create the player element itself.
+                const playerElement = doc.createElement('instaread-player');
+                playerElement.id = 'instaread-player-instance';
                 
-                // Highlight the element we attached to
+                // Get attributes from config
+                const { design, showAds, enableMetrics, audioFileName } = playerConfig;
+                
+                playerElement.setAttribute('data-source', url);
+                playerElement.setAttribute('data-placement-selector', selectedPlacement.selector);
+                playerElement.setAttribute('data-placement-position', selectedPlacement.position);
+                playerElement.setAttribute('data-design', design);
+                playerElement.setAttribute('data-show-ads', String(showAds));
+                playerElement.setAttribute('data-enable-metrics', String(enableMetrics));
+                playerElement.setAttribute('data-audio-track-url', `path/to/${audioFileName || 'sample.mp3'}`);
+                
+                // 3. Inject the player into the DOM.
+                if (selectedPlacement.position === 'before') {
+                    targetEl.parentNode?.insertBefore(playerElement, targetEl);
+                } else {
+                    targetEl.parentNode?.insertBefore(playerElement, targetEl.nextSibling);
+                }
+                
+                // 4. Highlight the element we attached to.
                 targetEl.style.outline = '3px solid hsl(var(--primary))';
                 targetEl.setAttribute('data-instaread-placement-highlight', 'true');
             }
@@ -173,7 +176,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
              console.error(`[LivePreview] Error processing selector "${selectedPlacement.selector}":`, e);
         }
     }
-  }, [selectedPlacement, cloneHtml]);
+  }, [selectedPlacement, cloneHtml, url, playerConfig]);
 
 
   const handleClearPlacement = () => {
@@ -235,12 +238,6 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                 sandbox="allow-scripts allow-same-origin"
                 onLoad={handleIframeLoad}
             />
-            {playerContainer && ReactDOM.createPortal(
-                <div className="p-2">
-                    <AudioPlayer config={playerConfig} />
-                </div>,
-                playerContainer
-            )}
         </div>
     )
   }
