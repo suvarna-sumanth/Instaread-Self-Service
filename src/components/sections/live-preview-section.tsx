@@ -4,7 +4,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { PlayerConfig, Placement } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Monitor, Smartphone, Loader2, Info, Pointer, MousePointerClick } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -63,6 +63,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   const { url, cloneHtml, isLoading, statusText, selectedPlacement, onSelectPlacement, playerConfig } = props;
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [stagedPlacement, setStagedPlacement] = useState<{ selector: string } | null>(null);
+  const [view, setView] = useState<'desktop' | 'mobile'>('desktop');
   
 
   const handleIframeLoad = () => {
@@ -193,15 +194,15 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     }
   };
 
-  const renderPreviewContent = (isMobile: boolean) => {
+  const renderPreviewContent = () => {
     if (isLoading) {
       return (
-          <div className="p-4 space-y-4">
+          <div className="p-4 space-y-4 h-full w-full flex flex-col items-center justify-center">
             <div className="flex items-center justify-center gap-2 text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin" />
                 <p>{statusText || 'Analyzing and rendering preview...'}</p>
             </div>
-            <Skeleton className="h-[400px] w-full" />
+            <Skeleton className="h-[400px] w-full max-w-lg" />
           </div>
       );
     }
@@ -224,7 +225,8 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
             </Alert>
         );
     }
-
+    
+    const isMobile = view === 'mobile';
     const previewContainerClasses = cn(
       "bg-white rounded-lg overflow-hidden w-full relative", 
       isMobile ? "h-[640px] w-[360px] shadow-2xl border-[10px] border-black rounded-[40px]" : "h-full shadow-lg",
@@ -282,21 +284,17 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
           </div>
         </CardHeader>
         <CardContent className="flex flex-col flex-grow p-6 pt-0">
-          <Tabs defaultValue="desktop" className="w-full flex flex-col flex-grow">
+          <Tabs defaultValue="desktop" className="w-full flex flex-col flex-grow" onValueChange={(v) => setView(v as 'desktop' | 'mobile')}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="desktop"><Monitor className="mr-2 h-4 w-4"/>Desktop</TabsTrigger>
               <TabsTrigger value="mobile"><Smartphone className="mr-2 h-4 w-4"/>Mobile</TabsTrigger>
             </TabsList>
-            <TabsContent value="desktop" className="flex-grow">
-              <div className="bg-muted/50 rounded-lg p-4 mt-4 h-full">
-                  {renderPreviewContent(false)}
-              </div>
-            </TabsContent>
-            <TabsContent value="mobile">
-              <div className="bg-muted/50 rounded-lg p-4 mt-4 flex items-center justify-center">
-                  {renderPreviewContent(true)}
-              </div>
-            </TabsContent>
+            <div className={cn(
+              "bg-muted/50 rounded-lg p-4 mt-4 flex-grow",
+              view === 'mobile' && "flex items-center justify-center"
+            )}>
+              {renderPreviewContent()}
+            </div>
           </Tabs>
         </CardContent>
       </Card>
