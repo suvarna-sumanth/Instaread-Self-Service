@@ -140,6 +140,13 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
           max-width: 100% !important; 
           box-sizing: border-box !important;
         }
+
+        /* Override the player's fixed min-width on smaller screens to prevent overflow */
+        @media only screen and (max-width: 659px) {
+            .instaread-audio-player {
+                min-width: 0 !important;
+            }
+        }
       `;
       doc.head.appendChild(styleOverride);
 
