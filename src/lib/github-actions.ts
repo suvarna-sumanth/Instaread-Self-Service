@@ -1,3 +1,4 @@
+
 'use server';
 
 import { Octokit } from '@octokit/rest';
@@ -24,43 +25,29 @@ export async function generateWordPressPlugin(formData: WordpressPluginFormData)
         const octokit = new Octokit({ auth: token });
         
         const { partner_id, version, publication } = formData;
-        const newBranchName = `feat/plugin-${partner_id}-${version}`;
-        const prTitle = `feat(plugin): Add/Update ${publication} plugin version ${version}`;
+        const commitMessage = `feat(plugin): Add/Update ${publication} plugin v${version}`;
 
         // 1. Get the latest commit SHA from the main branch
-        const mainBranch = await octokit.repos.getBranch({
+        const { data: mainBranch } = await octokit.git.getRef({
             owner,
             repo,
-            branch: 'main',
+            ref: 'heads/main',
         });
-        const mainBranchSha = mainBranch.data.commit.sha;
+        const latestCommitSha = mainBranch.object.sha;
 
-        // 2. Create a new branch from main
-        try {
-            await octokit.git.createRef({
-                owner,
-                repo,
-                ref: `refs/heads/${newBranchName}`,
-                sha: mainBranchSha,
-            });
-        } catch (error: any) {
-            // If branch already exists, we can choose to ignore or fail.
-            // For this use case, failing is safer to avoid unintended overwrites.
-            if (error.status === 422) {
-                 return { success: false, error: `Branch '${newBranchName}' already exists. Please use a new version number.` };
-            }
-            throw error;
-        }
-
-
-        // 3. Prepare file contents for the partner-specific directory
+        // 2. Prepare file contents as blobs
         const configJsonPath = `partners/${partner_id}/config.json`;
         const configJsonContent = JSON.stringify(formData, null, 2);
+        const configBlob = await octokit.git.createBlob({
+            owner,
+            repo,
+            content: configJsonContent,
+            encoding: 'utf-8',
+        });
 
         const pluginJsonPath = `partners/${partner_id}/plugin.json`;
         const repoUrl = `https://github.com/${owner}/${repo}`;
         const downloadUrl = `${repoUrl}/releases/download/${partner_id}-v${version}/${partner_id}-v${version}.zip`;
-        
         const pluginJsonData = {
             name: `Instaread Audio Player - ${publication}`,
             version: version,
@@ -72,68 +59,52 @@ export async function generateWordPressPlugin(formData: WordpressPluginFormData)
             }
         };
         const pluginJsonContent = JSON.stringify(pluginJsonData, null, 2);
-        
-        // 4. Create or update files in the new branch
-        const filesToCommit = [
-            { path: configJsonPath, content: configJsonContent, message: `feat: Add config.json for ${partner_id} v${version}` },
-            { path: pluginJsonPath, content: pluginJsonContent, message: `feat: Add plugin.json for ${partner_id} v${version}` }
-        ];
-
-        for (const file of filesToCommit) {
-             // To update a file, we need its SHA. Check if it exists first.
-            let currentSha: string | undefined;
-            try {
-                const { data: existingFile } = await octokit.repos.getContent({
-                    owner,
-                    repo,
-                    path: file.path,
-                    ref: newBranchName,
-                });
-                if ('sha' in existingFile) {
-                  currentSha = existingFile.sha;
-                }
-            } catch (e: any) {
-                if (e.status !== 404) throw e;
-                // File doesn't exist, which is fine.
-            }
-
-            await octokit.repos.createOrUpdateFileContents({
-                owner,
-                repo,
-                path: file.path,
-                message: file.message,
-                content: Buffer.from(file.content).toString('base64'),
-                branch: newBranchName,
-                sha: currentSha, // Provide SHA if updating
-            });
-        }
-        
-        // 5. Create a Pull Request
-        const pullRequest = await octokit.pulls.create({
+        const pluginBlob = await octokit.git.createBlob({
             owner,
             repo,
-            title: prTitle,
-            head: newBranchName,
-            base: 'main',
-            body: `This PR was automatically generated for ${publication} v${version} by the AudioLeap Demo Generator.`,
-        });
-
-        // 6. Merge the Pull Request
-        await octokit.pulls.merge({
-            owner,
-            repo,
-            pull_number: pullRequest.data.number,
-            commit_title: `Merge PR #${pullRequest.data.number}: ${prTitle}`,
-        });
-
-        // 7. Delete the branch
-        await octokit.git.deleteRef({
-            owner,
-            repo,
-            ref: `heads/${newBranchName}`,
+            content: pluginJsonContent,
+            encoding: 'utf-8',
         });
         
-        // 8. Trigger the workflow dispatch
+        // 3. Create a new tree with these files
+        const { data: newTree } = await octokit.git.createTree({
+            owner,
+            repo,
+            base_tree: latestCommitSha,
+            tree: [
+                {
+                    path: configJsonPath,
+                    mode: '100644',
+                    type: 'blob',
+                    sha: configBlob.data.sha,
+                },
+                {
+                    path: pluginJsonPath,
+                    mode: '100644',
+                    type: 'blob',
+                    sha: pluginBlob.data.sha,
+                },
+            ],
+        });
+
+        // 4. Create a new commit
+        const { data: newCommit } = await octokit.git.createCommit({
+            owner,
+            repo,
+            message: commitMessage,
+            tree: newTree.sha,
+            parents: [latestCommitSha],
+        });
+
+        // 5. Update the main branch to point to the new commit
+        await octokit.git.updateRef({
+            owner,
+            repo,
+            ref: 'heads/main',
+            sha: newCommit.sha,
+        });
+
+        // 6. Trigger the workflow dispatch on the updated main branch
         await octokit.actions.createWorkflowDispatch({
             owner,
             repo,
@@ -146,7 +117,7 @@ export async function generateWordPressPlugin(formData: WordpressPluginFormData)
         });
         
         // Wait a moment for the workflow run to appear in the API
-        await delay(5000); // 5 seconds
+        await delay(5000);
 
         const workflowRuns = await octokit.actions.listWorkflowRuns({
             owner,
@@ -164,7 +135,7 @@ export async function generateWordPressPlugin(formData: WordpressPluginFormData)
 
         return { 
             success: true, 
-            message: `Successfully created and merged PR. Triggered build for ${publication} v${version}.`,
+            message: `Successfully committed changes and triggered build for ${publication} v${version}.`,
             runId: runId,
             partnerId: formData.partner_id,
             version: formData.version,
