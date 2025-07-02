@@ -128,7 +128,7 @@ const AudioPlayer: FC<{ config: PlayerConfig }> = ({ config }) => {
           </div>
 
           {config.showAds && (
-              <div className="w-full h-full flex flex-col items-start justify-center">
+              <div className="parent-ad-container w-full h-full flex flex-col items-start justify-center">
                    <h4 className="text-sm font-medium text-muted-foreground mb-2">Advertisement</h4>
                    <div className="w-full">
                       <Image
@@ -186,7 +186,7 @@ const AudioPlayer: FC<{ config: PlayerConfig }> = ({ config }) => {
         </div>
 
         {config.showAds && (
-            <div className="mt-4 w-full">
+            <div className="parent-ad-container mt-4 w-full">
                 <p className="text-xs text-muted-foreground text-center mb-1">Advertisement</p>
                  <Image
                     src="https://instaread.co/images/default_ad.png"
