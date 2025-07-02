@@ -15,7 +15,7 @@ type IntegrationCodeSectionProps = {
     websiteUrl: string;
 };
 
-const IntegrationCodeSection = ({ playerConfig, selectedPlacement, websiteUrl }: IntegrationCodesectionProps) => {
+const IntegrationCodeSection = ({ playerConfig, selectedPlacement, websiteUrl }: IntegrationCodeSectionProps) => {
     const { toast } = useToast();
     const [copied, setCopied] = useState(false);
     

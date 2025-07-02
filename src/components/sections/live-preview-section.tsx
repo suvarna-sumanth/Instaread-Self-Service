@@ -119,28 +119,33 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     doc.body.addEventListener('click', handleClick);
   };
 
-  // Effect to inject/update the web component player when placement or config changes.
+  // Effect to inject/update the web component player.
+  // This now fully replaces the player on every change to ensure the web component re-initializes correctly.
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe?.contentWindow?.document || !url) return;
     
     const doc = iframe.contentWindow.document;
 
-    // Find existing player and highlighted elements
-    let playerElement = doc.getElementById('instaread-player-instance') as HTMLElement | null;
+    // Always remove the existing player to ensure a clean slate for re-injection.
+    const existingPlayer = doc.getElementById('instaread-player-instance');
+    if (existingPlayer) {
+        existingPlayer.remove();
+    }
+    
+    // Always remove the highlight from the previously selected element.
     const highlightedEl = doc.querySelector('[data-instaread-placement-highlight]') as HTMLElement | null;
+    if (highlightedEl) {
+        highlightedEl.style.outline = '';
+        highlightedEl.removeAttribute('data-instaread-placement-highlight');
+    }
 
-    // If placement is cleared, remove the player and any highlights
+    // If there's no placement selected, we're done.
     if (!selectedPlacement) {
-        playerElement?.remove();
-        if (highlightedEl) {
-            highlightedEl.style.outline = '';
-            highlightedEl.removeAttribute('data-instaread-placement-highlight');
-        }
         return;
     }
 
-    // A placement IS selected, so proceed with injection or update.
+    // Now, inject a fresh player based on the current config.
     try {
         const targetEl = doc.querySelector(selectedPlacement.selector) as HTMLElement;
         if (!targetEl) {
@@ -148,31 +153,20 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
              return;
         };
 
-        // If player doesn't exist, create and inject it for the first time
-        if (!playerElement) {
-            // 1. Inject the web component script if it's not already there.
-            const scriptSrc = "https://instaread.co/js/instaread.player.js";
-            if (!doc.head.querySelector(`script[src="${scriptSrc}"]`)) {
-                const script = doc.createElement('script');
-                script.src = scriptSrc;
-                script.type = 'module';
-                script.crossOrigin = 'anonymous';
-                doc.head.appendChild(script);
-            }
-            
-            playerElement = doc.createElement('instaread-player');
-            playerElement.id = 'instaread-player-instance';
-
-            // Inject the player into the DOM based on position.
-            if (selectedPlacement.position === 'before') {
-                targetEl.parentNode?.insertBefore(playerElement, targetEl);
-            } else {
-                targetEl.parentNode?.insertBefore(playerElement, targetEl.nextSibling);
-            }
+        // 1. Ensure the script is present. This only runs once per iframe load.
+        const scriptSrc = "https://instaread.co/js/instaread.player.js";
+        if (!doc.head.querySelector(`script[src="${scriptSrc}"]`)) {
+            const script = doc.createElement('script');
+            script.src = scriptSrc;
+            script.type = 'module';
+            script.crossOrigin = 'anonymous';
+            doc.head.appendChild(script);
         }
         
-        // 2. Update player attributes regardless of whether it was new or existing.
-        // This is the key part that fixes the toggle issue by re-configuring the component.
+        // 2. Create and configure the NEW player element.
+        const playerElement = doc.createElement('instaread-player');
+        playerElement.id = 'instaread-player-instance'; // Give it a consistent ID to find it next time.
+
         const { design, showAds, enableMetrics, audioFileName } = playerConfig;
         const publication = design === 'A' ? 'usnews.com' : 'flyingmag';
         
@@ -184,12 +178,15 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
         playerElement.setAttribute('data-show-ads', String(showAds));
         playerElement.setAttribute('data-enable-metrics', String(enableMetrics));
         playerElement.setAttribute('data-audio-track-url', `path/to/${audioFileName || 'sample.mp3'}`);
-
-        // 3. Manage highlights. Remove old one if target changed, add new one.
-        if (highlightedEl && highlightedEl !== targetEl) {
-             highlightedEl.style.outline = '';
-             highlightedEl.removeAttribute('data-instaread-placement-highlight');
+        
+        // 3. Inject the new player into the DOM.
+        if (selectedPlacement.position === 'before') {
+            targetEl.parentNode?.insertBefore(playerElement, targetEl);
+        } else {
+            targetEl.parentNode?.insertBefore(playerElement, targetEl.nextSibling);
         }
+        
+        // 4. Highlight the target element.
         targetEl.style.outline = '3px solid hsl(var(--primary))';
         targetEl.setAttribute('data-instaread-placement-highlight', 'true');
 
