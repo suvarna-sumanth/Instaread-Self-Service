@@ -65,7 +65,6 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   const [stagedPlacement, setStagedPlacement] = useState<{ selector: string } | null>(null);
   const [view, setView] = useState<'desktop' | 'mobile'>('desktop');
   
-
   const handleIframeLoad = () => {
     const iframe = iframeRef.current;
     if (!iframe) return;
@@ -155,7 +154,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                 // Get attributes from config
                 const { design, showAds, enableMetrics, audioFileName } = playerConfig;
                 
-                playerElement.setAttribute('publication', 'usnews.com');
+                playerElement.setAttribute('publication', 'flyingmag');
                 
                 playerElement.setAttribute('data-source', url);
                 playerElement.setAttribute('data-placement-selector', selectedPlacement.selector);
@@ -226,26 +225,25 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
         );
     }
     
-    const isMobile = view === 'mobile';
-    const previewContainerClasses = cn(
-      "bg-white rounded-lg overflow-hidden w-full relative", 
-      isMobile ? "h-[640px] w-[360px] shadow-2xl border-[10px] border-black rounded-[40px]" : "h-full shadow-lg",
-      "transition-all duration-300"
-    );
-
     return (
-        <div className={previewContainerClasses}>
-            <iframe
-                ref={iframeRef}
-                title="Website Preview"
-                srcDoc={cloneHtml}
-                className="w-full h-full border-0"
-                sandbox="allow-scripts allow-same-origin"
-                onLoad={handleIframeLoad}
-            />
-        </div>
+        <iframe
+            ref={iframeRef}
+            title="Website Preview"
+            srcDoc={cloneHtml}
+            className="w-full h-full border-0"
+            sandbox="allow-scripts allow-same-origin"
+            onLoad={handleIframeLoad}
+        />
     )
   }
+
+  const isMobile = view === 'mobile';
+  const previewContainerClasses = cn(
+    "bg-white rounded-lg overflow-hidden w-full relative", 
+    isMobile ? "h-[640px] w-[360px] shadow-2xl border-[10px] border-black rounded-[40px]" : "h-full shadow-lg",
+    "transition-all duration-300"
+  );
+
 
   return (
     <>
@@ -293,7 +291,9 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
               "bg-muted/50 rounded-lg p-4 mt-4 flex-grow",
               view === 'mobile' && "flex items-center justify-center"
             )}>
-              {renderPreviewContent()}
+              <div className={previewContainerClasses}>
+                {renderPreviewContent()}
+              </div>
             </div>
           </Tabs>
         </CardContent>

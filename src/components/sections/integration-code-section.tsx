@@ -24,7 +24,7 @@ const IntegrationCodeSection = ({ playerConfig, selectedPlacement, websiteUrl }:
     const selector = selectedPlacement?.selector || 'body';
     const position = selectedPlacement?.position || 'before';
 
-    const publication = 'usnews.com';
+    const publication = 'flyingmag';
 
     const codeSnippets = {
         html: `<instaread-player
