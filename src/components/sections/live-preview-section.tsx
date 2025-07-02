@@ -154,9 +154,8 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                 // Get attributes from config
                 const { design, showAds, enableMetrics, audioFileName } = playerConfig;
                 
-                const publication = new URL(url).hostname;
+                playerElement.setAttribute('publication', 'usnews.com');
                 
-                playerElement.setAttribute('publication', publication);
                 playerElement.setAttribute('data-source', url);
                 playerElement.setAttribute('data-placement-selector', selectedPlacement.selector);
                 playerElement.setAttribute('data-placement-position', selectedPlacement.position);

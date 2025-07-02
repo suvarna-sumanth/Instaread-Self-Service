@@ -24,7 +24,7 @@ const IntegrationCodeSection = ({ playerConfig, selectedPlacement, websiteUrl }:
     const selector = selectedPlacement?.selector || 'body';
     const position = selectedPlacement?.position || 'before';
 
-    const publication = websiteUrl ? new URL(websiteUrl).hostname : 'your-publication.com';
+    const publication = 'usnews.com';
 
     const codeSnippets = {
         html: `<instaread-player
