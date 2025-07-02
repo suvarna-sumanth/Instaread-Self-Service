@@ -24,8 +24,11 @@ const IntegrationCodeSection = ({ playerConfig, selectedPlacement, websiteUrl }:
     const selector = selectedPlacement?.selector || 'body';
     const position = selectedPlacement?.position || 'before';
 
+    const publication = websiteUrl ? new URL(websiteUrl).hostname : 'your-publication.com';
+
     const codeSnippets = {
         html: `<instaread-player
+  publication="${publication}"
   data-source="${websiteUrl}"
   data-placement-selector="${selector}"
   data-placement-position="${position}"
@@ -40,6 +43,7 @@ const IntegrationCodeSection = ({ playerConfig, selectedPlacement, websiteUrl }:
 const MyComponent = () => {
   return (
     <InstareadPlayer
+      publication="${publication}"
       dataSource="${websiteUrl}"
       placementSelector="${selector}"
       placementPosition="${position}"
