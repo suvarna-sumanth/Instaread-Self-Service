@@ -13,12 +13,14 @@ import { useState, useRef, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { wordpressPluginSchema, type WordpressPluginFormData } from '@/lib/schemas';
 import { generateWordPressPlugin, getWorkflowRunResult } from '@/lib/github-actions';
+import { Progress } from '@/components/ui/progress';
 
 
 const WordpressPluginForm = () => {
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
+    const [progress, setProgress] = useState(0);
     const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -43,33 +45,44 @@ const WordpressPluginForm = () => {
         name: "injection_rules"
     });
 
-    // Effect to clean up intervals and timeouts on component unmount
-    useEffect(() => {
-        return () => {
-            if (intervalRef.current) clearInterval(intervalRef.current);
-            if (timeoutRef.current) clearTimeout(timeoutRef.current);
-        };
-    }, []);
-
     const stopPolling = () => {
         if (intervalRef.current) clearInterval(intervalRef.current);
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
         intervalRef.current = null;
         timeoutRef.current = null;
-    }
+    };
 
     const resetState = () => {
         setIsLoading(false);
         setLoadingMessage(null);
         setDownloadUrl(null);
         setErrorMessage(null);
+        setProgress(0);
+        form.reset({
+            partner_id: '',
+            domain: '',
+            publication: '',
+            injection_context: 'singular',
+            injection_strategy: 'first',
+            injection_rules: [{ target_selector: '', insert_position: 'prepend', exclude_slugs: '' }],
+            version: '1.0.0',
+        });
         stopPolling();
-    }
+    };
+
+    // Effect to clean up intervals and timeouts on component unmount
+    useEffect(() => {
+        return () => stopPolling();
+    }, []);
 
     const onSubmit = async (data: WordpressPluginFormData) => {
-        resetState();
+        // Clear previous results before starting
+        setDownloadUrl(null);
+        setErrorMessage(null);
+
         setIsLoading(true);
-        setLoadingMessage('Creating PR and triggering build...');
+        setLoadingMessage('Triggering build...');
+        setProgress(10);
 
         try {
             const result = await generateWordPressPlugin(data);
@@ -79,10 +92,11 @@ const WordpressPluginForm = () => {
                     title: 'Build Triggered',
                     description: 'Your plugin build has started. This may take a few minutes.',
                 });
-                setLoadingMessage('Build in progress...');
+                setLoadingMessage('Build process initiated...');
+                setProgress(25);
 
                 const POLLING_INTERVAL = 10000;
-                const POLLING_TIMEOUT = 300000;
+                const POLLING_TIMEOUT = 300000; // 5 minutes
 
                 timeoutRef.current = setTimeout(() => {
                     stopPolling();
@@ -98,6 +112,7 @@ const WordpressPluginForm = () => {
                         stopPolling();
                         setIsLoading(false);
                         setLoadingMessage(null);
+                        setProgress(100);
                         if (statusResult.conclusion === 'success' && statusResult.downloadUrl) {
                              setDownloadUrl(statusResult.downloadUrl);
                              toast({ title: 'Build Successful!', description: 'Your plugin is ready for download.', className: "bg-green-100 border-green-400 text-green-800" });
@@ -112,8 +127,15 @@ const WordpressPluginForm = () => {
                         setErrorMessage(statusResult.error || 'An error occurred while checking status.');
                         toast({ title: 'Polling Error', description: statusResult.error, variant: 'destructive' });
                     } else {
-                        if(statusResult.status) {
-                            setLoadingMessage(`Build status: ${statusResult.status}...`);
+                        if(statusResult.status === 'queued') {
+                            setLoadingMessage(`Build status: queued...`);
+                            setProgress(50);
+                        } else if (statusResult.status === 'in_progress') {
+                            setLoadingMessage(`Build status: in progress...`);
+                            setProgress(75);
+                        } else if (statusResult.status) {
+                             setLoadingMessage(`Build status: ${statusResult.status}...`);
+                             setProgress(25);
                         }
                     }
                 }, POLLING_INTERVAL);
@@ -130,7 +152,7 @@ const WordpressPluginForm = () => {
         }
     };
     
-    const isFormDisabled = isLoading || !!downloadUrl;
+    const isFormDisabled = isLoading || !!downloadUrl || !!errorMessage;
 
     return (
         <Form {...form}>
@@ -286,22 +308,31 @@ const WordpressPluginForm = () => {
                     </div>
                 </fieldset>
 
-                <Button type="submit" className="w-full" disabled={isFormDisabled}>
-                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isLoading ? (loadingMessage || 'Processing...') : 'Generate WordPress Plugin'}
-                </Button>
+                {!isFormDisabled && (
+                    <Button type="submit" className="w-full">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin hidden" />
+                        Generate WordPress Plugin
+                    </Button>
+                )}
             </form>
             
+            {isLoading && (
+                <div className="mt-6 p-4 border rounded-lg space-y-3">
+                    <p className="text-sm text-center font-medium">{loadingMessage}</p>
+                    <Progress value={progress} className="w-full" />
+                </div>
+            )}
+
             { (errorMessage || downloadUrl) && !isLoading && (
                 <div className="mt-6 p-4 border rounded-lg space-y-3">
-                    {errorMessage && !isLoading && (
+                    {errorMessage && (
                         <Alert variant="destructive">
                             <Terminal className="h-4 w-4" />
                             <AlertTitle>Error</AlertTitle>
                             <AlertDescription>{errorMessage}</AlertDescription>
                         </Alert>
                     )}
-                    {downloadUrl && !isLoading && (
+                    {downloadUrl && (
                         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                             <div>
                                 <h4 className="font-semibold text-green-600">Build Successful!</h4>
@@ -312,6 +343,9 @@ const WordpressPluginForm = () => {
                             </a>
                         </div>
                     )}
+                     <Button variant="outline" className="w-full mt-4" onClick={resetState}>
+                        Start Over
+                    </Button>
                 </div>
             )}
         </Form>

@@ -34,12 +34,12 @@ const IntegrationCodeSection = ({ playerConfig, selectedPlacement, websiteUrl }:
   data-enable-metrics="${enableMetrics}"
   data-audio-track-url="path/to/${audioFileName}"
 ></instaread-player>
-<script async src="https://cdn.audioleap.com/player.js"></script>`,
-        react: `import AudioLeapPlayer from '@audioleap/react-player';
+<script async src="https://cdn.instaread.com/player.js"></script>`,
+        react: `import InstareadPlayer from '@instaread/react-player';
 
 const MyComponent = () => {
   return (
-    <AudioLeapPlayer
+    <InstareadPlayer
       dataSource="${websiteUrl}"
       placementSelector="${selector}"
       placementPosition="${position}"

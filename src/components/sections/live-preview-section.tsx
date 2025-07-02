@@ -90,7 +90,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
             lastHovered = target;
             originalOutline = target.style.outline;
             // Don't highlight the player itself or the helper elements
-            if (!target.closest('.audioleap-player-container')) {
+            if (!target.closest('.instaread-player-container')) {
                 target.style.outline = '2px dashed hsl(var(--accent))';
             }
         }
@@ -115,7 +115,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
         
         const clickedEl = doc.elementFromPoint(e.clientX, e.clientY);
 
-        if (clickedEl && !clickedEl.closest('.audioleap-player-container')) {
+        if (clickedEl && !clickedEl.closest('.instaread-player-container')) {
             const selector = generateSelector(clickedEl);
             if (selector) {
                 setStagedPlacement({ selector });
@@ -136,10 +136,10 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     const doc = iframe.contentDocument;
 
     // Always clean up previous instances first
-    doc.querySelector('.audioleap-player-container')?.remove();
-    doc.querySelectorAll('[data-audioleap-placement-highlight]').forEach(el => {
+    doc.querySelector('.instaread-player-container')?.remove();
+    doc.querySelectorAll('[data-instaread-placement-highlight]').forEach(el => {
         (el as HTMLElement).style.outline = '';
-        el.removeAttribute('data-audioleap-placement-highlight');
+        el.removeAttribute('data-instaread-placement-highlight');
     });
     setPlayerContainer(null);
 
@@ -148,7 +148,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
             const targetEl = doc.querySelector(selectedPlacement.selector) as HTMLElement;
             if (targetEl) {
                 const portalRoot = doc.createElement('div');
-                portalRoot.className = 'audioleap-player-container';
+                portalRoot.className = 'instaread-player-container';
                 
                 if (selectedPlacement.position === 'before') {
                     targetEl.parentNode?.insertBefore(portalRoot, targetEl);
@@ -159,7 +159,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                 
                 // Highlight the element we attached to
                 targetEl.style.outline = '3px solid hsl(var(--primary))';
-                targetEl.setAttribute('data-audioleap-placement-highlight', 'true');
+                targetEl.setAttribute('data-instaread-placement-highlight', 'true');
             }
         } catch (e) {
              console.error(`[LivePreview] Error processing selector "${selectedPlacement.selector}":`, e);
