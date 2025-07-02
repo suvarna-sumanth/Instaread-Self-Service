@@ -138,11 +138,11 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
             const targetEl = doc.querySelector(selectedPlacement.selector) as HTMLElement;
             if (targetEl) {
                 // 1. Inject the web component script if it's not already there.
-                if (!doc.head.querySelector('script[src="https://instaread.co/js/instaread.player.js"]')) {
+                const scriptSrc = "https://cdn.instaread.com/player.js";
+                if (!doc.head.querySelector(`script[src="${scriptSrc}"]`)) {
                     const script = doc.createElement('script');
-                    script.src = 'https://instaread.co/js/instaread.player.js';
-                    script.type = 'module';
-                    script.crossOrigin = 'anonymous';
+                    script.src = scriptSrc;
+                    script.async = true;
                     doc.head.appendChild(script);
                 }
 
