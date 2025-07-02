@@ -34,7 +34,7 @@ const IntegrationCodeSection = ({ playerConfig, selectedPlacement, websiteUrl }:
   data-enable-metrics="${enableMetrics}"
   data-audio-track-url="path/to/${audioFileName}"
 ></instaread-player>
-<script async src="https://cdn.instaread.com/player.js"></script>`,
+<script type="module" crossorigin src="https://instaread.co/js/instaread.player.js"></script>`,
         react: `import InstareadPlayer from '@instaread/react-player';
 
 const MyComponent = () => {
