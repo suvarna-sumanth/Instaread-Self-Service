@@ -119,66 +119,82 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     doc.body.addEventListener('click', handleClick);
   };
 
-  // Effect to inject the web component player when a placement is confirmed
+  // Effect to inject/update the web component player when placement or config changes.
   useEffect(() => {
     const iframe = iframeRef.current;
-    if (!iframe?.contentWindow?.document || !selectedPlacement?.selector || !url) return;
+    if (!iframe?.contentWindow?.document || !url) return;
     
     const doc = iframe.contentWindow.document;
 
-    // Always clean up previous instances first
-    doc.getElementById('instaread-player-instance')?.remove();
-    doc.querySelectorAll('[data-instaread-placement-highlight]').forEach(el => {
-        (el as HTMLElement).style.outline = '';
-        el.removeAttribute('data-instaread-placement-highlight');
-    });
+    // Find existing player and highlighted elements
+    let playerElement = doc.getElementById('instaread-player-instance') as HTMLElement | null;
+    const highlightedEl = doc.querySelector('[data-instaread-placement-highlight]') as HTMLElement | null;
 
-    if (selectedPlacement?.selector && url) {
-        try {
-            const targetEl = doc.querySelector(selectedPlacement.selector) as HTMLElement;
-            if (targetEl) {
-                // 1. Inject the web component script if it's not already there.
-                const scriptSrc = "https://instaread.co/js/instaread.player.js";
-                if (!doc.head.querySelector(`script[src="${scriptSrc}"]`)) {
-                    const script = doc.createElement('script');
-                    script.src = scriptSrc;
-                    script.type = 'module';
-                    script.crossOrigin = 'anonymous';
-                    doc.head.appendChild(script);
-                }
-
-                // 2. Create the player element itself.
-                const playerElement = doc.createElement('instaread-player');
-                playerElement.id = 'instaread-player-instance';
-                
-                // Get attributes from config
-                const { design, showAds, enableMetrics, audioFileName } = playerConfig;
-                
-                const publication = design === 'A' ? 'usnews.com' : 'flyingmag';
-                playerElement.setAttribute('publication', publication);
-                
-                playerElement.setAttribute('data-source', url);
-                playerElement.setAttribute('data-placement-selector', selectedPlacement.selector);
-                playerElement.setAttribute('data-placement-position', selectedPlacement.position);
-                playerElement.setAttribute('data-design', design);
-                playerElement.setAttribute('data-show-ads', String(showAds));
-                playerElement.setAttribute('data-enable-metrics', String(enableMetrics));
-                playerElement.setAttribute('data-audio-track-url', `path/to/${audioFileName || 'sample.mp3'}`);
-                
-                // 3. Inject the player into the DOM.
-                if (selectedPlacement.position === 'before') {
-                    targetEl.parentNode?.insertBefore(playerElement, targetEl);
-                } else {
-                    targetEl.parentNode?.insertBefore(playerElement, targetEl.nextSibling);
-                }
-                
-                // 4. Highlight the element we attached to.
-                targetEl.style.outline = '3px solid hsl(var(--primary))';
-                targetEl.setAttribute('data-instaread-placement-highlight', 'true');
-            }
-        } catch (e) {
-             console.error(`[LivePreview] Error processing selector "${selectedPlacement.selector}":`, e);
+    // If placement is cleared, remove the player and any highlights
+    if (!selectedPlacement) {
+        playerElement?.remove();
+        if (highlightedEl) {
+            highlightedEl.style.outline = '';
+            highlightedEl.removeAttribute('data-instaread-placement-highlight');
         }
+        return;
+    }
+
+    // A placement IS selected, so proceed with injection or update.
+    try {
+        const targetEl = doc.querySelector(selectedPlacement.selector) as HTMLElement;
+        if (!targetEl) {
+             console.warn(`[LivePreview] Target selector not found: ${selectedPlacement.selector}`);
+             return;
+        };
+
+        // If player doesn't exist, create and inject it for the first time
+        if (!playerElement) {
+            // 1. Inject the web component script if it's not already there.
+            const scriptSrc = "https://instaread.co/js/instaread.player.js";
+            if (!doc.head.querySelector(`script[src="${scriptSrc}"]`)) {
+                const script = doc.createElement('script');
+                script.src = scriptSrc;
+                script.type = 'module';
+                script.crossOrigin = 'anonymous';
+                doc.head.appendChild(script);
+            }
+            
+            playerElement = doc.createElement('instaread-player');
+            playerElement.id = 'instaread-player-instance';
+
+            // Inject the player into the DOM based on position.
+            if (selectedPlacement.position === 'before') {
+                targetEl.parentNode?.insertBefore(playerElement, targetEl);
+            } else {
+                targetEl.parentNode?.insertBefore(playerElement, targetEl.nextSibling);
+            }
+        }
+        
+        // 2. Update player attributes regardless of whether it was new or existing.
+        // This is the key part that fixes the toggle issue by re-configuring the component.
+        const { design, showAds, enableMetrics, audioFileName } = playerConfig;
+        const publication = design === 'A' ? 'usnews.com' : 'flyingmag';
+        
+        playerElement.setAttribute('publication', publication);
+        playerElement.setAttribute('data-source', url);
+        playerElement.setAttribute('data-placement-selector', selectedPlacement.selector);
+        playerElement.setAttribute('data-placement-position', selectedPlacement.position);
+        playerElement.setAttribute('data-design', design);
+        playerElement.setAttribute('data-show-ads', String(showAds));
+        playerElement.setAttribute('data-enable-metrics', String(enableMetrics));
+        playerElement.setAttribute('data-audio-track-url', `path/to/${audioFileName || 'sample.mp3'}`);
+
+        // 3. Manage highlights. Remove old one if target changed, add new one.
+        if (highlightedEl && highlightedEl !== targetEl) {
+             highlightedEl.style.outline = '';
+             highlightedEl.removeAttribute('data-instaread-placement-highlight');
+        }
+        targetEl.style.outline = '3px solid hsl(var(--primary))';
+        targetEl.setAttribute('data-instaread-placement-highlight', 'true');
+
+    } catch (e) {
+         console.error(`[LivePreview] Error processing selector "${selectedPlacement.selector}":`, e);
     }
   }, [selectedPlacement, url, playerConfig]);
 
