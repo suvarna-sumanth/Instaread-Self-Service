@@ -119,7 +119,7 @@ export async function generateWordPressPlugin(formData: WordpressPluginFormData)
             owner,
             repo,
             workflow_id: workflowId,
-            ref: 'main',
+            ref: 'refs/heads/main',
             inputs: {
                 partner_id,
                 version,
