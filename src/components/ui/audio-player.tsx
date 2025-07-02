@@ -34,13 +34,13 @@ const Waveform = () => {
 
     if (bars.length === 0) {
         // Render a skeleton placeholder during SSR and before client-side hydration for a smooth loading experience.
-        return <div className="h-12 w-[240px] rounded-md"><Skeleton className="h-full w-full" /></div>;
+        return <div className="h-12 w-full min-w-0 rounded-md"><Skeleton className="h-full w-full" /></div>;
     }
 
     return (
-        <div className="flex items-center h-12 gap-px w-full max-w-[240px]">
+        <div className="flex items-center h-12 gap-px w-full min-w-0">
             {bars.map((height, i) => (
-                <div key={i} className="w-[2.5px] bg-foreground rounded-full" style={{ height: `${height}%` }} />
+                <div key={i} className="w-full bg-foreground rounded-full" style={{ height: `${height}%` }} />
             ))}
         </div>
     );
@@ -113,15 +113,17 @@ const AudioPlayer: FC<{ config: PlayerConfig }> = ({ config }) => {
           
           <div className="flex flex-col items-start justify-center w-full h-full gap-4">
               <h3 className="font-headline text-lg font-semibold text-left">Listen to audio version of this article</h3>
-              <div className="flex items-center gap-4 w-full">
+              <div className="flex items-center gap-4 w-full min-w-0">
                   <Button size="icon" className="rounded-full h-14 w-14 flex-shrink-0 bg-primary hover:bg-primary/90" onClick={handlePlayPause} disabled={!audioSrc}>
                       {isPlaying ? <Pause size={28} /> : <Play size={28} className="ml-1" />}
                   </Button>
                   <Waveform />
               </div>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground self-center pr-10">
-                  <InstareadPlayerIcon />
-                  <span>Instaread</span>
+              <div className="flex w-full justify-end">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <InstareadPlayerIcon />
+                    <span>Instaread</span>
+                </div>
               </div>
           </div>
 
