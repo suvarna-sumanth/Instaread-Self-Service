@@ -128,48 +128,53 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       return;
     }
 
-    // If no placement is selected, just show the original clone.
-    if (!selectedPlacement) {
-      setEffectiveHtml(cloneHtml);
-      return;
-    }
-
     try {
       const parser = new DOMParser();
       const doc = parser.parseFromString(cloneHtml, 'text/html');
-      const targetEl = doc.querySelector(selectedPlacement.selector);
 
-      if (targetEl) {
-        const { showAds, enableMetrics, audioFileName, design } = playerConfig;
-        const publication = design === 'A' ? 'usnews.com' : 'flyingmag';
-        
-        const playerHtml = `<instaread-player
-          id="instaread-player-instance"
-          publication="${publication}"
-          data-design="${design}"
-          data-source="${url}"
-          data-placement-selector="${selectedPlacement.selector}"
-          data-placement-position="${selectedPlacement.position}"
-          data-show-ads="${showAds}"
-          data-enable-metrics="${enableMetrics}"
-          data-audio-track-url="path/to/${audioFileName || 'sample.mp3'}"
-        ></instaread-player>`;
-        
-        // IMPORTANT: The closing </script> tag must be escaped for innerHTML/createContextualFragment to work correctly.
-        const scriptHtml = `<script type="module" crossorigin src="https://instaread.co/js/instaread.player.js"><\/script>`;
-        
-        // Use a contextual fragment to parse and insert the HTML string.
-        const fragment = doc.createRange().createContextualFragment(playerHtml + scriptHtml);
-
-        if (selectedPlacement.position === 'before') {
-          targetEl.parentNode?.insertBefore(fragment, targetEl);
-        } else {
-          targetEl.parentNode?.insertBefore(fragment, targetEl.nextSibling);
+      // This style override is a workaround for the player's internal width issue,
+      // which can cause clipping on smaller viewports.
+      const styleOverride = doc.createElement('style');
+      styleOverride.textContent = `
+        .instaread-audio-player { 
+          max-width: 100% !important; 
+          box-sizing: border-box !important;
         }
+      `;
+      doc.head.appendChild(styleOverride);
 
-        // Apply highlight style directly to the target element in the parsed document.
-        (targetEl as HTMLElement).style.outline = '3px solid hsl(var(--primary))';
-        (targetEl as HTMLElement).setAttribute('data-instaread-placement-highlight', 'true');
+      if (selectedPlacement) {
+        const targetEl = doc.querySelector(selectedPlacement.selector);
+
+        if (targetEl) {
+          const { showAds, enableMetrics, audioFileName, design } = playerConfig;
+          const publication = design === 'A' ? 'usnews.com' : 'flyingmag';
+          
+          const playerHtml = `<instaread-player
+            id="instaread-player-instance"
+            publication="${publication}"
+            data-design="${design}"
+            data-source="${url}"
+            data-placement-selector="${selectedPlacement.selector}"
+            data-placement-position="${selectedPlacement.position}"
+            data-show-ads="${showAds}"
+            data-enable-metrics="${enableMetrics}"
+            data-audio-track-url="path/to/${audioFileName || 'sample.mp3'}"
+          ></instaread-player>`;
+          
+          const scriptHtml = `<script type="module" crossorigin src="https://instaread.co/js/instaread.player.js"><\/script>`;
+          
+          const fragment = doc.createRange().createContextualFragment(playerHtml + scriptHtml);
+
+          if (selectedPlacement.position === 'before') {
+            targetEl.parentNode?.insertBefore(fragment, targetEl);
+          } else {
+            targetEl.parentNode?.insertBefore(fragment, targetEl.nextSibling);
+          }
+
+          (targetEl as HTMLElement).style.outline = '3px solid hsl(var(--primary))';
+          (targetEl as HTMLElement).setAttribute('data-instaread-placement-highlight', 'true');
+        }
       }
       
       const finalHtml = `<!DOCTYPE html>${doc.documentElement.outerHTML}`;
