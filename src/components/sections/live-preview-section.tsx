@@ -140,8 +140,8 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       const targetEl = doc.querySelector(selectedPlacement.selector);
 
       if (targetEl) {
-        const { design, showAds, enableMetrics, audioFileName } = playerConfig;
-        const publication = design === 'A' ? 'usnews.com' : 'flyingmag';
+        const { showAds, enableMetrics, audioFileName } = playerConfig;
+        const publication = playerConfig.design === 'A' ? 'usnews.com' : 'flyingmag';
         
         const playerHtml = `<instaread-player
           id="instaread-player-instance"
@@ -149,7 +149,6 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
           data-source="${url}"
           data-placement-selector="${selectedPlacement.selector}"
           data-placement-position="${selectedPlacement.position}"
-          data-design="${design}"
           data-show-ads="${showAds}"
           data-enable-metrics="${enableMetrics}"
           data-audio-track-url="path/to/${audioFileName || 'sample.mp3'}"

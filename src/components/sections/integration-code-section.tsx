@@ -32,7 +32,6 @@ const IntegrationCodeSection = ({ playerConfig, selectedPlacement, websiteUrl }:
   data-source="${websiteUrl}"
   data-placement-selector="${selector}"
   data-placement-position="${position}"
-  data-design="${design}"
   data-show-ads="${showAds}"
   data-enable-metrics="${enableMetrics}"
   data-audio-track-url="path/to/${audioFileName}"
@@ -47,7 +46,6 @@ const MyComponent = () => {
       dataSource="${websiteUrl}"
       placementSelector="${selector}"
       placementPosition="${position}"
-      design="${design}"
       showAds={${showAds}}
       enableMetrics={${enableMetrics}}
       audioTrackUrl="path/to/${audioFileName}"
