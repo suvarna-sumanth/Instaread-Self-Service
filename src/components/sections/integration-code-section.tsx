@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import type { PlayerConfig, Placement } from '@/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
 import { Clipboard, Check } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import WordpressPluginForm from '@/components/wordpress-plugin-form';
 
 type IntegrationCodeSectionProps = {
     playerConfig: PlayerConfig;
@@ -49,16 +50,6 @@ const MyComponent = () => {
     />
   );
 };`,
-        wordpress: `// 1. Install the "AudioLeap" plugin from the WordPress repository.
-// 2. Go to the AudioLeap settings page in your WordPress admin.
-// 3. Enter the following configuration:
-Website URL: ${websiteUrl}
-Placement Selector: ${selector}
-Placement Position: ${position}
-Design: ${design}
-Show Ads: ${showAds ? 'Enabled' : 'Disabled'}
-Enable Metrics: ${enableMetrics ? 'Enabled' : 'Disabled'}
-Audio Track URL: path/to/${audioFileName}`,
     };
 
     const handleCopy = (content: string) => {
@@ -72,7 +63,7 @@ Audio Track URL: path/to/${audioFileName}`,
         <Card className="shadow-md">
             <CardHeader>
                 <CardTitle className="font-headline text-2xl">4. Get Integration Code</CardTitle>
-                <CardDescription>Copy the code to add the player to a website.</CardDescription>
+                <CardDescription>Copy a code snippet or generate a WordPress plugin.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Tabs defaultValue="html" className="w-full">
@@ -81,23 +72,44 @@ Audio Track URL: path/to/${audioFileName}`,
                         <TabsTrigger value="react">React</TabsTrigger>
                         <TabsTrigger value="wordpress">WordPress</TabsTrigger>
                     </TabsList>
-                    {Object.entries(codeSnippets).map(([key, code]) => (
-                        <TabsContent key={key} value={key}>
-                            <div className="relative mt-4">
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="absolute top-2 right-2 h-7 w-7"
-                                    onClick={() => handleCopy(code)}
-                                >
-                                    {copied ? <Check className="h-4 w-4 text-green-500" /> : <Clipboard className="h-4 w-4" />}
-                                </Button>
-                                <pre className="bg-muted rounded-md p-4 text-sm overflow-x-auto">
-                                    <code className="font-code text-muted-foreground">{code}</code>
-                                </pre>
-                            </div>
-                        </TabsContent>
-                    ))}
+                    
+                    <TabsContent value="html">
+                        <div className="relative mt-4">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="absolute top-2 right-2 h-7 w-7"
+                                onClick={() => handleCopy(codeSnippets.html)}
+                            >
+                                {copied ? <Check className="h-4 w-4 text-green-500" /> : <Clipboard className="h-4 w-4" />}
+                            </Button>
+                            <pre className="bg-muted rounded-md p-4 text-sm overflow-x-auto">
+                                <code className="font-code text-muted-foreground">{codeSnippets.html}</code>
+                            </pre>
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="react">
+                         <div className="relative mt-4">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="absolute top-2 right-2 h-7 w-7"
+                                onClick={() => handleCopy(codeSnippets.react)}
+                            >
+                                {copied ? <Check className="h-4 w-4 text-green-500" /> : <Clipboard className="h-4 w-4" />}
+                            </Button>
+                            <pre className="bg-muted rounded-md p-4 text-sm overflow-x-auto">
+                                <code className="font-code text-muted-foreground">{codeSnippets.react}</code>
+                            </pre>
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="wordpress">
+                        <div className="mt-4">
+                           <WordpressPluginForm />
+                        </div>
+                    </TabsContent>
                 </Tabs>
             </CardContent>
         </Card>
