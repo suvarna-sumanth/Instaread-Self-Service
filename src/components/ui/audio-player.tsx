@@ -4,9 +4,10 @@
 import { useState, useRef, useEffect, type FC } from 'react';
 import type { PlayerConfig } from '@/types';
 import Image from 'next/image';
-import { Play, Pause, Rewind, FastForward, BookAudio } from 'lucide-react';
+import { Play, Pause, Rewind, FastForward } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { Button } from './button';
+import { Skeleton } from './skeleton';
 
 const formatTime = (time: number) => {
   if (isNaN(time) || time === 0) return '0:00';
@@ -14,6 +15,37 @@ const formatTime = (time: number) => {
   const seconds = Math.floor(time % 60);
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 };
+
+// SVG for the Instaread icon in the player, based on the user's image
+const InstareadPlayerIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-muted-foreground">
+        <path d="M2.66602 14V1.33333H13.3327V14L7.99935 11.3333L2.66602 14Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+);
+
+const Waveform = () => {
+    const [bars, setBars] = useState<number[]>([]);
+
+    useEffect(() => {
+        // Use a static array for a consistent and clean look, generated on the client to avoid hydration mismatch.
+        const staticBars = [15, 30, 45, 25, 50, 60, 40, 25, 35, 50, 65, 75, 60, 45, 30, 20, 25, 35, 55, 70, 85, 70, 55, 40, 30, 22, 18, 25, 40, 60, 75, 65, 50, 35, 25, 20, 28, 42, 58, 72, 88, 75, 60, 40, 30, 45, 60, 70, 50, 35];
+        setBars(staticBars);
+    }, []);
+
+    if (bars.length === 0) {
+        // Render a skeleton placeholder during SSR and before client-side hydration for a smooth loading experience.
+        return <div className="h-12 w-[240px] rounded-md"><Skeleton className="h-full w-full" /></div>;
+    }
+
+    return (
+        <div className="flex items-center h-12 gap-px w-full max-w-[240px]">
+            {bars.map((height, i) => (
+                <div key={i} className="w-[2.5px] bg-foreground rounded-full" style={{ height: `${height}%` }} />
+            ))}
+        </div>
+    );
+};
+
 
 const AudioPlayer: FC<{ config: PlayerConfig }> = ({ config }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -23,11 +55,9 @@ const AudioPlayer: FC<{ config: PlayerConfig }> = ({ config }) => {
   const [audioSrc, setAudioSrc] = useState<string | null>(null);
 
   useEffect(() => {
-    // When the audio file changes, create a new object URL for it.
     if (config.audioFile) {
       const url = URL.createObjectURL(config.audioFile);
       setAudioSrc(url);
-      // Clean up the object URL when the component unmounts or the file changes.
       return () => URL.revokeObjectURL(url);
     } else {
       setAudioSrc(null);
@@ -45,15 +75,11 @@ const AudioPlayer: FC<{ config: PlayerConfig }> = ({ config }) => {
   };
 
   const handleLoadedMetadata = () => {
-    if (audioRef.current) {
-      setDuration(audioRef.current.duration);
-    }
+    if (audioRef.current) setDuration(audioRef.current.duration);
   };
 
   const handleTimeUpdate = () => {
-    if (audioRef.current) {
-      setCurrentTime(audioRef.current.currentTime);
-    }
+    if (audioRef.current) setCurrentTime(audioRef.current.currentTime);
   };
   
   const handleEnded = () => {
@@ -79,35 +105,42 @@ const AudioPlayer: FC<{ config: PlayerConfig }> = ({ config }) => {
     />
   ) : null;
 
-  // Design A - Sleek Horizontal Bar
+  // Design A - Sleek Horizontal Bar (from user image)
   if (config.design === 'A') {
     return (
-      <div className="bg-card text-card-foreground rounded-lg border shadow-sm p-3 w-full flex items-center justify-between gap-4">
-        {audioElement}
-        <div className="flex items-center gap-4">
-          <Button size="icon" className="rounded-full h-12 w-12 flex-shrink-0" onClick={handlePlayPause} disabled={!audioSrc}>
-            {isPlaying ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
-          </Button>
-          <div>
-            <h3 className="font-headline text-lg font-bold">Listen to this Article</h3>
-            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <BookAudio className="h-3 w-3" />
-              Powered by Instaread
-            </p>
+      <div className="bg-card text-card-foreground rounded-lg border shadow-sm p-6 w-full flex flex-col md:grid md:grid-cols-2 items-center gap-6">
+          {audioElement}
+          
+          <div className="flex flex-col items-start justify-center w-full h-full gap-4">
+              <h3 className="font-headline text-lg font-semibold text-left">Listen to audio version of this article</h3>
+              <div className="flex items-center gap-4 w-full">
+                  <Button size="icon" className="rounded-full h-14 w-14 flex-shrink-0 bg-primary hover:bg-primary/90" onClick={handlePlayPause} disabled={!audioSrc}>
+                      {isPlaying ? <Pause size={28} /> : <Play size={28} className="ml-1" />}
+                  </Button>
+                  <Waveform />
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground self-center pr-10">
+                  <InstareadPlayerIcon />
+                  <span>Instaread</span>
+              </div>
           </div>
-        </div>
-        {config.showAds && (
-          <div className="hidden lg:block ml-auto pl-4">
-            <Image
-              src="https://placehold.co/240x60.png"
-              alt="Advertisement"
-              width={240}
-              height={60}
-              className="rounded-md object-cover"
-              data-ai-hint="advertisement banner"
-            />
-          </div>
-        )}
+
+          {config.showAds && (
+              <div className="w-full h-full flex flex-col items-start justify-center">
+                   <h4 className="text-sm font-medium text-muted-foreground mb-2">Advertisement</h4>
+                   <div className="w-full">
+                      <Image
+                          src="https://instaread.co/images/default_ad.png"
+                          alt="Advertisement"
+                          width={300}
+                          height={250}
+                          className="rounded-md object-cover w-full h-auto max-w-xs"
+                          unoptimized
+                          data-ai-hint="advertisement banner"
+                      />
+                   </div>
+              </div>
+          )}
       </div>
     );
   }
@@ -151,11 +184,17 @@ const AudioPlayer: FC<{ config: PlayerConfig }> = ({ config }) => {
         </div>
 
         {config.showAds && (
-            <div className="mt-4 bg-muted/50 p-2 rounded-md">
-                <p className="text-xs text-muted-foreground">Advertisement</p>
-                <div className="w-full h-16 bg-muted rounded-sm mt-1 flex items-center justify-center">
-                  <span className="text-xs text-muted-foreground/50">300x50</span>
-                </div>
+            <div className="mt-4 w-full">
+                <p className="text-xs text-muted-foreground text-center mb-1">Advertisement</p>
+                 <Image
+                    src="https://instaread.co/images/default_ad.png"
+                    alt="Advertisement"
+                    width={300}
+                    height={250}
+                    className="rounded-md object-cover w-full h-24"
+                    unoptimized
+                    data-ai-hint="advertisement banner"
+                />
             </div>
         )}
       </div>
