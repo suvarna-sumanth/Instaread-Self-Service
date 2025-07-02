@@ -38,7 +38,7 @@ const Waveform = () => {
     }
 
     return (
-        <div className="flex items-center h-12 gap-px w-full min-w-0">
+        <div className="flex items-center h-12 gap-px w-full">
             {bars.map((height, i) => (
                 <div key={i} className="w-full bg-foreground rounded-full" style={{ height: `${height}%` }} />
             ))}
@@ -113,17 +113,17 @@ const AudioPlayer: FC<{ config: PlayerConfig }> = ({ config }) => {
           
           <div className="flex flex-col items-start justify-center w-full h-full gap-4">
               <h3 className="font-headline text-lg font-semibold text-left">Listen to audio version of this article</h3>
-              <div className="flex items-center gap-4 w-full min-w-0">
+              <div className="flex items-center gap-4 w-full">
                   <Button size="icon" className="rounded-full h-14 w-14 flex-shrink-0 bg-primary hover:bg-primary/90" onClick={handlePlayPause} disabled={!audioSrc}>
                       {isPlaying ? <Pause size={28} /> : <Play size={28} className="ml-1" />}
                   </Button>
-                  <Waveform />
-              </div>
-              <div className="flex w-full justify-end">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <div className="flex-grow min-w-0">
+                    <Waveform />
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-shrink-0">
                     <InstareadPlayerIcon />
                     <span>Instaread</span>
-                </div>
+                  </div>
               </div>
           </div>
 
