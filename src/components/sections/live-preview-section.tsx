@@ -144,7 +144,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
         /* Override the player's fixed min-width on smaller screens to prevent overflow */
         @media only screen and (max-width: 659px) {
             .instaread-audio-player {
-                min-width: 0 !important;
+                min-width: 315px !important;
             }
         }
       `;
