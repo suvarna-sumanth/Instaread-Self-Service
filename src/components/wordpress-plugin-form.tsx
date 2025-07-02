@@ -2,7 +2,6 @@
 
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -11,24 +10,9 @@ import { Separator } from '@/components/ui/separator';
 import { PlusCircle, XCircle, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
+import { wordpressPluginSchema, type WordpressPluginFormData } from '@/lib/schemas';
+import { generateWordPressPlugin } from '@/lib/github-actions';
 
-const injectionRuleSchema = z.object({
-  target_selector: z.string().min(1, 'Selector is required.'),
-  insert_position: z.enum(['prepend', 'append', 'before', 'after']),
-  exclude_slugs: z.string().optional(),
-});
-
-const wordpressPluginSchema = z.object({
-  partner_id: z.string().min(1, 'Partner ID is required.'),
-  domain: z.string().url('Must be a valid URL.'),
-  publication: z.string().min(1, 'Publication name is required.'),
-  injection_context: z.enum(['singular', 'all', 'custom']),
-  injection_strategy: z.enum(['first', 'last', 'all']),
-  injection_rules: z.array(injectionRuleSchema).min(1, 'At least one injection rule is required.'),
-  version: z.string().regex(/^\d+\.\d+\.\d+$/, 'Version must be in format X.Y.Z (e.g., 1.0.0).'),
-});
-
-export type WordpressPluginFormData = z.infer<typeof wordpressPluginSchema>;
 
 const WordpressPluginForm = () => {
     const { toast } = useToast();
@@ -52,18 +36,32 @@ const WordpressPluginForm = () => {
         name: 'injection_rules',
     });
 
-    const onSubmit = (data: WordpressPluginFormData) => {
+    const onSubmit = async (data: WordpressPluginFormData) => {
         setIsSubmitting(true);
-        console.log('Form submitted:', data);
-        
-        // Phase 2 will be implemented here. For now, simulate a network request.
-        setTimeout(() => {
+        try {
+            const result = await generateWordPressPlugin(data);
+            if (result.success) {
+                toast({
+                    title: 'Plugin Generation Started',
+                    description: result.message,
+                });
+            } else {
+                toast({
+                    title: 'Generation Failed',
+                    description: result.error,
+                    variant: 'destructive',
+                });
+            }
+        } catch (error) {
+            console.error("Submission error:", error);
             toast({
-                title: 'Plugin Generation Initiated',
-                description: 'Your WordPress plugin is being built. This is a demo and does not create a real file.',
+                title: 'An Unexpected Error Occurred',
+                description: 'Please check the console for details.',
+                variant: 'destructive',
             });
+        } finally {
             setIsSubmitting(false);
-        }, 2000);
+        }
     };
 
     return (
