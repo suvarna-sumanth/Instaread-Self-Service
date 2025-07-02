@@ -51,13 +51,19 @@ const WordpressPluginForm = () => {
         };
     }, []);
 
+    const stopPolling = () => {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        intervalRef.current = null;
+        timeoutRef.current = null;
+    }
+
     const resetState = () => {
         setIsLoading(false);
         setLoadingMessage(null);
         setDownloadUrl(null);
         setErrorMessage(null);
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        stopPolling();
     }
 
     const onSubmit = async (data: WordpressPluginFormData) => {
@@ -75,12 +81,11 @@ const WordpressPluginForm = () => {
                 });
                 setLoadingMessage('Build in progress...');
 
-                // Polling logic
-                const POLLING_INTERVAL = 10000; // 10 seconds
-                const POLLING_TIMEOUT = 300000; // 5 minutes
+                const POLLING_INTERVAL = 10000;
+                const POLLING_TIMEOUT = 300000;
 
                 timeoutRef.current = setTimeout(() => {
-                    clearInterval(intervalRef.current!);
+                    stopPolling();
                     setErrorMessage('Build process timed out. Please check the status in your GitHub Actions tab.');
                     setIsLoading(false);
                     toast({ title: 'Build Timed Out', variant: 'destructive' });
@@ -90,7 +95,9 @@ const WordpressPluginForm = () => {
                     const statusResult = await getWorkflowRunResult({ runId: result.runId!, partnerId: result.partnerId!, version: result.version! });
                     
                     if (statusResult.status === 'completed') {
-                        resetState();
+                        stopPolling();
+                        setIsLoading(false);
+                        setLoadingMessage(null);
                         if (statusResult.conclusion === 'success' && statusResult.downloadUrl) {
                              setDownloadUrl(statusResult.downloadUrl);
                              toast({ title: 'Build Successful!', description: 'Your plugin is ready for download.', className: "bg-green-100 border-green-400 text-green-800" });
@@ -99,11 +106,12 @@ const WordpressPluginForm = () => {
                             toast({ title: 'Build Failed', description: statusResult.error, variant: 'destructive' });
                         }
                     } else if (statusResult.status === 'error') {
-                        resetState();
+                        stopPolling();
+                        setIsLoading(false);
+                        setLoadingMessage(null);
                         setErrorMessage(statusResult.error || 'An error occurred while checking status.');
                         toast({ title: 'Polling Error', description: statusResult.error, variant: 'destructive' });
                     } else {
-                        // Still in progress...
                         if(statusResult.status) {
                             setLoadingMessage(`Build status: ${statusResult.status}...`);
                         }
@@ -122,7 +130,6 @@ const WordpressPluginForm = () => {
         }
     };
     
-    // Disable form fields when loading
     const isFormDisabled = isLoading || !!downloadUrl;
 
     return (
@@ -283,30 +290,30 @@ const WordpressPluginForm = () => {
                      {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {isLoading ? (loadingMessage || 'Processing...') : 'Generate WordPress Plugin'}
                 </Button>
-
-                { (errorMessage || downloadUrl) && !isLoading && (
-                    <div className="mt-6 p-4 border rounded-lg space-y-3">
-                        {errorMessage && !isLoading && (
-                            <Alert variant="destructive">
-                                <Terminal className="h-4 w-4" />
-                                <AlertTitle>Error</AlertTitle>
-                                <AlertDescription>{errorMessage}</AlertDescription>
-                            </Alert>
-                        )}
-                        {downloadUrl && !isLoading && (
-                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                                <div>
-                                    <h4 className="font-semibold text-green-600">Build Successful!</h4>
-                                    <p className="text-sm text-muted-foreground">Your WordPress plugin is ready.</p>
-                                </div>
-                                <a href={downloadUrl} target="_blank" rel="noopener noreferrer">
-                                    <Button><Download className="mr-2 h-4 w-4" />Download Plugin (.zip)</Button>
-                                </a>
-                            </div>
-                        )}
-                    </div>
-                )}
             </form>
+            
+            { (errorMessage || downloadUrl) && !isLoading && (
+                <div className="mt-6 p-4 border rounded-lg space-y-3">
+                    {errorMessage && !isLoading && (
+                        <Alert variant="destructive">
+                            <Terminal className="h-4 w-4" />
+                            <AlertTitle>Error</AlertTitle>
+                            <AlertDescription>{errorMessage}</AlertDescription>
+                        </Alert>
+                    )}
+                    {downloadUrl && !isLoading && (
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div>
+                                <h4 className="font-semibold text-green-600">Build Successful!</h4>
+                                <p className="text-sm text-muted-foreground">Your WordPress plugin is ready.</p>
+                            </div>
+                            <a href={downloadUrl} target="_blank" rel="noopener noreferrer">
+                                <Button type="button"><Download className="mr-2 h-4 w-4" />Download Plugin (.zip)</Button>
+                            </a>
+                        </div>
+                    )}
+                </div>
+            )}
         </Form>
     );
 };
