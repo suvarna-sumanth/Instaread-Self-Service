@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -35,6 +36,9 @@ export async function generateVisualClone(input: GenerateVisualCloneInput): Prom
 
     // Remove script tags for security and simplicity
     $('script').remove();
+
+    // Remove Content-Security-Policy meta tags that could block injected styles
+    $('meta[http-equiv="Content-Security-Policy"]').remove();
 
     // Inline CSS stylesheets for a self-contained clone
     const stylesheetPromises = $('link[rel="stylesheet"]').map(async (i, el) => {
