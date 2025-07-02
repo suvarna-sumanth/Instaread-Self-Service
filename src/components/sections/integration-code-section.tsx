@@ -15,7 +15,7 @@ type IntegrationCodeSectionProps = {
     websiteUrl: string;
 };
 
-const IntegrationCodeSection = ({ playerConfig, selectedPlacement, websiteUrl }: IntegrationCodeSectionProps) => {
+const IntegrationCodeSection = ({ playerConfig, selectedPlacement, websiteUrl }: IntegrationCodesectionProps) => {
     const { toast } = useToast();
     const [copied, setCopied] = useState(false);
     
@@ -24,7 +24,7 @@ const IntegrationCodeSection = ({ playerConfig, selectedPlacement, websiteUrl }:
     const selector = selectedPlacement?.selector || 'body';
     const position = selectedPlacement?.position || 'before';
 
-    const publication = 'flyingmag';
+    const publication = design === 'A' ? 'usnews.com' : 'flyingmag';
 
     const codeSnippets = {
         html: `<instaread-player

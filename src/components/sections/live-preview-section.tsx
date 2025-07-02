@@ -67,8 +67,8 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   
   const handleIframeLoad = () => {
     const iframe = iframeRef.current;
-    if (!iframe) return;
-    const doc = iframe.contentDocument;
+    if (!iframe?.contentWindow) return;
+    const doc = iframe.contentWindow.document;
     if (!doc?.body) return;
 
     let lastHovered: HTMLElement | null = null;
@@ -101,7 +101,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
         e.preventDefault();
         e.stopPropagation();
 
-        const doc = iframeRef.current?.contentDocument;
+        const doc = iframeRef.current?.contentWindow?.document;
         if (!doc) return;
         
         const clickedEl = doc.elementFromPoint(e.clientX, e.clientY);
@@ -122,9 +122,9 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   // Effect to inject the web component player when a placement is confirmed
   useEffect(() => {
     const iframe = iframeRef.current;
-    if (!iframe?.contentDocument) return;
+    if (!iframe?.contentWindow?.document || !selectedPlacement?.selector || !url) return;
     
-    const doc = iframe.contentDocument;
+    const doc = iframe.contentWindow.document;
 
     // Always clean up previous instances first
     doc.getElementById('instaread-player-instance')?.remove();
@@ -154,7 +154,8 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                 // Get attributes from config
                 const { design, showAds, enableMetrics, audioFileName } = playerConfig;
                 
-                playerElement.setAttribute('publication', 'flyingmag');
+                const publication = design === 'A' ? 'usnews.com' : 'flyingmag';
+                playerElement.setAttribute('publication', publication);
                 
                 playerElement.setAttribute('data-source', url);
                 playerElement.setAttribute('data-placement-selector', selectedPlacement.selector);
@@ -179,7 +180,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
              console.error(`[LivePreview] Error processing selector "${selectedPlacement.selector}":`, e);
         }
     }
-  }, [selectedPlacement, cloneHtml, url, playerConfig]);
+  }, [selectedPlacement, url, playerConfig]);
 
 
   const handleClearPlacement = () => {
