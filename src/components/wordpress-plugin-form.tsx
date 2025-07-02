@@ -25,6 +25,24 @@ const WordpressPluginForm = () => {
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+    const form = useForm<WordpressPluginFormData>({
+        resolver: zodResolver(wordpressPluginSchema),
+        defaultValues: {
+            partner_id: '',
+            domain: '',
+            publication: '',
+            injection_context: 'singular',
+            injection_strategy: 'first',
+            injection_rules: [{ target_selector: '', insert_position: 'prepend', exclude_slugs: '' }],
+            version: '1.0.0',
+        },
+    });
+
+    const { fields, append, remove } = useFieldArray({
+        control: form.control,
+        name: "injection_rules"
+    });
+
     // Effect to clean up intervals and timeouts on component unmount
     useEffect(() => {
         return () => {
@@ -86,7 +104,9 @@ const WordpressPluginForm = () => {
                         toast({ title: 'Polling Error', description: statusResult.error, variant: 'destructive' });
                     } else {
                         // Still in progress...
-                        setLoadingMessage(`Build status: ${statusResult.status}...`);
+                        if(statusResult.status) {
+                            setLoadingMessage(`Build status: ${statusResult.status}...`);
+                        }
                     }
                 }, POLLING_INTERVAL);
 
