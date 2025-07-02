@@ -78,6 +78,14 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
         return;
     }
 
+    // Copy all style and link tags from the parent document to the iframe's head.
+    // This is crucial for ensuring that React components portaled into the iframe
+    // (like our AudioPlayer) are styled correctly using the app's main stylesheet.
+    const parentStyles = document.querySelectorAll('style, link[rel="stylesheet"]');
+    parentStyles.forEach(styleEl => {
+        doc.head.appendChild(styleEl.cloneNode(true));
+    });
+
     let lastHovered: HTMLElement | null = null;
     let originalOutline: string | null = null;
 
