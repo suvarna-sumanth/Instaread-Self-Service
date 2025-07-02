@@ -64,6 +64,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [stagedPlacement, setStagedPlacement] = useState<{ selector: string } | null>(null);
   const [view, setView] = useState<'desktop' | 'mobile'>('desktop');
+  const [effectiveHtml, setEffectiveHtml] = useState<string | null>(null);
   
   const handleIframeLoad = () => {
     const iframe = iframeRef.current;
@@ -82,7 +83,6 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
             }
             lastHovered = target;
             originalOutline = target.style.outline;
-            // Don't highlight the player itself or the helper elements
             if (!target.closest('instaread-player')) {
                 target.style.outline = '2px dashed hsl(var(--accent))';
             }
@@ -119,81 +119,68 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     doc.body.addEventListener('click', handleClick);
   };
 
-  // Effect to inject/update the web component player.
-  // This now fully replaces the player AND its script on every change to force re-initialization.
+  // Effect to generate the definitive HTML for the iframe.
+  // Instead of manipulating the live iframe DOM, we regenerate the entire
+  // srcDoc content whenever the configuration changes. This is more robust.
   useEffect(() => {
-    const iframe = iframeRef.current;
-    if (!iframe?.contentWindow?.document || !url) return;
-    
-    const doc = iframe.contentWindow.document;
-    const scriptSrc = "https://instaread.co/js/instaread.player.js";
+    if (!cloneHtml) {
+      setEffectiveHtml(null);
+      return;
+    }
 
-    // Defer the DOM manipulation to the next animation frame.
-    // This prevents race conditions and ensures the browser has processed any
-    // pending removals before we attempt to add new elements.
-    requestAnimationFrame(() => {
-      // 1. Clean up from any previous run.
-      // Always remove the existing player, script, and highlight to ensure a clean slate.
-      doc.getElementById('instaread-player-instance')?.remove();
-      doc.querySelector(`script[src="${scriptSrc}"]`)?.remove();
-      const highlightedEl = doc.querySelector('[data-instaread-placement-highlight]') as HTMLElement | null;
-      if (highlightedEl) {
-          highlightedEl.style.outline = '';
-          highlightedEl.removeAttribute('data-instaread-placement-highlight');
+    // If no placement is selected, just show the original clone.
+    if (!selectedPlacement) {
+      setEffectiveHtml(cloneHtml);
+      return;
+    }
+
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(cloneHtml, 'text/html');
+      const targetEl = doc.querySelector(selectedPlacement.selector);
+
+      if (targetEl) {
+        const { design, showAds, enableMetrics, audioFileName } = playerConfig;
+        const publication = design === 'A' ? 'usnews.com' : 'flyingmag';
+        
+        const playerHtml = `<instaread-player
+          id="instaread-player-instance"
+          publication="${publication}"
+          data-source="${url}"
+          data-placement-selector="${selectedPlacement.selector}"
+          data-placement-position="${selectedPlacement.position}"
+          data-design="${design}"
+          data-show-ads="${showAds}"
+          data-enable-metrics="${enableMetrics}"
+          data-audio-track-url="path/to/${audioFileName || 'sample.mp3'}"
+        ></instaread-player>`;
+        
+        // IMPORTANT: The closing </script> tag must be escaped for innerHTML/createContextualFragment to work correctly.
+        const scriptHtml = `<script type="module" crossorigin src="https://instaread.co/js/instaread.player.js"><\/script>`;
+        
+        // Use a contextual fragment to parse and insert the HTML string.
+        const fragment = doc.createRange().createContextualFragment(playerHtml + scriptHtml);
+
+        if (selectedPlacement.position === 'before') {
+          targetEl.parentNode?.insertBefore(fragment, targetEl);
+        } else {
+          targetEl.parentNode?.insertBefore(fragment, targetEl.nextSibling);
+        }
+
+        // Apply highlight style directly to the target element in the parsed document.
+        (targetEl as HTMLElement).style.outline = '3px solid hsl(var(--primary))';
+        (targetEl as HTMLElement).setAttribute('data-instaread-placement-highlight', 'true');
       }
+      
+      const finalHtml = `<!DOCTYPE html>${doc.documentElement.outerHTML}`;
+      setEffectiveHtml(finalHtml);
 
-      // If there's no placement selected, we're done.
-      if (!selectedPlacement) {
-          return;
-      }
-
-      // 2. Inject a fresh player and script based on the current config.
-      try {
-          const targetEl = doc.querySelector(selectedPlacement.selector) as HTMLElement;
-          if (!targetEl) {
-              console.warn(`[LivePreview] Target selector not found: ${selectedPlacement.selector}`);
-              return;
-          };
-
-          // 2a. Create and configure the NEW player element.
-          const playerElement = doc.createElement('instaread-player');
-          playerElement.id = 'instaread-player-instance';
-
-          const { design, showAds, enableMetrics, audioFileName } = playerConfig;
-          const publication = design === 'A' ? 'usnews.com' : 'flyingmag';
-          
-          playerElement.setAttribute('publication', publication);
-          playerElement.setAttribute('data-source', url);
-          playerElement.setAttribute('data-placement-selector', selectedPlacement.selector);
-          playerElement.setAttribute('data-placement-position', selectedPlacement.position);
-          playerElement.setAttribute('data-design', design);
-          playerElement.setAttribute('data-show-ads', String(showAds));
-          playerElement.setAttribute('data-enable-metrics', String(enableMetrics));
-          playerElement.setAttribute('data-audio-track-url', `path/to/${audioFileName || 'sample.mp3'}`);
-          
-          // 2b. Inject the new player into the DOM.
-          if (selectedPlacement.position === 'before') {
-              targetEl.parentNode?.insertBefore(playerElement, targetEl);
-          } else {
-              targetEl.parentNode?.insertBefore(playerElement, targetEl.nextSibling);
-          }
-          
-          // 2c. Create and inject the NEW script element to force re-initialization.
-          const script = doc.createElement('script');
-          script.src = scriptSrc;
-          script.type = 'module';
-          script.crossOrigin = 'anonymous';
-          doc.head.appendChild(script);
-          
-          // 2d. Highlight the target element.
-          targetEl.style.outline = '3px solid hsl(var(--primary))';
-          targetEl.setAttribute('data-instaread-placement-highlight', 'true');
-
-      } catch (e) {
-          console.error(`[LivePreview] Error processing selector "${selectedPlacement.selector}":`, e);
-      }
-    });
-  }, [selectedPlacement, url, playerConfig]);
+    } catch (e) {
+      console.error("[LivePreview] Error parsing or modifying HTML:", e);
+      // Fallback to the original clone if parsing fails
+      setEffectiveHtml(cloneHtml);
+    }
+  }, [cloneHtml, selectedPlacement, playerConfig, url]);
 
 
   const handleClearPlacement = () => {
@@ -230,7 +217,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       );
     }
 
-    if (!cloneHtml) {
+    if (!effectiveHtml && url && !isLoading) {
         return (
             <Alert variant="destructive" className="m-4">
                 <AlertTitle>Preview Generation Failed</AlertTitle>
@@ -242,8 +229,9 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     return (
         <iframe
             ref={iframeRef}
+            key={effectiveHtml} // Force re-render on HTML change
             title="Website Preview"
-            srcDoc={cloneHtml}
+            srcDoc={effectiveHtml || ''}
             className="w-full h-full border-0"
             sandbox="allow-scripts allow-same-origin"
             onLoad={handleIframeLoad}
