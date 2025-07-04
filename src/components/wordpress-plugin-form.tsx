@@ -16,9 +16,15 @@ import { generateWordPressPlugin, getWorkflowRunResult } from '@/lib/github-acti
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import type { WordpressSuggestion } from '@/types';
 
 
-const WordpressPluginForm = () => {
+type WordpressPluginFormProps = {
+    suggestion: WordpressSuggestion;
+    isSuggesting: boolean;
+};
+
+const WordpressPluginForm = ({ suggestion, isSuggesting }: WordpressPluginFormProps) => {
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
@@ -47,6 +53,15 @@ const WordpressPluginForm = () => {
         control: form.control,
         name: "injection_rules"
     });
+
+    // Apply AI suggestions when they become available
+    useEffect(() => {
+        if (suggestion) {
+            form.setValue('injection_rules.0.target_selector', suggestion.target_selector, { shouldValidate: true });
+            form.setValue('injection_context', suggestion.injection_context, { shouldValidate: true });
+            form.setValue('injection_strategy', suggestion.injection_strategy, { shouldValidate: true });
+        }
+    }, [suggestion, form.setValue]);
 
     const stopPolling = () => {
         if (intervalRef.current) clearInterval(intervalRef.current);
@@ -180,7 +195,7 @@ const WordpressPluginForm = () => {
         }
     };
     
-    const isFormDisabled = isLoading || !!downloadUrl || !!errorMessage;
+    const isFormDisabled = isLoading || !!downloadUrl || !!errorMessage || isSuggesting;
 
     return (
     <Dialog onOpenChange={() => setPreviewContent(null)}>
@@ -238,7 +253,7 @@ const WordpressPluginForm = () => {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Injection Context</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                                         <FormControl>
                                             <SelectTrigger><SelectValue placeholder="Select context" /></SelectTrigger>
                                         </FormControl>
@@ -258,7 +273,7 @@ const WordpressPluginForm = () => {
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Injection Strategy</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                                         <FormControl>
                                             <SelectTrigger><SelectValue placeholder="Select strategy" /></SelectTrigger>
                                         </FormControl>
@@ -275,7 +290,10 @@ const WordpressPluginForm = () => {
                     </div>
                     
                     <div>
-                        <h3 className="text-lg font-medium mb-4">Injection Rules</h3>
+                        <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+                            Injection Rules
+                            {isSuggesting && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
+                        </h3>
                         <div className="space-y-6">
                             {fields.map((field, index) => (
                                 <div key={field.id} className="p-4 border rounded-lg relative space-y-4">
@@ -414,5 +432,3 @@ const WordpressPluginForm = () => {
 };
 
 export default WordpressPluginForm;
-
-    

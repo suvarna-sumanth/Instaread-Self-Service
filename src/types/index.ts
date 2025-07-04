@@ -1,4 +1,5 @@
 import type { WebsiteAnalysisOutput } from '@/ai/flows/website-analysis';
+import type { SuggestWordpressConfigOutput } from '@/ai/flows/suggest-wordpress-config';
 
 export type PlayerConfig = {
   design: 'A' | 'B';
@@ -9,6 +10,8 @@ export type PlayerConfig = {
 };
 
 export type AnalysisResult = WebsiteAnalysisOutput | null;
+
+export type WordpressSuggestion = SuggestWordpressConfigOutput | null;
 
 export type Placement = {
   selector: string;

@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import type { PlayerConfig, AnalysisResult, Placement } from '@/types';
+import type { PlayerConfig, AnalysisResult, Placement, WordpressSuggestion } from '@/types';
 import Header from '@/components/layout/header';
 import WebsiteAnalysisSection from '@/components/sections/website-analysis-section';
 import PlayerConfigSection from '@/components/sections/player-config-section';
 import IntegrationCodeSection from '@/components/sections/integration-code-section';
 import LivePreviewSection from '@/components/sections/live-preview-section';
-import { getVisualClone, analyzeWebsite } from '@/lib/actions';
+import { getVisualClone, analyzeWebsite, suggestWordpressConfig } from '@/lib/actions';
 import { useToast } from "@/hooks/use-toast";
 
 export default function DemoGenerator() {
@@ -25,6 +25,8 @@ export default function DemoGenerator() {
   const [isLoading, setIsLoading] = useState(false);
   const [statusText, setStatusText] = useState('');
   const [selectedPlacement, setSelectedPlacement] = useState<Placement>(null);
+  const [wordpressSuggestion, setWordpressSuggestion] = useState<WordpressSuggestion>(null);
+  const [isSuggesting, setIsSuggesting] = useState(false);
 
   const handleAnalyze = async (newUrl: string) => {
     if (!newUrl) {
@@ -40,6 +42,7 @@ export default function DemoGenerator() {
     setAnalysis(null);
     setCloneHtml(null);
     setSelectedPlacement(null);
+    setWordpressSuggestion(null);
     setUrl(newUrl);
 
     try {
@@ -69,6 +72,40 @@ export default function DemoGenerator() {
         setStatusText('');
     }
   };
+  
+  const handlePlacementSelect = async (placement: Placement) => {
+    if (!placement) {
+      setSelectedPlacement(null);
+      setWordpressSuggestion(null);
+      return;
+    }
+
+    setSelectedPlacement(placement);
+    setIsSuggesting(true);
+
+    try {
+      if (cloneHtml) {
+        const suggestion = await suggestWordpressConfig(cloneHtml, placement.selector);
+        setWordpressSuggestion(suggestion);
+        toast({
+          title: "AI Suggestion Applied",
+          description: "The WordPress plugin form has been automatically filled.",
+        });
+      } else {
+        throw new Error("Cannot generate suggestion without website HTML.");
+      }
+    } catch (error) {
+       console.error("[DemoGenerator] Suggestion failed:", error);
+       const description = error instanceof Error ? error.message : "An unexpected error occurred.";
+       toast({
+        title: "AI Suggestion Failed",
+        description,
+        variant: "destructive",
+      });
+    } finally {
+        setIsSuggesting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -83,7 +120,13 @@ export default function DemoGenerator() {
             statusText={statusText}
           />
           <PlayerConfigSection config={playerConfig} setConfig={setPlayerConfig} />
-          <IntegrationCodeSection playerConfig={playerConfig} selectedPlacement={selectedPlacement} websiteUrl={url} />
+          <IntegrationCodeSection 
+            playerConfig={playerConfig} 
+            selectedPlacement={selectedPlacement} 
+            websiteUrl={url} 
+            wordpressSuggestion={wordpressSuggestion}
+            isSuggesting={isSuggesting}
+          />
         </aside>
         <main className="lg:w-3/5 xl:w-2/3">
           <LivePreviewSection
@@ -92,7 +135,7 @@ export default function DemoGenerator() {
             isLoading={isLoading}
             statusText={statusText}
             selectedPlacement={selectedPlacement}
-            onSelectPlacement={setSelectedPlacement}
+            onSelectPlacement={handlePlacementSelect}
             playerConfig={playerConfig}
           />
         </main>
