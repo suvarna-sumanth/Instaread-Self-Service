@@ -16,15 +16,8 @@ import { generateWordPressPlugin, getWorkflowRunResult } from '@/lib/github-acti
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import type { WordpressSuggestion } from '@/types';
 
-
-type WordpressPluginFormProps = {
-    suggestion: WordpressSuggestion;
-    isSuggesting: boolean;
-};
-
-const WordpressPluginForm = ({ suggestion, isSuggesting }: WordpressPluginFormProps) => {
+const WordpressPluginForm = () => {
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
@@ -55,16 +48,6 @@ const WordpressPluginForm = ({ suggestion, isSuggesting }: WordpressPluginFormPr
         control: form.control,
         name: "injection_rules"
     });
-
-    // Apply AI suggestions when they become available
-    useEffect(() => {
-        if (suggestion) {
-            form.setValue('injection_context', suggestion.injection_context, { shouldValidate: true });
-            form.setValue('injection_strategy', suggestion.injection_strategy, { shouldValidate: true });
-            // The selector can be empty if the context is 'custom'
-            form.setValue('injection_rules.0.target_selector', suggestion.target_selector, { shouldValidate: true });
-        }
-    }, [suggestion, form]);
 
     // Handle UI changes when injection context is set to 'custom'
     useEffect(() => {
@@ -208,7 +191,7 @@ const WordpressPluginForm = ({ suggestion, isSuggesting }: WordpressPluginFormPr
         }
     };
     
-    const isFormDisabled = isLoading || !!downloadUrl || !!errorMessage || isSuggesting;
+    const isFormDisabled = isLoading || !!downloadUrl || !!errorMessage;
     const isCustomContext = injectionContext === 'custom';
 
     return (
@@ -306,9 +289,8 @@ const WordpressPluginForm = ({ suggestion, isSuggesting }: WordpressPluginFormPr
                     </div>
                     
                     <div>
-                        <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+                        <h3 className="text-lg font-medium mb-4">
                             Injection Rules
-                            {isSuggesting && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
                         </h3>
                         <div className="space-y-6">
                             {fields.map((field, index) => (

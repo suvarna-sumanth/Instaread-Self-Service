@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react';
-import type { PlayerConfig, Placement, WordpressSuggestion } from '@/types';
+import type { PlayerConfig, Placement } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
@@ -13,11 +13,9 @@ type IntegrationCodeSectionProps = {
     playerConfig: PlayerConfig;
     selectedPlacement: Placement;
     websiteUrl: string;
-    wordpressSuggestion: WordpressSuggestion;
-    isSuggesting: boolean;
 };
 
-const IntegrationCodeSection = ({ playerConfig, selectedPlacement, websiteUrl, wordpressSuggestion, isSuggesting }: IntegrationCodeSectionProps) => {
+const IntegrationCodeSection = ({ playerConfig, selectedPlacement, websiteUrl }: IntegrationCodeSectionProps) => {
     const { toast } = useToast();
     const [copied, setCopied] = useState(false);
     
@@ -113,7 +111,7 @@ const MyComponent = () => {
 
                     <TabsContent value="wordpress">
                         <div className="mt-4">
-                           <WordpressPluginForm suggestion={wordpressSuggestion} isSuggesting={isSuggesting} />
+                           <WordpressPluginForm />
                         </div>
                     </TabsContent>
                 </Tabs>

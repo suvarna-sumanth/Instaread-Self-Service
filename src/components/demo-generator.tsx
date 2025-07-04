@@ -2,13 +2,13 @@
 'use client';
 
 import { useState } from 'react';
-import type { PlayerConfig, AnalysisResult, Placement, WordpressSuggestion } from '@/types';
+import type { PlayerConfig, AnalysisResult, Placement } from '@/types';
 import Header from '@/components/layout/header';
 import WebsiteAnalysisSection from '@/components/sections/website-analysis-section';
 import PlayerConfigSection from '@/components/sections/player-config-section';
 import IntegrationCodeSection from '@/components/sections/integration-code-section';
 import LivePreviewSection from '@/components/sections/live-preview-section';
-import { getVisualClone, analyzeWebsite, suggestWordpressConfig } from '@/lib/actions';
+import { getVisualClone, analyzeWebsite } from '@/lib/actions';
 import { useToast } from "@/hooks/use-toast";
 
 export default function DemoGenerator() {
@@ -26,8 +26,6 @@ export default function DemoGenerator() {
   const [isLoading, setIsLoading] = useState(false);
   const [statusText, setStatusText] = useState('');
   const [selectedPlacement, setSelectedPlacement] = useState<Placement>(null);
-  const [wordpressSuggestion, setWordpressSuggestion] = useState<WordpressSuggestion>(null);
-  const [isSuggesting, setIsSuggesting] = useState(false);
 
   const handleAnalyze = async (newUrl: string) => {
     if (!newUrl) {
@@ -43,7 +41,6 @@ export default function DemoGenerator() {
     setAnalysis(null);
     setCloneHtml(null);
     setSelectedPlacement(null);
-    setWordpressSuggestion(null);
     setUrl(newUrl);
 
     try {
@@ -74,40 +71,8 @@ export default function DemoGenerator() {
     }
   };
   
-  const handlePlacementSelect = async (placement: Placement) => {
-    if (!placement) {
-      setSelectedPlacement(null);
-      setWordpressSuggestion(null);
-      return;
-    }
-
+  const handlePlacementSelect = (placement: Placement) => {
     setSelectedPlacement(placement);
-    setIsSuggesting(true);
-
-    try {
-      if (cloneHtml) {
-        // Truncate the HTML on the client to avoid exceeding the server action payload limit.
-        const truncatedHtml = cloneHtml.substring(0, 100000);
-        const suggestion = await suggestWordpressConfig(truncatedHtml, placement.selector);
-        setWordpressSuggestion(suggestion);
-        toast({
-          title: "AI Suggestion Applied",
-          description: "The WordPress plugin form has been automatically filled.",
-        });
-      } else {
-        throw new Error("Cannot generate suggestion without website HTML.");
-      }
-    } catch (error) {
-       console.error("[DemoGenerator] Suggestion failed:", error);
-       const description = error instanceof Error ? error.message : "An unexpected error occurred.";
-       toast({
-        title: "AI Suggestion Failed",
-        description,
-        variant: "destructive",
-      });
-    } finally {
-        setIsSuggesting(false);
-    }
   };
 
   return (
@@ -127,8 +92,6 @@ export default function DemoGenerator() {
             playerConfig={playerConfig} 
             selectedPlacement={selectedPlacement} 
             websiteUrl={url} 
-            wordpressSuggestion={wordpressSuggestion}
-            isSuggesting={isSuggesting}
           />
         </aside>
         <main className="lg:w-3/5 xl:w-2/3">
