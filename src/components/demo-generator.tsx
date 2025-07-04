@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -85,7 +86,9 @@ export default function DemoGenerator() {
 
     try {
       if (cloneHtml) {
-        const suggestion = await suggestWordpressConfig(cloneHtml, placement.selector);
+        // Truncate the HTML on the client to avoid exceeding the server action payload limit.
+        const truncatedHtml = cloneHtml.substring(0, 100000);
+        const suggestion = await suggestWordpressConfig(truncatedHtml, placement.selector);
         setWordpressSuggestion(suggestion);
         toast({
           title: "AI Suggestion Applied",
