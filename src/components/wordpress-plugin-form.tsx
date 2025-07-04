@@ -48,6 +48,8 @@ const WordpressPluginForm = ({ suggestion, isSuggesting }: WordpressPluginFormPr
             version: '1.0.0',
         },
     });
+    
+    const injectionContext = form.watch('injection_context');
 
     const { fields, append, remove } = useFieldArray({
         control: form.control,
@@ -57,11 +59,22 @@ const WordpressPluginForm = ({ suggestion, isSuggesting }: WordpressPluginFormPr
     // Apply AI suggestions when they become available
     useEffect(() => {
         if (suggestion) {
-            form.setValue('injection_rules.0.target_selector', suggestion.target_selector, { shouldValidate: true });
             form.setValue('injection_context', suggestion.injection_context, { shouldValidate: true });
             form.setValue('injection_strategy', suggestion.injection_strategy, { shouldValidate: true });
+            // The selector can be empty if the context is 'custom'
+            form.setValue('injection_rules.0.target_selector', suggestion.target_selector, { shouldValidate: true });
         }
-    }, [suggestion, form.setValue]);
+    }, [suggestion, form]);
+
+    // Handle UI changes when injection context is set to 'custom'
+    useEffect(() => {
+        if (injectionContext === 'custom') {
+            // Clear target selectors and positions as they aren't needed
+            form.getValues().injection_rules.forEach((_, index) => {
+                form.setValue(`injection_rules.${index}.target_selector`, '', { shouldValidate: true });
+            });
+        }
+    }, [injectionContext, form]);
 
     const stopPolling = () => {
         if (intervalRef.current) clearInterval(intervalRef.current);
@@ -196,6 +209,7 @@ const WordpressPluginForm = ({ suggestion, isSuggesting }: WordpressPluginFormPr
     };
     
     const isFormDisabled = isLoading || !!downloadUrl || !!errorMessage || isSuggesting;
+    const isCustomContext = injectionContext === 'custom';
 
     return (
     <Dialog onOpenChange={() => setPreviewContent(null)}>
@@ -263,6 +277,7 @@ const WordpressPluginForm = ({ suggestion, isSuggesting }: WordpressPluginFormPr
                                             <SelectItem value="custom">Custom</SelectItem>
                                         </SelectContent>
                                     </Select>
+                                    <FormDescription className="text-xs">"Singular" for posts. "Custom" for manual theme integration.</FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -283,6 +298,7 @@ const WordpressPluginForm = ({ suggestion, isSuggesting }: WordpressPluginFormPr
                                             <SelectItem value="all">All Matches</SelectItem>
                                         </SelectContent>
                                     </Select>
+                                    <FormDescription className="text-xs">Which matching element to inject relative to.</FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -301,25 +317,31 @@ const WordpressPluginForm = ({ suggestion, isSuggesting }: WordpressPluginFormPr
                                         type="button"
                                         onClick={() => fields.length > 1 ? remove(index) : null}
                                         className="absolute -top-3 -right-3 bg-background rounded-full p-0.5 text-muted-foreground hover:text-destructive disabled:opacity-50"
-                                        disabled={fields.length <= 1}
+                                        disabled={isCustomContext || fields.length <= 1}
                                     >
                                         <XCircle className="h-6 w-6" />
                                     </button>
-                                    <FormField
-                                        control={form.control}
-                                        name={`injection_rules.${index}.target_selector`}
-                                        render={({ field }) => (
-                                            <FormItem><FormLabel>Target Selector</FormLabel><FormControl><Input placeholder=".article-content" {...field} /></FormControl><FormMessage /></FormItem>
-                                        )}
-                                    />
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                                    <div className={isCustomContext ? 'hidden' : ''}>
                                         <FormField
                                             control={form.control}
-                                            name={`injection_rules.${index}.insert_position`}
+                                            name={`injection_rules.${index}.target_selector`}
                                             render={({ field }) => (
-                                                <FormItem><FormLabel>Insert Position</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select position" /></SelectTrigger></FormControl><SelectContent><SelectItem value="prepend">Prepend</SelectItem><SelectItem value="append">Append</SelectItem><SelectItem value="before">Before</SelectItem><SelectItem value="after">After</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                                                <FormItem><FormLabel>Target Selector</FormLabel><FormControl><Input placeholder=".article-content" {...field} /></FormControl><FormMessage /></FormItem>
                                             )}
                                         />
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className={isCustomContext ? 'hidden' : ''}>
+                                            <FormField
+                                                control={form.control}
+                                                name={`injection_rules.${index}.insert_position`}
+                                                render={({ field }) => (
+                                                    <FormItem><FormLabel>Insert Position</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select position" /></SelectTrigger></FormControl><SelectContent><SelectItem value="prepend">Prepend</SelectItem><SelectItem value="append">Append</SelectItem><SelectItem value="before">Before</SelectItem><SelectItem value="after">After</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                                                )}
+                                            />
+                                        </div>
                                         <FormField
                                             control={form.control}
                                             name={`injection_rules.${index}.exclude_slugs`}
@@ -328,15 +350,25 @@ const WordpressPluginForm = ({ suggestion, isSuggesting }: WordpressPluginFormPr
                                             )}
                                         />
                                     </div>
+
+                                    {isCustomContext && (
+                                        <Alert>
+                                            <AlertTitle>Custom Context</AlertTitle>
+                                            <AlertDescription>
+                                                Injection rules must be configured manually within the WordPress theme files.
+                                            </AlertDescription>
+                                        </Alert>
+                                    )}
                                 </div>
                             ))}
                         </div>
-                        <Button
+                         <Button
                             type="button"
                             variant="outline"
                             size="sm"
                             className="mt-4"
                             onClick={() => append({ target_selector: '', insert_position: 'prepend', exclude_slugs: '' })}
+                            disabled={isCustomContext}
                         >
                             <PlusCircle className="mr-2 h-4 w-4" />
                             Add Injection Rule

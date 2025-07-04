@@ -45,9 +45,17 @@ export async function suggestWordpressConfig(input: SuggestWordpressConfigInput)
     You are an expert WordPress developer. Your task is to analyze the provided HTML of a webpage and a CSS selector for an element that a user has clicked. Based on this, you will suggest a configuration for injecting a script.
 
     Analyze the following:
-    1.  **Refine Selector**: Refine the user's \`selectedSelector\` to be more robust and unique. Prefer IDs if available. If the selector is very generic (e.g., 'div > p'), find a more specific parent with an ID or a descriptive class. The goal is a stable selector.
-    2.  **Injection Context**: Determine if the content is on a 'singular' page (like a blog post or article with a main content body) or an 'all' page (like a homepage with many different items). Default to 'singular' if unsure.
-    3.  **Injection Strategy**: If the refined selector is likely to be unique on the page (e.g., an ID like '#main-content'), the strategy should be 'first'. This is almost always the correct choice.
+    1.  **Refine Selector**: Analyze the user's \`selectedSelector\` and its context within the HTML.
+        - Your primary goal is to find the most stable and unique selector possible.
+        - **Prefer IDs**: If the selected element or a close parent has an ID, use it (e.g., '#main-content'). This is the best option.
+        - **Use Specific Classes**: If no ID is available, find a combination of descriptive classes that uniquely identifies the element. Avoid generic, purely presentational classes.
+        - If the refined selector is very robust and likely to be unique on the page (e.g., an ID), set \`injection_strategy\` to 'first'. This is almost always the correct choice.
+
+    2.  **Injection Context**: Determine if the player should be injected on a 'singular' page (like a blog post or article with a main content body) or 'all' pages (like a homepage with many different items). Default to 'singular' if you're unsure.
+
+    3.  **Handle Ambiguity (Custom Fallback)**:
+        - If you **cannot determine a reliable, stable selector** (e.g., the element is a generic \`<div>\` or \`<p>\` with no distinct ID or classes), you must fall back to a custom configuration.
+        - In this case, set \`injection_context\` to 'custom' and \`target_selector\` to an empty string (""). The user will need to define the placement manually in their WordPress theme.
 
     HTML Content:
     \`\`\`html
@@ -77,7 +85,7 @@ export async function suggestWordpressConfig(input: SuggestWordpressConfigInput)
     const suggestion = JSON.parse(content) as SuggestWordpressConfigOutput;
     
     // Basic validation to ensure the response is in the expected format.
-    if (!suggestion.target_selector || !suggestion.injection_context || !suggestion.injection_strategy) {
+    if (suggestion.target_selector === undefined || !suggestion.injection_context || !suggestion.injection_strategy) {
         throw new Error('OpenAI returned an incomplete JSON object.');
     }
 
