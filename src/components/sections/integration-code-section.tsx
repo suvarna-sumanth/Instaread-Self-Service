@@ -15,24 +15,13 @@ type IntegrationCodeSectionProps = {
     websiteUrl: string;
 };
 
-// Helper function to extract publication from URL
-const getPublicationFromUrl = (url: string) => {
-    if (!url) return 'xyz';
-    try {
-        const hostname = new URL(url).hostname;
-        // remove www. and get the first part of the domain
-        return hostname.replace(/^www\./, '').split('.')[0];
-    } catch (e) {
-        return 'xyz';
-    }
-};
-
 const IntegrationCodeSection = ({ playerConfig, websiteUrl }: IntegrationCodeSectionProps) => {
     const { toast } = useToast();
     const [copied, setCopied] = useState(false);
     
     const { playerType, color } = playerConfig;
-    const publication = getPublicationFromUrl(websiteUrl);
+    // Hardcode publication to 'xyz' for testing
+    const publication = 'xyz';
 
     const scriptSrc = PLAYER_SCRIPT_URL;
 

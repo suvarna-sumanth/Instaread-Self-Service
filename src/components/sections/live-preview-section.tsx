@@ -130,17 +130,6 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       const parser = new DOMParser();
       const doc = parser.parseFromString(cloneHtml, 'text/html');
 
-      // Helper function to extract publication from URL
-      const getPublicationFromUrl = (url: string) => {
-          if (!url) return 'xyz';
-          try {
-              const hostname = new URL(url).hostname;
-              return hostname.replace(/^www\./, '').split('.')[0];
-          } catch (e) {
-              return 'xyz';
-          }
-      };
-
       // The script must be injected into the head to be loaded
       const scriptElement = doc.createElement('script');
       scriptElement.type = 'module';
@@ -153,7 +142,8 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
 
         if (targetEl) {
           const { playerType, color } = playerConfig;
-          const publication = getPublicationFromUrl(url);
+          // Hardcode publication to 'xyz' for testing
+          const publication = 'xyz';
           
           const playerHtml = `<instaread-player
             id="instaread-player-instance"
