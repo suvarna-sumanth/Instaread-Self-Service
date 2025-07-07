@@ -51,7 +51,7 @@ export async function analyzeWebsite(input: WebsiteAnalysisInput): Promise<Websi
   if (!useAiAnalysis || !process.env.OPENAI_API_KEY) {
     if (useAiAnalysis && !process.env.OPENAI_API_KEY) {
         console.warn("AI analysis is enabled, but the OPENAI_API_KEY is not set. Falling back to mock data.");
-    } else if (!useAiAnalysis) {
+    } else {
         console.log('AI analysis is disabled. Returning mock data.');
     }
     return mockAnalysis;
@@ -103,7 +103,7 @@ export async function analyzeWebsite(input: WebsiteAnalysisInput): Promise<Websi
     return analysisResult;
 
   } catch (error) {
-    console.error("Error analyzing website with OpenAI:", error);
-    throw new Error("Failed to analyze website due to an OpenAI API error.");
+    console.error("[Website Analysis] Error analyzing with OpenAI:", error);
+    throw new Error(`AI analysis failed. ${error instanceof Error ? error.message : 'An unexpected error occurred.'}`);
   }
 }
