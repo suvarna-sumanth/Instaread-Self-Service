@@ -12,7 +12,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from '../ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 import { PLAYER_SCRIPT_URL } from '@/lib/constants';
-import { getPlayerScript } from '@/lib/actions';
 
 type LivePreviewSectionProps = {
   url: string;
@@ -122,83 +121,68 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   };
 
   useEffect(() => {
-    const updateIframeContent = async () => {
-      if (!cloneHtml) {
-        setEffectiveHtml(null);
-        return;
-      }
+    if (!cloneHtml) {
+      setEffectiveHtml(null);
+      return;
+    }
 
-      try {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(cloneHtml, 'text/html');
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(cloneHtml, 'text/html');
 
-        // Fetch the player script via a server action and inject it inline
-        // to avoid mixed content (https -> http) browser errors.
-        const scriptContent = await getPlayerScript();
+      // Directly add the script tag. This will require the server at
+      // PLAYER_SCRIPT_URL to have CORS configured to allow requests
+      // from this application's origin.
+      const scriptElement = doc.createElement('script');
+      scriptElement.type = 'module';
+      scriptElement.setAttribute('crossorigin', '');
+      scriptElement.src = PLAYER_SCRIPT_URL;
+      doc.head.appendChild(scriptElement);
 
-        if (scriptContent && !scriptContent.startsWith('//')) {
-          const scriptElement = doc.createElement('script');
-          scriptElement.type = 'module';
-          scriptElement.textContent = scriptContent;
-          doc.head.appendChild(scriptElement);
-        } else {
-          console.warn("Could not fetch player script to inject inline. Falling back to <script src...>, which may be blocked by the browser.", scriptContent);
-          const scriptElement = doc.createElement('script');
-          scriptElement.type = 'module';
-          scriptElement.setAttribute('crossorigin', '');
-          scriptElement.src = PLAYER_SCRIPT_URL;
-          doc.head.appendChild(scriptElement);
-        }
+      if (selectedPlacement) {
+        const targetEl = doc.querySelector(selectedPlacement.selector);
 
-        if (selectedPlacement) {
-          const targetEl = doc.querySelector(selectedPlacement.selector);
-
-          if (targetEl) {
-            const { playerType, color } = playerConfig;
-            
-            let publication = 'xyz';
-            if (process.env.NODE_ENV === 'production' && url) {
-              try {
-                const urlObject = new URL(url);
-                const domain = urlObject.hostname.replace(/^www\./, '').split('.')[0];
-                publication = domain || 'xyz';
-              } catch (e) {
-                // Invalid URL, fallback to 'xyz'
-                publication = 'xyz';
-              }
+        if (targetEl) {
+          const { playerType, color } = playerConfig;
+          
+          let publication = 'xyz';
+          if (process.env.NODE_ENV === 'production' && url) {
+            try {
+              const urlObject = new URL(url);
+              const domain = urlObject.hostname.replace(/^www\./, '').split('.')[0];
+              publication = domain || 'xyz';
+            } catch (e) {
+              publication = 'xyz';
             }
-            
-            const playerHtml = `<instaread-player
-              id="instaread-player-instance"
-              publication="${publication}"
-              playertype="${playerType}"
-              colortype="${color}"
-            ></instaread-player>`;
-            
-            const playerFragment = doc.createRange().createContextualFragment(playerHtml);
-
-            if (selectedPlacement.position === 'before') {
-              targetEl.parentNode?.insertBefore(playerFragment, targetEl);
-            } else {
-              targetEl.parentNode?.insertBefore(playerFragment, targetEl.nextSibling);
-            }
-
-            (targetEl as HTMLElement).style.outline = '3px solid hsl(var(--primary))';
-            (targetEl as HTMLElement).setAttribute('data-instaread-placement-highlight', 'true');
           }
-        }
-        
-        const finalHtml = `<!DOCTYPE html>${doc.documentElement.outerHTML}`;
-        setEffectiveHtml(finalHtml);
+          
+          const playerHtml = `<instaread-player
+            id="instaread-player-instance"
+            publication="${publication}"
+            playertype="${playerType}"
+            colortype="${color}"
+          ></instaread-player>`;
+          
+          const playerFragment = doc.createRange().createContextualFragment(playerHtml);
 
-      } catch (e) {
-        console.error("[LivePreview] Error parsing or modifying HTML:", e);
-        // Fallback to the original clone if parsing fails
-        setEffectiveHtml(cloneHtml);
+          if (selectedPlacement.position === 'before') {
+            targetEl.parentNode?.insertBefore(playerFragment, targetEl);
+          } else {
+            targetEl.parentNode?.insertBefore(playerFragment, targetEl.nextSibling);
+          }
+
+          (targetEl as HTMLElement).style.outline = '3px solid hsl(var(--primary))';
+          (targetEl as HTMLElement).setAttribute('data-instaread-placement-highlight', 'true');
+        }
       }
-    };
-    
-    updateIframeContent();
+      
+      const finalHtml = `<!DOCTYPE html>${doc.documentElement.outerHTML}`;
+      setEffectiveHtml(finalHtml);
+
+    } catch (e) {
+      console.error("[LivePreview] Error parsing or modifying HTML:", e);
+      setEffectiveHtml(cloneHtml);
+    }
   }, [cloneHtml, selectedPlacement, playerConfig, url]);
 
 
