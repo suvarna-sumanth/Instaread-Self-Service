@@ -20,8 +20,18 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl }: IntegrationCodeSec
     const [copied, setCopied] = useState(false);
     
     const { playerType, color } = playerConfig;
-    // Hardcode publication to 'xyz' for testing
-    const publication = 'xyz';
+
+    let publication = 'xyz';
+    if (process.env.NODE_ENV === 'production' && websiteUrl) {
+      try {
+        const urlObject = new URL(websiteUrl);
+        const domain = urlObject.hostname.replace(/^www\./, '').split('.')[0];
+        publication = domain || 'xyz';
+      } catch (e) {
+        // Invalid URL, fallback to 'xyz'
+        publication = 'xyz';
+      }
+    }
 
     const scriptSrc = PLAYER_SCRIPT_URL;
 

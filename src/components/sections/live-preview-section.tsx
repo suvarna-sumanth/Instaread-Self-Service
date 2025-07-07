@@ -142,8 +142,18 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
 
         if (targetEl) {
           const { playerType, color } = playerConfig;
-          // Hardcode publication to 'xyz' for testing
-          const publication = 'xyz';
+          
+          let publication = 'xyz';
+          if (process.env.NODE_ENV === 'production' && url) {
+            try {
+              const urlObject = new URL(url);
+              const domain = urlObject.hostname.replace(/^www\./, '').split('.')[0];
+              publication = domain || 'xyz';
+            } catch (e) {
+              // Invalid URL, fallback to 'xyz'
+              publication = 'xyz';
+            }
+          }
           
           const playerHtml = `<instaread-player
             id="instaread-player-instance"
