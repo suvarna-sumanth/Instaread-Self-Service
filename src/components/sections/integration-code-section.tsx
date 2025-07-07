@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
 import { Clipboard, Check } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import { PLAYER_SCRIPT_URL } from '@/lib/constants';
 
 type IntegrationCodeSectionProps = {
     playerConfig: PlayerConfig;
@@ -33,8 +34,7 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl }: IntegrationCodeSec
     const { playerType, color } = playerConfig;
     const publication = getPublicationFromUrl(websiteUrl);
 
-    // NOTE: This assumes the local dev server for the player script is running on port 3001
-    const scriptSrc = "http://localhost:3001/js/instaread.local.js";
+    const scriptSrc = PLAYER_SCRIPT_URL;
 
     const codeSnippets = {
         html: `<script type="module" crossorigin src="${scriptSrc}"></script>

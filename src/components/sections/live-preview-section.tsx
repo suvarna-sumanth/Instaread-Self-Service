@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from '../ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
+import { PLAYER_SCRIPT_URL } from '@/lib/constants';
 
 type LivePreviewSectionProps = {
   url: string;
@@ -141,11 +142,10 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       };
 
       // The script must be injected into the head to be loaded
-      const scriptSrc = "http://localhost:3001/js/instaread.local.js";
       const scriptElement = doc.createElement('script');
       scriptElement.type = 'module';
       scriptElement.setAttribute('crossorigin', '');
-      scriptElement.src = scriptSrc;
+      scriptElement.src = PLAYER_SCRIPT_URL;
       doc.head.appendChild(scriptElement);
 
       if (selectedPlacement) {
