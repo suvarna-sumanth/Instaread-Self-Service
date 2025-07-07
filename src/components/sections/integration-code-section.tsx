@@ -17,13 +17,13 @@ type IntegrationCodeSectionProps = {
 
 // Helper function to extract publication from URL
 const getPublicationFromUrl = (url: string) => {
-    if (!url) return 'your-publication';
+    if (!url) return 'xyz';
     try {
         const hostname = new URL(url).hostname;
         // remove www. and get the first part of the domain
         return hostname.replace(/^www\./, '').split('.')[0];
     } catch (e) {
-        return 'your-publication';
+        return 'xyz';
     }
 };
 
