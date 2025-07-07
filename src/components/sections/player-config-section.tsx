@@ -1,32 +1,33 @@
+
 'use client'
 
 import React from 'react';
-import type { PlayerConfig } from '@/types';
+import type { PlayerConfig, PlayerType, AnalysisResult } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Button } from '@/components/ui/button';
-import { Upload } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from '../ui/input';
 
 type PlayerConfigSectionProps = {
   config: PlayerConfig;
   setConfig: React.Dispatch<React.SetStateAction<PlayerConfig>>;
+  analysis: AnalysisResult;
 };
 
-const PlayerConfigSection = ({ config, setConfig }: PlayerConfigSectionProps) => {
+const playerTypes: { value: PlayerType; label: string }[] = [
+    { value: 'newdesign', label: 'New Design' },
+    { value: 'shortdesign', label: 'Short Design' },
+    { value: 'scrubandwaves', label: 'Scrub & Waves' },
+    { value: 'scrub', label: 'Scrub' },
+    { value: 'default', label: 'Default' },
+];
+
+const PlayerConfigSection = ({ config, setConfig, analysis }: PlayerConfigSectionProps) => {
   
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] || null;
-    setConfig(prev => ({
-        ...prev,
-        audioFile: file,
-        audioFileName: file ? file.name : 'sample-track.mp3'
-    }));
+  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setConfig(prev => ({ ...prev, color: e.target.value }));
   };
-
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-
 
   return (
     <Card className="shadow-md">
@@ -36,32 +37,47 @@ const PlayerConfigSection = ({ config, setConfig }: PlayerConfigSectionProps) =>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
-            <Label>Player Design</Label>
-            <Tabs value={config.design} onValueChange={(value) => setConfig(prev => ({...prev, design: value as 'A' | 'B'}))}>
-                <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="A">Design A</TabsTrigger>
-                    <TabsTrigger value="B">Design B</TabsTrigger>
-                </TabsList>
-            </Tabs>
+            <Label htmlFor="player-type">Player Type</Label>
+            <Select 
+                value={config.playerType} 
+                onValueChange={(value) => setConfig(prev => ({...prev, playerType: value as PlayerType}))}
+            >
+                <SelectTrigger id="player-type">
+                    <SelectValue placeholder="Select a player type" />
+                </SelectTrigger>
+                <SelectContent>
+                    {playerTypes.map(type => (
+                        <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
         </div>
-        <div className="flex items-center justify-between">
-            <Label htmlFor="ads-switch">Show Ads</Label>
-            <Switch id="ads-switch" checked={config.showAds} onCheckedChange={(checked) => setConfig(prev => ({...prev, showAds: checked}))} />
-        </div>
-        <div className="flex items-center justify-between">
-            <Label htmlFor="metrics-switch">Enable Metrics</Label>
-            <Switch id="metrics-switch" checked={config.enableMetrics} onCheckedChange={(checked) => setConfig(prev => ({...prev, enableMetrics: checked}))} />
-        </div>
-        <div>
-            <Label>Audio Track</Label>
-            <div className="flex items-center gap-2 mt-2">
-                <Button variant="outline" className="w-full justify-start text-left" onClick={() => fileInputRef.current?.click()}>
-                    <Upload className="mr-2 h-4 w-4" />
-                    {config.audioFileName}
+
+        <div className="space-y-2">
+          <Label htmlFor="color-picker">Accent Color</Label>
+          <div className="flex items-center gap-4">
+            <Input 
+                id="color-picker-text"
+                value={config.color}
+                onChange={handleColorChange}
+                className="w-28"
+            />
+            <Input
+              id="color-picker"
+              type="color"
+              value={config.color}
+              onChange={handleColorChange}
+              className="h-10 w-10 p-1 cursor-pointer"
+            />
+            {analysis?.colors.primary && (
+                <Button variant="outline" size="sm" onClick={() => setConfig(prev => ({...prev, color: analysis!.colors.primary}))}>
+                    Use Analyzed Color
                 </Button>
-                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="audio/*" className="hidden" />
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">Upload a custom audio file for the demo.</p>
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground">Determines the player's main color.</p>
         </div>
       </CardContent>
     </Card>

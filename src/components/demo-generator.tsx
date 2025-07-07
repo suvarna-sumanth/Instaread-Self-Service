@@ -16,11 +16,8 @@ export default function DemoGenerator() {
   const [url, setUrl] = useState('');
   const [analysis, setAnalysis] = useState<AnalysisResult>(null);
   const [playerConfig, setPlayerConfig] = useState<PlayerConfig>({
-    design: 'A',
-    showAds: true,
-    enableMetrics: true,
-    audioFile: null,
-    audioFileName: 'sample-track.mp3'
+    playerType: 'newdesign',
+    color: '#3B82F6',
   });
   const [cloneHtml, setCloneHtml] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -51,6 +48,10 @@ export default function DemoGenerator() {
         setStatusText('Analyzing website design...');
         const analysisResult = await analyzeWebsite(newUrl);
         setAnalysis(analysisResult);
+        
+        if (analysisResult?.colors?.primary) {
+          setPlayerConfig(prev => ({ ...prev, color: analysisResult.colors.primary }));
+        }
         
         toast({
             title: "Analysis Complete",
@@ -87,10 +88,13 @@ export default function DemoGenerator() {
             isLoading={isLoading} 
             statusText={statusText}
           />
-          <PlayerConfigSection config={playerConfig} setConfig={setPlayerConfig} />
+          <PlayerConfigSection 
+            config={playerConfig} 
+            setConfig={setPlayerConfig} 
+            analysis={analysis}
+          />
           <IntegrationCodeSection 
             playerConfig={playerConfig} 
-            selectedPlacement={selectedPlacement} 
             websiteUrl={url} 
           />
         </aside>

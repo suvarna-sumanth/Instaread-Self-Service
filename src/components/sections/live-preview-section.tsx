@@ -119,9 +119,6 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     doc.body.addEventListener('click', handleClick);
   };
 
-  // Effect to generate the definitive HTML for the iframe.
-  // Instead of manipulating the live iframe DOM, we regenerate the entire
-  // srcDoc content whenever the configuration changes. This is more robust.
   useEffect(() => {
     if (!cloneHtml) {
       setEffectiveHtml(null);
@@ -132,51 +129,45 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       const parser = new DOMParser();
       const doc = parser.parseFromString(cloneHtml, 'text/html');
 
-      // This style override is a workaround for the player's internal width issue,
-      // which can cause clipping on smaller viewports.
-      const styleOverride = doc.createElement('style');
-      styleOverride.textContent = `
-        .instaread-audio-player { 
-          max-width: 100% !important; 
-          box-sizing: border-box !important;
-        }
+      // Helper function to extract publication from URL
+      const getPublicationFromUrl = (url: string) => {
+          if (!url) return 'your-publication';
+          try {
+              const hostname = new URL(url).hostname;
+              return hostname.replace(/^www\./, '').split('.')[0];
+          } catch (e) {
+              return 'your-publication';
+          }
+      };
 
-        /* Override the player's fixed min-width on smaller screens to prevent overflow */
-        @media only screen and (max-width: 659px) {
-            .instaread-audio-player {
-                min-width: 315px !important;
-            }
-        }
-      `;
-      doc.head.appendChild(styleOverride);
+      // The script must be injected into the head to be loaded
+      const scriptSrc = "http://localhost:3001/js/instaread.local.js";
+      const scriptElement = doc.createElement('script');
+      scriptElement.type = 'module';
+      scriptElement.setAttribute('crossorigin', '');
+      scriptElement.src = scriptSrc;
+      doc.head.appendChild(scriptElement);
 
       if (selectedPlacement) {
         const targetEl = doc.querySelector(selectedPlacement.selector);
 
         if (targetEl) {
-          const { showAds, enableMetrics, audioFileName, design } = playerConfig;
-          const publication = design === 'A' ? 'usnews.com' : 'flyingmag';
+          const { playerType, color } = playerConfig;
+          const publication = getPublicationFromUrl(url);
           
           const playerHtml = `<instaread-player
             id="instaread-player-instance"
             publication="${publication}"
-            data-design="${design}"
-            data-source="${url}"
-            data-placement-selector="${selectedPlacement.selector}"
-            data-placement-position="${selectedPlacement.position}"
-            data-show-ads="${showAds}"
-            data-enable-metrics="${enableMetrics}"
-            data-audio-track-url="path/to/${audioFileName || 'sample.mp3'}"
+            playertype="${playerType}"
+            colortype="${color}"
           ></instaread-player>`;
           
-          const scriptHtml = `<script type="module" crossorigin src="https://instaread.co/js/instaread.player.js"><\/script>`;
-          
-          const fragment = doc.createRange().createContextualFragment(playerHtml + scriptHtml);
+          const playerFragment = doc.createRange().createContextualFragment(playerHtml);
 
           if (selectedPlacement.position === 'before') {
-            targetEl.parentNode?.insertBefore(fragment, targetEl);
+            targetEl.parentNode?.insertBefore(playerFragment, targetEl);
           } else {
-            targetEl.parentNode?.insertBefore(fragment, targetEl.nextSibling);
+            targetEl.parentNode?.insertBefore(playerFragment, targetEl.nextSibling);
           }
 
           (targetEl as HTMLElement).style.outline = '3px solid hsl(var(--primary))';

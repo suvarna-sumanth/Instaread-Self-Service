@@ -1,56 +1,69 @@
+
 'use client'
 
 import { useState } from 'react';
-import type { PlayerConfig, Placement } from '@/types';
+import type { PlayerConfig } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
 import { Clipboard, Check } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import WordpressPluginForm from '@/components/wordpress-plugin-form';
 
 type IntegrationCodeSectionProps = {
     playerConfig: PlayerConfig;
-    selectedPlacement: Placement;
     websiteUrl: string;
 };
 
-const IntegrationCodeSection = ({ playerConfig, selectedPlacement, websiteUrl }: IntegrationCodeSectionProps) => {
+// Helper function to extract publication from URL
+const getPublicationFromUrl = (url: string) => {
+    if (!url) return 'your-publication';
+    try {
+        const hostname = new URL(url).hostname;
+        // remove www. and get the first part of the domain
+        return hostname.replace(/^www\./, '').split('.')[0];
+    } catch (e) {
+        return 'your-publication';
+    }
+};
+
+const IntegrationCodeSection = ({ playerConfig, websiteUrl }: IntegrationCodeSectionProps) => {
     const { toast } = useToast();
     const [copied, setCopied] = useState(false);
     
-    const { design, showAds, enableMetrics, audioFileName } = playerConfig;
-    
-    const selector = selectedPlacement?.selector || 'body';
-    const position = selectedPlacement?.position || 'before';
+    const { playerType, color } = playerConfig;
+    const publication = getPublicationFromUrl(websiteUrl);
 
-    const publication = design === 'A' ? 'usnews.com' : 'flyingmag';
+    // NOTE: This assumes the local dev server for the player script is running on port 3001
+    const scriptSrc = "http://localhost:3001/js/instaread.local.js";
 
     const codeSnippets = {
-        html: `<instaread-player
+        html: `<script type="module" crossorigin src="${scriptSrc}"></script>
+<instaread-player
   publication="${publication}"
-  data-design="${design}"
-  data-source="${websiteUrl}"
-  data-placement-selector="${selector}"
-  data-placement-position="${position}"
-  data-show-ads="${showAds}"
-  data-enable-metrics="${enableMetrics}"
-  data-audio-track-url="path/to/${audioFileName}"
-></instaread-player>
-<script type="module" crossorigin src="https://instaread.co/js/instaread.player.js"></script>`,
-        react: `import InstareadPlayer from '@instaread/react-player';
+  playertype="${playerType}"
+  colortype="${color}"
+></instaread-player>`,
+        react: `import { useEffect } from 'react';
+
+// This component assumes the Instaread script has been added to your HTML file.
+// <script type="module" crossorigin src="${scriptSrc}"></script>
+
+const InstareadPlayer = ({ publication, playerType, colorType }) => {
+  return (
+    <instaread-player
+      publication={publication}
+      playertype={playerType}
+      colortype={colorType}
+    ></instaread-player>
+  );
+};
 
 const MyComponent = () => {
   return (
     <InstareadPlayer
       publication="${publication}"
-      design="${design}"
-      dataSource="${websiteUrl}"
-      placementSelector="${selector}"
-      placementPosition="${position}"
-      showAds={${showAds}}
-      enableMetrics={${enableMetrics}}
-      audioTrackUrl="path/to/${audioFileName}"
+      playerType="${playerType}"
+      colorType="${color}"
     />
   );
 };`,
@@ -66,15 +79,14 @@ const MyComponent = () => {
     return (
         <Card className="shadow-md">
             <CardHeader>
-                <CardTitle className="font-headline text-2xl">4. Get Integration Code</CardTitle>
-                <CardDescription>Copy a code snippet or generate a WordPress plugin.</CardDescription>
+                <CardTitle className="font-headline text-2xl">3. Get Integration Code</CardTitle>
+                <CardDescription>Copy the code snippet and place it in your website's HTML where you want the player to appear.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Tabs defaultValue="html" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3">
+                    <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="html">HTML</TabsTrigger>
                         <TabsTrigger value="react">React</TabsTrigger>
-                        <TabsTrigger value="wordpress">WordPress</TabsTrigger>
                     </TabsList>
                     
                     <TabsContent value="html">
@@ -106,12 +118,6 @@ const MyComponent = () => {
                             <pre className="bg-muted rounded-md p-4 text-sm overflow-x-auto">
                                 <code className="font-code text-muted-foreground">{codeSnippets.react}</code>
                             </pre>
-                        </div>
-                    </TabsContent>
-
-                    <TabsContent value="wordpress">
-                        <div className="mt-4">
-                           <WordpressPluginForm />
                         </div>
                     </TabsContent>
                 </Tabs>

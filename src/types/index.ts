@@ -1,11 +1,11 @@
+
 import type { WebsiteAnalysisOutput } from '@/ai/flows/website-analysis';
 
+export type PlayerType = 'shortdesign' | 'scrubandwaves' | 'scrub' | 'default' | 'newdesign';
+
 export type PlayerConfig = {
-  design: 'A' | 'B';
-  showAds: boolean;
-  enableMetrics: boolean;
-  audioFile: File | null;
-  audioFileName: string;
+  playerType: PlayerType;
+  color: string;
 };
 
 export type AnalysisResult = WebsiteAnalysisOutput | null;
