@@ -89,6 +89,31 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       const parser = new DOMParser();
       const doc = parser.parseFromString(cloneHtml, 'text/html');
       
+      const { playerType, color } = playerConfig;
+
+      // Create a style element for our overrides
+      const styleEl = doc.createElement('style');
+      let styleContent = `
+          /* Initially hide the player to prevent seeing "loading" text */
+          instaread-player {
+              opacity: 0;
+              transition: opacity 0.5s ease-in-out;
+          }
+      `;
+      // Add specific override for mobile height on certain player types
+      if (playerType === 'newdesign' || playerType === 'shortdesign') {
+          styleContent += `
+              @media (max-width: 750px) {
+                  instaread-player {
+                      display: block; /* Ensure it's a block-level element */
+                      height: 224px !important;
+                  }
+              }
+          `;
+      }
+      styleEl.textContent = styleContent;
+      doc.head.appendChild(styleEl);
+
       if (selectedPlacement) {
         // Inject the player script ONLY when a placement is selected
         const playerScriptElement = doc.createElement('script');
@@ -100,8 +125,6 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
         const targetEl = doc.querySelector(selectedPlacement.selector);
 
         if (targetEl) {
-          const { playerType, color } = playerConfig;
-          
           let publication = 'xyz';
           if (process.env.NODE_ENV !== 'development') {
             try {
@@ -110,7 +133,6 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                 publication = urlObject.hostname.replace(/^www\./, '').split('.')[0] || 'xyz';
               }
             } catch (e) {
-                // publication remains 'xyz' on error, which is a safe fallback
                 console.warn(`Invalid URL provided for publication name: ${url}`);
             }
           }
@@ -140,6 +162,14 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
           let lastHovered = null;
           let originalOutline = null;
 
+          /* Logic to show fade-in player after a short delay */
+          const instareadPlayer = document.querySelector('instaread-player');
+          if (instareadPlayer) {
+              setTimeout(() => {
+                  instareadPlayer.style.opacity = '1';
+              }, 500);
+          }
+
           document.addEventListener('mouseover', (e) => {
               const target = e.target;
               if (target && target !== lastHovered) {
@@ -163,7 +193,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
           });
           
           document.addEventListener('click', (e) => {
-            if (e.target && !e.target.closest('instaread-player') && !e.target.closest('#instaread-widget')) {
+            if (e.target && !e.target.closest('instaread-player')) {
               e.preventDefault();
               e.stopPropagation();
               const selector = generateSelector(e.target);
@@ -269,7 +299,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
               <div>
                   <CardTitle className="font-headline text-2xl">Live Preview & Placement</CardTitle>
                   <CardDescription className="flex items-center gap-2">
-                    <MousePointerClick className="h-4 w-4" /> Click an element in the preview to place the player. Resize browser to test responsiveness.
+                    <MousePointerClick className="h-4 w-4" /> Click an element in the preview to place the player. Resize your browser to test responsiveness.
                   </CardDescription>
               </div>
               <div className="flex items-center gap-4">
