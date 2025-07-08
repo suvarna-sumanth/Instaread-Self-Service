@@ -103,7 +103,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       // Add specific override for mobile height on certain player types
       if (playerType === 'newdesign' || playerType === 'shortdesign') {
           styleContent += `
-              @media (max-width: 750px) {
+              @media (max-width: 1346px) {
                   .instaread-audio-player {
                       height: 224px !important;
                   }
