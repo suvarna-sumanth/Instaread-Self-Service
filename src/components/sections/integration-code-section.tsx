@@ -74,7 +74,7 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
         }
     });
 
-    const { setValue, resetField } = form;
+    const { control, handleSubmit, reset, getValues } = form;
 
     const { fields, append, remove, replace } = useFieldArray({
         control: form.control,
@@ -82,21 +82,32 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
     });
 
     useEffect(() => {
+        const currentValues = getValues();
+        let newPartnerId = '';
+        let newDomain = '';
+        let newPublication = '';
+
         if (websiteUrl) {
             try {
                 const urlObject = new URL(websiteUrl);
-                const domain = urlObject.hostname;
-                const partnerId = domain.replace(/^www\./, '').split('.')[0];
-                setValue('domain', domain, { shouldValidate: true });
-                setValue('partner_id', partnerId, { shouldValidate: true });
-                setValue('publication', partnerId, { shouldValidate: true });
+                newDomain = urlObject.hostname;
+                newPartnerId = newDomain.replace(/^www\./, '').split('.')[0];
+                newPublication = newPartnerId;
             } catch (e) {
-                resetField('domain');
-                resetField('partner_id');
-                resetField('publication');
+                // If URL is invalid, values will remain empty strings
             }
         }
-    }, [websiteUrl, setValue, resetField]);
+        
+        // Use reset to update the form state based on the new URL prop.
+        // This is safer than multiple setValue calls for derived state.
+        reset({
+            ...currentValues, // Preserve existing values like version, rules, etc.
+            domain: newDomain,
+            partner_id: newPartnerId,
+            publication: newPublication,
+        });
+
+    }, [websiteUrl, reset, getValues]);
     
     useEffect(() => {
         if (selectedPlacement?.selector) {
@@ -122,6 +133,11 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
                     title: "Build Failed",
                     description: result.message,
                     variant: "destructive",
+                });
+            } else {
+                 toast({
+                    title: "Success!",
+                    description: "Pull request created on GitHub.",
                 });
             }
         } catch (error) {
@@ -204,12 +220,12 @@ const MyComponent = () => {
                     
                     <TabsContent value="wordpress">
                         <Form {...form}>
-                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-4">
+                            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 mt-4">
                                 <div className="p-4 border rounded-lg space-y-4">
                                     <h4 className="font-semibold">Partner Details</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                          <FormField
-                                            control={form.control}
+                                            control={control}
                                             name="partner_id"
                                             render={({ field }) => (
                                                 <FormItem>
@@ -222,7 +238,7 @@ const MyComponent = () => {
                                             )}
                                         />
                                          <FormField
-                                            control={form.control}
+                                            control={control}
                                             name="domain"
                                             render={({ field }) => (
                                                 <FormItem>
@@ -235,7 +251,7 @@ const MyComponent = () => {
                                             )}
                                         />
                                          <FormField
-                                            control={form.control}
+                                            control={control}
                                             name="publication"
                                             render={({ field }) => (
                                                 <FormItem>
@@ -248,7 +264,7 @@ const MyComponent = () => {
                                             )}
                                         />
                                          <FormField
-                                            control={form.control}
+                                            control={control}
                                             name="version"
                                             render={({ field }) => (
                                                 <FormItem>
@@ -267,7 +283,7 @@ const MyComponent = () => {
                                      <h4 className="font-semibold">Injection Details</h4>
                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                          <FormField
-                                            control={form.control}
+                                            control={control}
                                             name="injection_context"
                                             render={({ field }) => (
                                                 <FormItem>
@@ -291,7 +307,7 @@ const MyComponent = () => {
                                             )}
                                         />
                                          <FormField
-                                            control={form.control}
+                                            control={control}
                                             name="injection_strategy"
                                             render={({ field }) => (
                                                 <FormItem>
@@ -328,7 +344,7 @@ const MyComponent = () => {
                                             size="sm"
                                             onClick={() => append({ target_selector: '', insert_position: 'after_element', exclude_slugs: '' })}
                                         >
-                                            <PlusCircle className="mr-2" />
+                                            <PlusCircle className="mr-2 h-4 w-4" />
                                             Add Rule
                                         </Button>
                                     </div>
@@ -346,13 +362,13 @@ const MyComponent = () => {
                                     {fields.map((field, index) => (
                                         <div key={field.id} className="p-3 bg-muted/50 rounded-md border space-y-3 relative">
                                             <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => remove(index)}>
-                                                <Trash2 className="text-destructive"/>
+                                                <Trash2 className="text-destructive h-4 w-4"/>
                                                 <span className="sr-only">Remove Rule</span>
                                             </Button>
 
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                  <FormField
-                                                    control={form.control}
+                                                    control={control}
                                                     name={`injection_rules.${index}.target_selector`}
                                                     render={({ field }) => (
                                                         <FormItem>
@@ -365,7 +381,7 @@ const MyComponent = () => {
                                                     )}
                                                     />
                                                 <FormField
-                                                    control={form.control}
+                                                    control={control}
                                                     name={`injection_rules.${index}.insert_position`}
                                                     render={({ field }) => (
                                                         <FormItem>
@@ -380,6 +396,7 @@ const MyComponent = () => {
                                                                     <SelectItem value="before_element">Before Element</SelectItem>
                                                                     <SelectItem value="after_element">After Element</SelectItem>
                                                                     <SelectItem value="inside_first_child">Inside (First Child)</SelectItem>
+                                                                    <SelectItem value="inside_last_child">Inside (Last Child)</SelectItem>
                                                                 </SelectContent>
                                                             </Select>
                                                             <FormMessage />
@@ -388,7 +405,7 @@ const MyComponent = () => {
                                                 />
                                             </div>
                                              <FormField
-                                                control={form.control}
+                                                control={control}
                                                 name={`injection_rules.${index}.exclude_slugs`}
                                                 render={({ field }) => (
                                                     <FormItem>
@@ -407,7 +424,7 @@ const MyComponent = () => {
                                 <div className="flex flex-col gap-4">
                                     <div className="flex justify-end">
                                         <Button type="submit" disabled={isBuilding}>
-                                            {isBuilding ? <Loader2 className="mr-2 animate-spin" /> : <Wand2 className="mr-2" />}
+                                            {isBuilding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
                                             {isBuilding ? 'Generating...' : 'Generate Plugin PR'}
                                         </Button>
                                     </div>
