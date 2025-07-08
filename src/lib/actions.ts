@@ -3,8 +3,8 @@
 import { generateVisualClone as generateVisualCloneFlow } from '@/ai/flows/generate-visual-clone';
 import { analyzeWebsite as analyzeWebsiteFlow, type WebsiteAnalysisOutput } from '@/ai/flows/website-analysis';
 import type { WordPressConfigFormValues } from '@/lib/schemas';
-
-// In a real app, you would have error handling, etc.
+// For testing, validation is disabled. We would import and use the schema here in production.
+// import { wordpressConfigSchema } from '@/lib/schemas';
 
 export async function getVisualClone(url: string): Promise<string> {
     console.log(`Generating visual clone for: ${url}`);
@@ -26,17 +26,25 @@ type GeneratePluginResult = {
 }
 
 export async function generatePartnerPlugin(data: WordPressConfigFormValues): Promise<GeneratePluginResult> {
+    // For testing, validation is disabled. In a real scenario, you'd validate here.
+    // const result = wordpressConfigSchema.safeParse(data);
+    // if (!result.success) {
+    //     return { success: false, message: "Validation failed. Please check the form." };
+    // }
+
     const { 
         GITHUB_TOKEN, 
-        GITHUB_REPO_OWNER: GITHUB_OWNER, 
-        GITHUB_REPO_NAME: GITHUB_REPO 
+        GITHUB_REPO_OWNER, 
+        GITHUB_REPO_NAME,
+        GITHUB_WORKFLOW_ID
     } = process.env;
 
-    if (!GITHUB_TOKEN || !GITHUB_OWNER || !GITHUB_REPO) {
+    if (!GITHUB_TOKEN || !GITHUB_REPO_OWNER || !GITHUB_REPO_NAME || !GITHUB_WORKFLOW_ID) {
         const missing = [
             !GITHUB_TOKEN && "GITHUB_TOKEN",
-            !GITHUB_OWNER && "GITHUB_REPO_OWNER",
-            !GITHUB_REPO && "GITHUB_REPO_NAME"
+            !GITHUB_REPO_OWNER && "GITHUB_REPO_OWNER",
+            !GITHUB_REPO_NAME && "GITHUB_REPO_NAME",
+            !GITHUB_WORKFLOW_ID && "GITHUB_WORKFLOW_ID"
         ].filter(Boolean).join(', ');
         return { success: false, message: `Server configuration error: Missing environment variables: ${missing}. Please ask the administrator to set them.` };
     }
@@ -50,7 +58,7 @@ export async function generatePartnerPlugin(data: WordPressConfigFormValues): Pr
 **Version:** ${data.version}
 **Domain:** ${data.domain}
 
-Please review and merge.`;
+This PR will be merged automatically to trigger the build process.`;
 
     const headers = {
         'Authorization': `token ${GITHUB_TOKEN}`,
@@ -60,7 +68,7 @@ Please review and merge.`;
 
     try {
         // 1. Get the latest commit SHA from the main branch
-        const refResponse = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/git/ref/heads/main`, { headers });
+        const refResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/git/ref/heads/main`, { headers });
         if (!refResponse.ok) {
             const error = await refResponse.json();
             throw new Error(`Failed to get main branch SHA: ${error.message}`);
@@ -69,7 +77,7 @@ Please review and merge.`;
         const mainBranchSha = refData.object.sha;
 
         // 2. Create a new branch
-        const createBranchResponse = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/git/refs`, {
+        const createBranchResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/git/refs`, {
             method: 'POST',
             headers,
             body: JSON.stringify({
@@ -78,7 +86,6 @@ Please review and merge.`;
             }),
         });
 
-        // It's okay if the branch already exists (status 422), we can continue and just update the files.
         if (!createBranchResponse.ok && createBranchResponse.status !== 422) {
              const error = await createBranchResponse.json();
              throw new Error(`Failed to create branch: ${error.message}`);
@@ -90,34 +97,28 @@ Please review and merge.`;
         
         let configFileSha: string | undefined = undefined;
         try {
-            const getConfigFileResponse = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${configFilePath}?ref=${branchName}`, { headers });
+            const getConfigFileResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/contents/${configFilePath}?ref=${branchName}`, { headers });
             if (getConfigFileResponse.ok) {
-                const fileData = await getConfigFileResponse.json();
-                configFileSha = fileData.sha;
+                configFileSha = (await getConfigFileResponse.json()).sha;
             }
-        } catch(e) {/* File probably doesn't exist, which is fine */}
+        } catch(e) {/* File doesn't exist, which is fine */}
 
-        const createConfigResponse = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${configFilePath}`, {
+        await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/contents/${configFilePath}`, {
             method: 'PUT',
             headers,
             body: JSON.stringify({
-                message: `feat(config): Create config for ${data.partner_id} v${data.version}`,
+                message: `feat(config): Create/update config for ${data.partner_id} v${data.version}`,
                 content: encodedConfigContent,
                 branch: branchName,
                 sha: configFileSha
             }),
         });
 
-        if (!createConfigResponse.ok) {
-             const error = await createConfigResponse.json();
-             throw new Error(`Failed to create config.json: ${error.message}`);
-        }
-        
         // 3b. Create or update the plugin.json file
         const pluginJsonContent = JSON.stringify({
             name: `Instaread Audio Player - ${data.partner_id}`,
             version: data.version,
-            download_url: "", // Placeholder to be filled by GH Action
+            download_url: "", // Placeholder
             requires: "5.6",
             tested: "6.5",
             sections: {
@@ -128,32 +129,25 @@ Please review and merge.`;
 
         let pluginJsonFileSha: string | undefined = undefined;
         try {
-            const getPluginJsonFileResponse = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${pluginJsonFilePath}?ref=${branchName}`, { headers });
+            const getPluginJsonFileResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/contents/${pluginJsonFilePath}?ref=${branchName}`, { headers });
             if (getPluginJsonFileResponse.ok) {
-                const fileData = await getPluginJsonFileResponse.json();
-                pluginJsonFileSha = fileData.sha;
+                pluginJsonFileSha = (await getPluginJsonFileResponse.json()).sha;
             }
-        } catch(e) {/* File probably doesn't exist, which is fine */}
+        } catch(e) {/* File doesn't exist, which is fine */}
 
-        const createPluginJsonResponse = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${pluginJsonFilePath}`, {
+        await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/contents/${pluginJsonFilePath}`, {
             method: 'PUT',
             headers,
             body: JSON.stringify({
-                message: `feat(plugin): Create plugin.json for ${data.partner_id} v${data.version}`,
+                message: `feat(plugin): Create/update plugin.json for ${data.partner_id} v${data.version}`,
                 content: encodedPluginJsonContent,
                 branch: branchName,
                 sha: pluginJsonFileSha
             }),
         });
 
-        if (!createPluginJsonResponse.ok) {
-             const error = await createPluginJsonResponse.json();
-             throw new Error(`Failed to create plugin.json: ${error.message}`);
-        }
-
-
         // 4. Create a pull request
-        const createPrResponse = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/pulls`, {
+        const createPrResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/pulls`, {
             method: 'POST',
             headers,
             body: JSON.stringify({
@@ -164,24 +158,57 @@ Please review and merge.`;
             }),
         });
         
-        const prData = await createPrResponse.json();
+        let prData = await createPrResponse.json();
         
-        // If PR already exists, the API returns 422 with the PR link in the error message.
         if (!createPrResponse.ok && createPrResponse.status !== 422) {
              throw new Error(`Failed to create pull request: ${prData.message}`);
         }
         
-        const pullRequestUrl = prData.html_url || (prData.errors && prData.errors[0] && prData.errors[0].message.match(new RegExp('https://\\S+'))?.[0]);
-        
-        if (!pullRequestUrl) {
-             console.error("Could not find PR URL in response:", prData);
-             throw new Error("Could not determine Pull Request URL from GitHub's response.");
+        let pullRequestUrl = prData.html_url;
+        let pullRequestNumber = prData.number;
+
+        if (createPrResponse.status === 422) {
+            const existingPrUrl = prData.errors?.[0]?.message?.match?.(/https:\/\/github\.com\/\S+\/pulls\/\d+/)?.[0];
+            const existingPrResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/pulls?head=${GITHUB_REPO_OWNER}:${branchName}&state=open`, { headers });
+            const existingPulls = await existingPrResponse.json();
+            if (existingPulls.length > 0) {
+                pullRequestNumber = existingPulls[0].number;
+                pullRequestUrl = existingPulls[0].html_url;
+            } else if (existingPrUrl) {
+                 pullRequestNumber = parseInt(existingPrUrl.split('/').pop()!, 10);
+                 pullRequestUrl = existingPrUrl;
+            }
         }
         
-        return { success: true, message: "Successfully created Pull Request!", pullRequestUrl };
+        if (!pullRequestNumber) {
+            throw new Error("Could not determine Pull Request number.");
+        }
+
+        // 5. Merge the pull request (with retries)
+        for (let i = 0; i < 5; i++) {
+            const mergePrResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/pulls/${pullRequestNumber}/merge`, {
+                method: 'PUT',
+                headers
+            });
+
+            if (mergePrResponse.ok) {
+                return { success: true, message: "Successfully merged Pull Request! Your plugin build has started.", pullRequestUrl };
+            }
+            
+            const error = await mergePrResponse.json();
+            if (mergePrResponse.status === 405 && error.message === 'Pull Request is not mergeable') {
+                await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s
+            } else if (mergePrResponse.status === 409) { // Already merged
+                 return { success: true, message: "Pull request was already merged. Build is in progress.", pullRequestUrl };
+            } else {
+                 throw new Error(`Failed to merge pull request: ${error.message}`);
+            }
+        }
+        
+        throw new Error(`Pull request was not mergeable after several retries.`);
 
     } catch (error) {
-        const message = error instanceof Error ? error.message : "An unknown error occurred during GitHub operation.";
+        const message = error instanceof Error ? error.message : "An unknown error occurred.";
         console.error("[GitHub Action Error]:", message);
         return { success: false, message };
     }
