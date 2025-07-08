@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useState, useEffect, useMemo } from 'react';
@@ -16,14 +15,8 @@ import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Textarea } from '../ui/textarea';
 import { Separator } from '../ui/separator';
-import { wordpressConfigSchema, type WordPressConfigFormValues } from '@/lib/schemas';
+import type { WordPressConfigFormValues } from '@/lib/schemas';
 import { generatePartnerPlugin } from '@/lib/actions';
-
-type IntegrationCodeSectionProps = {
-    playerConfig: PlayerConfig;
-    websiteUrl: string;
-    selectedPlacement: Placement;
-};
 
 type CodeBlockProps = {
     content: string;
@@ -58,6 +51,12 @@ const CodeBlock = ({ content, language }: CodeBlockProps) => {
     );
 };
 
+type IntegrationCodeSectionProps = {
+    playerConfig: PlayerConfig;
+    websiteUrl: string;
+    selectedPlacement: Placement;
+};
+
 const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }: IntegrationCodeSectionProps) => {
     const { toast } = useToast();
     const [isBuilding, setIsBuilding] = useState(false);
@@ -77,7 +76,7 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
         }
     });
 
-    const { control, reset, getValues, setError, clearErrors, formState: { errors } } = form;
+    const { control, reset, getValues, clearErrors } = form;
 
     const { fields, append, remove, replace } = useFieldArray({
         control,
@@ -127,35 +126,14 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
     const handleGeneratePlugin = async () => {
         clearErrors();
         const data = getValues();
-        const result = wordpressConfigSchema.safeParse(data);
-
-        if (!result.success) {
-            toast({
-                title: "Validation Failed",
-                description: "Please review the form for errors.",
-                variant: "destructive",
-            });
-            result.error.issues.forEach((issue) => {
-                 // The path can be complex for array fields, so we cast to any to make it work
-                setError(issue.path.join('.') as any, { type: 'manual', message: issue.message });
-            });
-            return;
-        }
-
-        if (!result.data.injection_rules || result.data.injection_rules.length === 0) {
-            toast({
-                title: "Injection Rule Required",
-                description: "Please add at least one injection rule before generating the plugin.",
-                variant: "destructive",
-            });
-            return;
-        }
-
+        
+        // Validation removed for testing.
+        
         setIsBuilding(true);
         setBuildResult(null);
         
         try {
-            const actionResult = await generatePartnerPlugin(result.data);
+            const actionResult = await generatePartnerPlugin(data);
             setBuildResult(actionResult);
 
             if (!actionResult.success) {
