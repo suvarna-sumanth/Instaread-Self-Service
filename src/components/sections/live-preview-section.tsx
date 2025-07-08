@@ -5,7 +5,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import type { PlayerConfig, Placement } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from '@/components/ui/skeleton';
-import { Loader2, Info, Pointer, MousePointerClick } from 'lucide-react';
+import { Loader2, Info, Pointer, MousePointerClick, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from '../ui/button';
@@ -20,10 +20,12 @@ type LivePreviewSectionProps = {
   selectedPlacement: Placement;
   onSelectPlacement: (placement: Placement) => void;
   playerConfig: PlayerConfig;
+  onSaveDemo: () => void;
+  isSaving: boolean;
 };
 
 const LivePreviewSection = (props: LivePreviewSectionProps) => {
-  const { url, cloneHtml, isLoading, statusText, selectedPlacement, onSelectPlacement, playerConfig } = props;
+  const { url, cloneHtml, isLoading, statusText, selectedPlacement, onSelectPlacement, playerConfig, onSaveDemo, isSaving } = props;
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [stagedPlacement, setStagedPlacement] = useState<{ selector: string } | null>(null);
   const [effectiveHtml, setEffectiveHtml] = useState<string | null>(null);
@@ -89,7 +91,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       const parser = new DOMParser();
       const doc = parser.parseFromString(cloneHtml, 'text/html');
 
-      // Explicitly remove the unwanted widget, as requested.
+      // Explicitly remove the unwanted widget.
       const unwantedWidget = doc.getElementById('elevenlabs-audionative-widget');
       if (unwantedWidget) {
         unwantedWidget.remove();
@@ -302,13 +304,17 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
         <CardHeader>
           <div className="flex justify-between items-start">
               <div>
-                  <CardTitle className="font-headline text-2xl">Live Preview & Placement</CardTitle>
+                  <CardTitle className="font-headline text-2xl">Live Preview &amp; Placement</CardTitle>
                   <CardDescription className="flex items-center gap-2">
                     <MousePointerClick className="h-4 w-4" /> Click an element in the preview to place the player. Resize your browser to test responsiveness.
                   </CardDescription>
               </div>
               <div className="flex items-center gap-4">
                 {selectedPlacement && <Button variant="outline" size="sm" onClick={handleClearPlacement}><Pointer className="mr-2 h-4 w-4"/>Clear Placement</Button>}
+                <Button onClick={onSaveDemo} disabled={!url || !selectedPlacement || isSaving}>
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    Save &amp; Share
+                </Button>
               </div>
           </div>
         </CardHeader>

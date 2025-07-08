@@ -8,8 +8,12 @@ import WebsiteAnalysisSection from '@/components/sections/website-analysis-secti
 import PlayerConfigSection from '@/components/sections/player-config-section';
 import IntegrationCodeSection from '@/components/sections/integration-code-section';
 import LivePreviewSection from '@/components/sections/live-preview-section';
-import { getVisualClone, analyzeWebsite } from '@/lib/actions';
+import { getVisualClone, analyzeWebsite, saveDemo } from '@/lib/actions';
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Copy, Link as LinkIcon } from 'lucide-react';
 
 export default function DemoGenerator() {
   const { toast } = useToast();
@@ -23,6 +27,9 @@ export default function DemoGenerator() {
   const [isLoading, setIsLoading] = useState(false);
   const [statusText, setStatusText] = useState('');
   const [selectedPlacement, setSelectedPlacement] = useState<Placement>(null);
+
+  const [shareableLink, setShareableLink] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleAnalyze = async (newUrl: string) => {
     if (!newUrl) {
@@ -76,7 +83,66 @@ export default function DemoGenerator() {
     setSelectedPlacement(placement);
   };
 
+  const handleSaveDemo = async () => {
+    if (!url || !selectedPlacement) {
+        toast({
+            title: "Configuration Incomplete",
+            description: "Please analyze a URL and select a placement for the player before saving.",
+            variant: "destructive",
+        });
+        return;
+    }
+    setIsSaving(true);
+    try {
+        const result = await saveDemo(url, playerConfig, selectedPlacement);
+        if (result.success && result.demoId) {
+            const link = `${window.location.origin}/demo/${result.demoId}`;
+            setShareableLink(link);
+        } else {
+             toast({
+                title: "Save Failed",
+                description: result.message,
+                variant: "destructive",
+            });
+        }
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "An unexpected error occurred.";
+        toast({
+            title: "Save Failed",
+            description: message,
+            variant: "destructive",
+        });
+    } finally {
+        setIsSaving(false);
+    }
+  };
+
+  const copyLinkToClipboard = () => {
+    if (shareableLink) {
+        navigator.clipboard.writeText(shareableLink);
+        toast({ title: "Link copied to clipboard!" });
+    }
+  }
+
   return (
+    <>
+    <Dialog open={!!shareableLink} onOpenChange={() => setShareableLink(null)}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle className="flex items-center gap-2"><LinkIcon /> Shareable Demo Link</DialogTitle>
+                <DialogDescription>
+                    Anyone with this link can view the generated demo.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="flex items-center space-x-2">
+                <Input value={shareableLink || ''} readOnly />
+                <Button type="button" size="icon" onClick={copyLinkToClipboard}>
+                    <Copy className="h-4 w-4" />
+                </Button>
+            </div>
+        </DialogContent>
+    </Dialog>
+
     <div className="min-h-screen bg-background text-foreground">
       <Header />
       <div className="flex flex-col gap-8 p-4 md:p-8">
@@ -112,9 +178,12 @@ export default function DemoGenerator() {
             selectedPlacement={selectedPlacement}
             onSelectPlacement={handlePlacementSelect}
             playerConfig={playerConfig}
+            onSaveDemo={handleSaveDemo}
+            isSaving={isSaving}
           />
         </main>
       </div>
     </div>
+    </>
   );
 }

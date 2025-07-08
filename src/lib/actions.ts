@@ -3,7 +3,9 @@
 
 import { generateVisualClone as generateVisualCloneFlow } from '@/ai/flows/generate-visual-clone';
 import { analyzeWebsite as analyzeWebsiteFlow, type WebsiteAnalysisOutput } from '@/ai/flows/website-analysis';
+import { createDemo } from '@/services/demo-service';
 import type { WordPressConfigFormValues } from '@/lib/schemas';
+import type { DemoConfig, Placement, PlayerConfig } from '@/types';
 
 export async function getVisualClone(url: string): Promise<string> {
     console.log(`Generating visual clone for: ${url}`);
@@ -16,6 +18,36 @@ export async function analyzeWebsite(url: string): Promise<WebsiteAnalysisOutput
     const result = await analyzeWebsiteFlow({ url });
     return result;
 }
+
+type SaveDemoResult = {
+    success: boolean;
+    message: string;
+    demoId?: string;
+}
+
+export async function saveDemo(
+    websiteUrl: string,
+    playerConfig: PlayerConfig,
+    placement: NonNullable<Placement>
+): Promise<SaveDemoResult> {
+    try {
+        if (!websiteUrl || !playerConfig || !placement) {
+            return { success: false, message: 'Missing required information to save demo.' };
+        }
+        const demoData: Omit<DemoConfig, 'id' | 'createdAt'> = {
+            websiteUrl,
+            playerConfig,
+            placement,
+        };
+        const demoId = await createDemo(demoData as Omit<DemoConfig, 'id'>);
+        return { success: true, message: "Demo saved successfully!", demoId };
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "An unknown error occurred.";
+        console.error("[SaveDemo Action Error]:", message);
+        return { success: false, message };
+    }
+}
+
 
 type GeneratePluginResult = {
     success: boolean;
