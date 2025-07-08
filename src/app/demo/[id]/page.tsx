@@ -53,9 +53,14 @@ async function generateDemoHtml(id: string): Promise<string> {
 
     if (playerConfig.playerType === 'newdesign' || playerConfig.playerType === 'shortdesign') {
         styleContent += `
-            @media (max-width: 1346px) {
+            @media (max-width: 1199px) {
                 .instaread-audio-player {
                     height: 224px !important;
+                }
+            }
+            @media (min-width: 1200px) {
+                .instaread-audio-player {
+                    height: 144px !important;
                 }
             }
         `;
