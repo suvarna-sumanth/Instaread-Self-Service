@@ -19,7 +19,7 @@ export async function analyzeWebsite(url: string): Promise<WebsiteAnalysisOutput
 }
 
 export async function getWordPressConfig(input: WordPressConfigInput): Promise<WordPressConfigOutput> {
-    console.log(`Generating WordPress config for: ${input.websiteUrl}`);
+    console.log(`Generating WordPress partner config for: ${input.websiteUrl}`);
     const result = await suggestWordPressConfigFlow(input);
     return result;
 }

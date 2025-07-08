@@ -2,12 +2,12 @@
 'use client'
 
 import { useState } from 'react';
-import type { PlayerConfig } from '@/types';
+import type { PlayerConfig, Placement } from '@/types';
 import type { WordPressConfigOutput } from '@/ai/flows/suggest-wordpress-config';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
-import { Clipboard, Check, Wand2, Loader2 } from 'lucide-react';
+import { Clipboard, Check, Wand2, Loader2, AlertTriangle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { PLAYER_SCRIPT_URL } from '@/lib/constants';
 import { getWordPressConfig } from '@/lib/actions';
@@ -16,6 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 type IntegrationCodeSectionProps = {
     playerConfig: PlayerConfig;
     websiteUrl: string;
+    selectedPlacement: Placement;
 };
 
 const CodeBlock = ({ content, language }: { content: string, language: string }) => {
@@ -46,9 +47,8 @@ const CodeBlock = ({ content, language }: { content: string, language: string })
     )
 }
 
-const IntegrationCodeSection = ({ playerConfig, websiteUrl }: IntegrationCodeSectionProps) => {
+const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }: IntegrationCodeSectionProps) => {
     const { toast } = useToast();
-    const [copied, setCopied] = useState('');
     const [wpConfig, setWpConfig] = useState<WordPressConfigOutput | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     
@@ -104,20 +104,22 @@ const MyComponent = () => {
 };`
     };
 
-    const handleCopy = (content: string, type: string) => {
-        navigator.clipboard.writeText(content);
-        setCopied(type);
-        toast({ title: "Copied to clipboard!" });
-        setTimeout(() => setCopied(''), 2000);
-    };
-
     const handleGenerateWpConfig = async () => {
+        if (!selectedPlacement) {
+            toast({
+                title: "Placement Required",
+                description: "Please click an element in the live preview before generating the WordPress config.",
+                variant: "destructive",
+            });
+            return;
+        }
+
         setIsLoading(true);
         setWpConfig(null);
         try {
-            const result = await getWordPressConfig({ playerConfig, websiteUrl });
+            const result = await getWordPressConfig({ playerConfig, websiteUrl, placement: selectedPlacement });
             setWpConfig(result);
-            toast({ title: "WordPress Configuration Generated" });
+            toast({ title: "WordPress Partner Configuration Generated" });
         } catch (error) {
             console.error("Failed to generate WordPress config:", error);
             const description = error instanceof Error ? error.message : "An unexpected error occurred.";
@@ -135,7 +137,7 @@ const MyComponent = () => {
         <Card className="shadow-md">
             <CardHeader>
                 <CardTitle className="font-headline text-2xl">3. Get Integration Code</CardTitle>
-                <CardDescription>Copy a code snippet or generate a full WordPress deployment solution.</CardDescription>
+                <CardDescription>Copy a code snippet or generate a full WordPress partner plugin solution.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Tabs defaultValue="html" className="w-full">
@@ -154,11 +156,20 @@ const MyComponent = () => {
                     </TabsContent>
                     
                     <TabsContent value="wordpress">
+                        {!selectedPlacement && (
+                            <Alert variant="destructive" className="mt-4">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertTitle>Placement Required</AlertTitle>
+                                <AlertDescription>
+                                    Please click an element in the live preview to select where the player should be placed. This is required to generate the WordPress configuration.
+                                </AlertDescription>
+                            </Alert>
+                        )}
                         <div className="text-center mt-4 p-4 border rounded-lg bg-muted/50">
                             <Wand2 className="mx-auto h-8 w-8 text-primary mb-2"/>
-                            <h4 className="font-semibold">Advanced WordPress Generator</h4>
-                            <p className="text-sm text-muted-foreground mb-4">Generate a plugin, deployment workflow, and instructions with one click.</p>
-                            <Button onClick={handleGenerateWpConfig} disabled={isLoading}>
+                            <h4 className="font-semibold">Advanced Partner Plugin Generator</h4>
+                            <p className="text-sm text-muted-foreground mb-4">Generate a partner-specific configuration, updater JSON, and a GitHub Actions workflow.</p>
+                            <Button onClick={handleGenerateWpConfig} disabled={isLoading || !selectedPlacement}>
                                 {isLoading ? (
                                     <>
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -173,20 +184,25 @@ const MyComponent = () => {
                         {wpConfig && (
                             <div className="mt-6 space-y-6 animate-in fade-in duration-500">
                                 <div>
-                                    <h4 className="font-semibold text-lg">Deployment Instructions</h4>
+                                    <h4 className="font-semibold text-lg">Setup Instructions</h4>
                                     <Alert className="mt-2">
-                                        <AlertDescription className="whitespace-pre-wrap">{wpConfig.instructions}</AlertDescription>
+                                        <AlertDescription className="whitespace-pre-wrap text-xs">{wpConfig.instructions}</AlertDescription>
                                     </Alert>
                                 </div>
-                                <div>
-                                    <h4 className="font-semibold text-lg">WordPress Plugin Code</h4>
-                                    <p className="text-sm text-muted-foreground">Save as <code className="bg-muted px-1 py-0.5 rounded-sm">instaread-plugin/instaread-plugin.php</code></p>
-                                    <CodeBlock content={wpConfig.pluginCode} language="php" />
+                                 <div>
+                                    <h4 className="font-semibold text-lg">GitHub Actions Workflow</h4>
+                                     <p className="text-sm text-muted-foreground">Save as <code className="bg-muted px-1 py-0.5 rounded-sm">.github/workflows/partner-builds.yml</code></p>
+                                    <CodeBlock content={wpConfig.githubActionYaml} language="yaml" />
                                 </div>
                                 <div>
-                                    <h4 className="font-semibold text-lg">GitHub Actions Workflow</h4>
-                                     <p className="text-sm text-muted-foreground">Save as <code className="bg-muted px-1 py-0.5 rounded-sm">.github/workflows/deploy.yml</code></p>
-                                    <CodeBlock content={wpConfig.githubActionYaml} language="yaml" />
+                                    <h4 className="font-semibold text-lg">Partner Config JSON</h4>
+                                    <p className="text-sm text-muted-foreground">Save as <code className="bg-muted px-1 py-0.5 rounded-sm">partners/&lt;partner_id&gt;/config.json</code></p>
+                                    <CodeBlock content={wpConfig.configJson} language="json" />
+                                </div>
+                                <div>
+                                    <h4 className="font-semibold text-lg">Partner Updater JSON</h4>
+                                     <p className="text-sm text-muted-foreground">Save as <code className="bg-muted px-1 py-0.5 rounded-sm">partners/&lt;partner_id&gt;/plugin.json</code></p>
+                                    <CodeBlock content={wpConfig.pluginJson} language="json" />
                                 </div>
                             </div>
                         )}

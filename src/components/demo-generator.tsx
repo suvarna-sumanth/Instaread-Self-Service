@@ -95,7 +95,8 @@ export default function DemoGenerator() {
           />
           <IntegrationCodeSection 
             playerConfig={playerConfig} 
-            websiteUrl={url} 
+            websiteUrl={url}
+            selectedPlacement={selectedPlacement}
           />
         </aside>
         <main className="lg:w-3/5 xl:w-2/3">
