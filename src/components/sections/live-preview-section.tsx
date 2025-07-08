@@ -4,14 +4,24 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { PlayerConfig, Placement } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from '@/components/ui/skeleton';
-import { Monitor, Smartphone, Loader2, Info, Pointer, MousePointerClick } from 'lucide-react';
+import { Loader2, Info, Pointer, MousePointerClick } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from '../ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 import { PLAYER_SCRIPT_URL } from '@/lib/constants';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+
+// Define device presets
+const devices = [
+  { name: 'Desktop', width: '100%', height: '100%' },
+  { name: 'iPad Air', width: '820px', height: '1180px' },
+  { name: 'iPhone 14 Pro', width: '393px', height: '852px' },
+  { name: 'Pixel 7', width: '412px', height: '915px' },
+];
+type Device = typeof devices[0];
+
 
 type LivePreviewSectionProps = {
   url: string;
@@ -64,7 +74,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   const { url, cloneHtml, isLoading, statusText, selectedPlacement, onSelectPlacement, playerConfig } = props;
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [stagedPlacement, setStagedPlacement] = useState<{ selector: string } | null>(null);
-  const [view, setView] = useState<'desktop' | 'mobile'>('desktop');
+  const [selectedDevice, setSelectedDevice] = useState<Device>(devices[0]);
   const [effectiveHtml, setEffectiveHtml] = useState<string | null>(null);
   
   const handleIframeLoad = () => {
@@ -129,6 +139,20 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     try {
       const parser = new DOMParser();
       const doc = parser.parseFromString(cloneHtml, 'text/html');
+
+      // Inject CSS to fade in the player, hiding the initial loading text.
+      const styleElement = doc.createElement('style');
+      styleElement.textContent = `
+        #instaread-player-instance {
+          opacity: 0;
+          animation: fadeInPlayer 0.3s ease-in 0.5s forwards;
+        }
+        @keyframes fadeInPlayer {
+          to { opacity: 1; }
+        }
+      `;
+      doc.head.appendChild(styleElement);
+
 
       // Directly add the script tag. This will require the server at
       // PLAYER_SCRIPT_URL to have CORS configured to allow requests
@@ -242,12 +266,19 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     )
   }
 
-  const isMobile = view === 'mobile';
+  const isMobileOrTablet = selectedDevice.name !== 'Desktop';
   const previewContainerClasses = cn(
-    "bg-white rounded-lg overflow-hidden w-full relative", 
-    isMobile ? "h-[640px] w-[360px] shadow-2xl border-[10px] border-black rounded-[40px]" : "h-full shadow-lg",
-    "transition-all duration-300"
+    "bg-white rounded-lg overflow-hidden w-full relative transition-all duration-300", 
+    isMobileOrTablet ? "shadow-2xl border-[10px] border-black rounded-[40px]" : "h-full shadow-lg"
   );
+  
+  const previewContainerStyles: React.CSSProperties = isMobileOrTablet ? {
+    width: selectedDevice.width,
+    height: selectedDevice.height
+  } : {
+    width: '100%',
+    height: '100%'
+  };
 
 
   return (
@@ -283,24 +314,35 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                      <MousePointerClick className="h-4 w-4" /> Click an element in the preview to place the player.
                   </CardDescription>
               </div>
-              {selectedPlacement && <Button variant="outline" size="sm" onClick={handleClearPlacement}><Pointer className="mr-2 h-4 w-4"/>Clear Placement</Button>}
+               <div className="flex items-center gap-4">
+                {selectedPlacement && <Button variant="outline" size="sm" onClick={handleClearPlacement}><Pointer className="mr-2 h-4 w-4"/>Clear Placement</Button>}
+                 <Select value={selectedDevice.name} onValueChange={(deviceName) => {
+                  const device = devices.find(d => d.name === deviceName);
+                  if (device) setSelectedDevice(device);
+                }}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select device" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {devices.map(device => (
+                      <SelectItem key={device.name} value={device.name}>
+                        {device.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
           </div>
         </CardHeader>
         <CardContent className="flex flex-col flex-grow p-6 pt-0">
-          <Tabs defaultValue="desktop" className="w-full flex flex-col flex-grow" onValueChange={(v) => setView(v as 'desktop' | 'mobile')}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="desktop"><Monitor className="mr-2 h-4 w-4"/>Desktop</TabsTrigger>
-              <TabsTrigger value="mobile"><Smartphone className="mr-2 h-4 w-4"/>Mobile</TabsTrigger>
-            </TabsList>
-            <div className={cn(
+          <div className={cn(
               "bg-muted/50 rounded-lg p-4 mt-4 flex-grow",
-              view === 'mobile' && "flex items-center justify-center"
+              isMobileOrTablet && "flex items-center justify-center"
             )}>
-              <div className={previewContainerClasses}>
+              <div className={previewContainerClasses} style={previewContainerStyles}>
                 {renderPreviewContent()}
               </div>
             </div>
-          </Tabs>
         </CardContent>
       </Card>
     </>
