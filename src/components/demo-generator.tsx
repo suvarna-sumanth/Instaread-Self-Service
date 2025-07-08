@@ -79,8 +79,8 @@ export default function DemoGenerator() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
-      <div className="flex flex-col lg:flex-row gap-8 p-4 md:p-8">
-        <aside className="lg:w-2/5 xl:w-1/3 flex flex-col gap-8">
+      <div className="flex flex-col gap-8 p-4 md:p-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <WebsiteAnalysisSection 
             url={url}
             onAnalyze={handleAnalyze} 
@@ -98,8 +98,8 @@ export default function DemoGenerator() {
             websiteUrl={url}
             selectedPlacement={selectedPlacement}
           />
-        </aside>
-        <main className="lg:w-3/5 xl:w-2/3">
+        </div>
+        <main className="min-h-[80vh]">
           <LivePreviewSection
             url={url}
             cloneHtml={cloneHtml}

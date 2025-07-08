@@ -11,18 +11,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from '../ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 import { PLAYER_SCRIPT_URL } from '@/lib/constants';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-
-// Define device presets
-const devices = [
-  { name: 'Desktop', width: '1280px', height: '800px' },
-  { name: 'Responsive', width: '100%', height: '100%' },
-  { name: 'iPad Air', width: '820px', height: '1180px' },
-  { name: 'iPhone 14 Pro', width: '393px', height: '852px' },
-  { name: 'Pixel 7', width: '412px', height: '915px' },
-];
-type Device = typeof devices[0];
-
 
 type LivePreviewSectionProps = {
   url: string;
@@ -75,7 +63,6 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   const { url, cloneHtml, isLoading, statusText, selectedPlacement, onSelectPlacement, playerConfig } = props;
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [stagedPlacement, setStagedPlacement] = useState<{ selector: string } | null>(null);
-  const [selectedDevice, setSelectedDevice] = useState<Device>(devices[0]);
   const [effectiveHtml, setEffectiveHtml] = useState<string | null>(null);
   
   const handleIframeLoad = () => {
@@ -222,13 +209,6 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     }
   };
 
-  const iframeStyles: React.CSSProperties = {
-    width: selectedDevice.width,
-    height: selectedDevice.height,
-  };
-
-  const iframeClasses = cn("bg-white rounded-lg shadow-lg border-0 transition-all duration-300");
-
   const renderPreviewContent = () => {
     if (isLoading) {
       return (
@@ -267,8 +247,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
             key={effectiveHtml} // Force re-render on HTML change
             title="Website Preview"
             srcDoc={effectiveHtml || ''}
-            className={iframeClasses}
-            style={iframeStyles}
+            className="w-full h-full bg-white rounded-lg shadow-lg border-0"
             sandbox="allow-scripts allow-same-origin"
             onLoad={handleIframeLoad}
         />
@@ -303,33 +282,18 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
         <CardHeader>
           <div className="flex justify-between items-start">
               <div>
-                  <CardTitle className="font-headline text-2xl">3. Live Preview & Placement</CardTitle>
+                  <CardTitle className="font-headline text-2xl">Live Preview & Placement</CardTitle>
                   <CardDescription className="flex items-center gap-2">
-                     <MousePointerClick className="h-4 w-4" /> Click an element in the preview to place the player.
+                     <MousePointerClick className="h-4 w-4" /> Click an element in the preview to place the player. Resize browser to test responsiveness.
                   </CardDescription>
               </div>
                <div className="flex items-center gap-4">
                 {selectedPlacement && <Button variant="outline" size="sm" onClick={handleClearPlacement}><Pointer className="mr-2 h-4 w-4"/>Clear Placement</Button>}
-                 <Select value={selectedDevice.name} onValueChange={(deviceName) => {
-                  const device = devices.find(d => d.name === deviceName);
-                  if (device) setSelectedDevice(device);
-                }}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Select device" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {devices.map(device => (
-                      <SelectItem key={device.name} value={device.name}>
-                        {device.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
           </div>
         </CardHeader>
         <CardContent className="flex flex-col flex-grow p-6 pt-0">
-           <div className="bg-muted/50 rounded-lg flex-grow overflow-auto p-4 flex items-start justify-center pt-8">
+           <div className="bg-muted/50 rounded-lg flex-grow overflow-auto p-4 flex items-start justify-center">
               {renderPreviewContent()}
             </div>
         </CardContent>
