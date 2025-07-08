@@ -191,7 +191,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                   lastHovered = target;
                   originalOutline = target.style.outline;
                   if (!target.closest('instaread-player')) {
-                       target.style.outline = '2px dashed #F59E0B'; // accent color
+                       target.style.outline = '2px dashed #FF8C00';
                   }
               }
           });

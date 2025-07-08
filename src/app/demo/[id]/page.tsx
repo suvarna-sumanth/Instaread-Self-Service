@@ -3,8 +3,11 @@ import { notFound } from 'next/navigation';
 import { getDemoById } from '@/services/demo-service';
 import { getVisualClone } from '@/lib/actions';
 import { PLAYER_SCRIPT_URL } from '@/lib/constants';
+import { unstable_noStore as noStore } from 'next/cache';
+
 
 async function generateDemoHtml(id: string): Promise<string> {
+    noStore(); // Opt out of caching for this render
     const demoConfig = await getDemoById(id);
     if (!demoConfig) {
         return '';
@@ -12,7 +15,7 @@ async function generateDemoHtml(id: string): Promise<string> {
 
     const { websiteUrl, playerConfig, placement } = demoConfig;
 
-    const cloneHtml = await getVisualClone(websiteUrl);
+    let cloneHtml = await getVisualClone(websiteUrl);
     if (!cloneHtml || cloneHtml.startsWith('Error')) {
         return `<html><body><h1>Error</h1><p>Could not generate a preview for ${websiteUrl}. The site may be unreachable.</p></body></html>`;
     }
