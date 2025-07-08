@@ -4,13 +4,11 @@
 import { useState, useEffect } from 'react';
 import { useForm, useFieldArray, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-
 import type { PlayerConfig, Placement } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
-import { Clipboard, Check, Wand2, AlertTriangle, PlusCircle, Trash2 } from 'lucide-react';
+import { Clipboard, Check, Wand2, AlertTriangle, PlusCircle, Trash2, Loader2, CheckCircle, ExternalLink } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { PLAYER_SCRIPT_URL } from '@/lib/constants';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
@@ -19,6 +17,8 @@ import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Textarea } from '../ui/textarea';
 import { Separator } from '../ui/separator';
+import { wordpressConfigSchema, type WordPressConfigFormValues } from '@/lib/schemas';
+import { generatePartnerPlugin } from '@/lib/actions';
 
 type IntegrationCodeSectionProps = {
     playerConfig: PlayerConfig;
@@ -54,27 +54,10 @@ const CodeBlock = ({ content, language }: { content: string, language: string })
     )
 }
 
-const injectionRuleSchema = z.object({
-    target_selector: z.string().min(1, "Selector is required"),
-    insert_position: z.enum(['before_element', 'after_element', 'inside_first_child']),
-    exclude_slugs: z.string().optional()
-});
-
-const wordpressConfigSchema = z.object({
-    partner_id: z.string().min(1, "Partner ID is required"),
-    domain: z.string().min(1, "Domain is required"),
-    publication: z.string().min(1, "Publication is required"),
-    version: z.string().min(1, "Version is required, e.g., 1.0.0"),
-    injection_context: z.enum(['singular', 'all', 'archive', 'front_page', 'posts_page']),
-    injection_strategy: z.enum(['first', 'all', 'none', 'custom']),
-    injection_rules: z.array(injectionRuleSchema).min(1, "At least one injection rule is required.")
-});
-
-type WordPressConfigFormValues = z.infer<typeof wordpressConfigSchema>;
-
-
 const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }: IntegrationCodeSectionProps) => {
     const { toast } = useToast();
+    const [isBuilding, setIsBuilding] = useState(false);
+    const [buildResult, setBuildResult] = useState<{success: boolean; message: string; pullRequestUrl?: string;} | null>(null);
     
     const { playerType, color } = playerConfig;
 
@@ -120,26 +103,41 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
                 insert_position: selectedPlacement.position === 'before' ? 'before_element' : 'after_element',
                 exclude_slugs: ""
             };
-            // Replace all existing rules with the new one from the preview
             replace([newRule]);
         } else {
-             // If placement is cleared, clear the rules
              replace([]);
         }
     }, [selectedPlacement, replace]);
 
-    const onSubmit: SubmitHandler<WordPressConfigFormValues> = (data) => {
-        console.log("Phase 1: WordPress Config Form Submitted", data);
-        toast({
-            title: "Phase 1 Complete!",
-            description: "Form data has been logged to the console. GitHub integration will be implemented in Phase 2.",
-        });
-        // Phase 2 will involve calling a server action here to interact with GitHub API
+    const onSubmit: SubmitHandler<WordPressConfigFormValues> = async (data) => {
+        setIsBuilding(true);
+        setBuildResult(null);
+        try {
+            const result = await generatePartnerPlugin(data);
+            setBuildResult(result);
+            if (!result.success) {
+                 toast({
+                    title: "Build Failed",
+                    description: result.message,
+                    variant: "destructive",
+                });
+            }
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "An unexpected client-side error occurred."
+            setBuildResult({ success: false, message });
+             toast({
+                title: "Build Failed",
+                description: message,
+                variant: "destructive",
+            });
+        } finally {
+            setIsBuilding(false);
+        }
     };
 
-    const publication = process.env.NODE_ENV === 'production' && websiteUrl ? (
-        new URL(websiteUrl).hostname.replace(/^www\./, '').split('.')[0] || 'xyz'
-    ) : 'xyz';
+    const publication = process.env.NODE_ENV === 'development' ? 'xyz' : (
+        websiteUrl ? new URL(websiteUrl).hostname.replace(/^www\./, '').split('.')[0] || 'xyz' : 'xyz'
+    );
 
     const codeSnippets = {
         html: `<script type="module" crossorigin src="${PLAYER_SCRIPT_URL}"></script>
@@ -404,11 +402,28 @@ const MyComponent = () => {
                                     ))}
                                 </div>
                                 <Separator />
-                                <div className="flex justify-end">
-                                     <Button type="submit">
-                                        <Wand2 className="mr-2" />
-                                        Generate Plugin Files
-                                    </Button>
+                                <div className="flex flex-col gap-4">
+                                    <div className="flex justify-end">
+                                        <Button type="submit" disabled={isBuilding}>
+                                            {isBuilding ? <Loader2 className="mr-2 animate-spin" /> : <Wand2 className="mr-2" />}
+                                            {isBuilding ? 'Generating...' : 'Generate Plugin PR'}
+                                        </Button>
+                                    </div>
+                                    
+                                    {buildResult && (
+                                        <Alert variant={buildResult.success ? "default" : "destructive"}>
+                                            {buildResult.success ? <CheckCircle className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                                            <AlertTitle>{buildResult.success ? "Success" : "Error"}</AlertTitle>
+                                            <AlertDescription>
+                                                {buildResult.message}
+                                                {buildResult.success && buildResult.pullRequestUrl && (
+                                                    <a href={buildResult.pullRequestUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-bold underline mt-2">
+                                                        View Pull Request <ExternalLink className="h-3 w-3" />
+                                                    </a>
+                                                )}
+                                            </AlertDescription>
+                                        </Alert>
+                                    )}
                                 </div>
                             </form>
                         </Form>
