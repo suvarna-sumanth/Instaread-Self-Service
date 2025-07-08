@@ -88,6 +88,12 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     try {
       const parser = new DOMParser();
       const doc = parser.parseFromString(cloneHtml, 'text/html');
+
+      // Explicitly remove the unwanted widget, as requested.
+      const unwantedWidget = doc.getElementById('elevenlabs-audionative-widget');
+      if (unwantedWidget) {
+        unwantedWidget.remove();
+      }
       
       const { playerType, color } = playerConfig;
 
