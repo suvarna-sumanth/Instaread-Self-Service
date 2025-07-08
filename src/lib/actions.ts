@@ -115,10 +115,11 @@ This PR will be merged automatically to trigger the build process.`;
         });
 
         // 3b. Create or update the plugin.json file
+        const downloadUrl = `https://github.com/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/releases/download/${data.partner_id}-v${data.version}/${data.partner_id}-v${data.version}.zip`;
         const pluginJsonContent = JSON.stringify({
             name: `Instaread Audio Player - ${data.partner_id}`,
             version: data.version,
-            download_url: "", // Placeholder
+            download_url: downloadUrl,
             requires: "5.6",
             tested: "6.5",
             sections: {
@@ -185,6 +186,7 @@ This PR will be merged automatically to trigger the build process.`;
         }
 
         // 5. Merge the pull request (with retries)
+        let mergeSucceeded = false;
         for (let i = 0; i < 5; i++) {
             const mergePrResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/pulls/${pullRequestNumber}/merge`, {
                 method: 'PUT',
@@ -192,20 +194,42 @@ This PR will be merged automatically to trigger the build process.`;
             });
 
             if (mergePrResponse.ok) {
-                return { success: true, message: "Successfully merged Pull Request! Your plugin build has started.", pullRequestUrl };
+                mergeSucceeded = true;
+                break;
             }
             
             const error = await mergePrResponse.json();
             if (mergePrResponse.status === 405 && error.message === 'Pull Request is not mergeable') {
                 await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s
             } else if (mergePrResponse.status === 409) { // Already merged
-                 return { success: true, message: "Pull request was already merged. Build is in progress.", pullRequestUrl };
+                 mergeSucceeded = true;
+                 break;
             } else {
                  throw new Error(`Failed to merge pull request: ${error.message}`);
             }
         }
         
-        throw new Error(`Pull request was not mergeable after several retries.`);
+        if (!mergeSucceeded) {
+            throw new Error(`Pull request was not mergeable after several retries.`);
+        }
+
+        // 6. Explicitly trigger the workflow dispatch
+        const dispatchResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/actions/workflows/${GITHUB_WORKFLOW_ID}/dispatches`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+                ref: 'main'
+            }),
+        });
+
+        if (!dispatchResponse.ok) {
+            const error = await dispatchResponse.json();
+            // Don't throw, just warn, as the merge might have triggered it anyway
+            console.warn(`Could not manually trigger workflow (Status: ${dispatchResponse.status}): ${error.message}`);
+            return { success: true, message: "Successfully merged Pull Request! The plugin build should start automatically.", pullRequestUrl };
+        }
+
+        return { success: true, message: "Successfully merged Pull Request and triggered build workflow!", pullRequestUrl };
 
     } catch (error) {
         const message = error instanceof Error ? error.message : "An unknown error occurred.";
