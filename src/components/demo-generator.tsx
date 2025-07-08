@@ -80,24 +80,28 @@ export default function DemoGenerator() {
     <div className="min-h-screen bg-background text-foreground">
       <Header />
       <div className="flex flex-col gap-8 p-4 md:p-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <WebsiteAnalysisSection 
-            url={url}
-            onAnalyze={handleAnalyze} 
-            analysis={analysis} 
-            isLoading={isLoading} 
-            statusText={statusText}
-          />
-          <PlayerConfigSection 
-            config={playerConfig} 
-            setConfig={setPlayerConfig} 
-            analysis={analysis}
-          />
-          <IntegrationCodeSection 
-            playerConfig={playerConfig} 
-            websiteUrl={url}
-            selectedPlacement={selectedPlacement}
-          />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+           <div className="lg:col-span-1">
+             <WebsiteAnalysisSection 
+                url={url}
+                onAnalyze={handleAnalyze} 
+                analysis={analysis} 
+                isLoading={isLoading} 
+                statusText={statusText}
+              />
+          </div>
+          <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
+            <PlayerConfigSection 
+              config={playerConfig} 
+              setConfig={setPlayerConfig} 
+              analysis={analysis}
+            />
+            <IntegrationCodeSection 
+              playerConfig={playerConfig} 
+              websiteUrl={url}
+              selectedPlacement={selectedPlacement}
+            />
+          </div>
         </div>
         <main className="min-h-[80vh]">
           <LivePreviewSection
