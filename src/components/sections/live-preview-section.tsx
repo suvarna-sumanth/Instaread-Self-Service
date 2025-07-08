@@ -222,6 +222,13 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     }
   };
 
+  const iframeStyles: React.CSSProperties = {
+    width: selectedDevice.width,
+    height: selectedDevice.height,
+  };
+
+  const iframeClasses = cn("bg-white rounded-lg shadow-lg border-0 transition-all duration-300");
+
   const renderPreviewContent = () => {
     if (isLoading) {
       return (
@@ -260,25 +267,13 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
             key={effectiveHtml} // Force re-render on HTML change
             title="Website Preview"
             srcDoc={effectiveHtml || ''}
-            className="w-full h-full border-0"
+            className={iframeClasses}
+            style={iframeStyles}
             sandbox="allow-scripts allow-same-origin"
             onLoad={handleIframeLoad}
         />
     )
   }
-
-  const hasDeviceFrame = selectedDevice.name.includes('iPhone') || selectedDevice.name.includes('Pixel') || selectedDevice.name.includes('iPad');
-
-  const previewContainerClasses = cn(
-    "bg-white rounded-lg overflow-hidden relative transition-all duration-300 flex-shrink-0", 
-    hasDeviceFrame ? "shadow-2xl border-[10px] border-black rounded-[40px]" : "shadow-lg"
-  );
-  
-  const previewContainerStyles: React.CSSProperties = {
-    width: selectedDevice.width,
-    height: selectedDevice.height,
-  };
-
 
   return (
     <>
@@ -334,13 +329,8 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
           </div>
         </CardHeader>
         <CardContent className="flex flex-col flex-grow p-6 pt-0">
-          <div className={cn(
-              "bg-muted/50 rounded-lg flex-grow overflow-auto p-4",
-              "flex items-start justify-center pt-8"
-            )}>
-              <div className={previewContainerClasses} style={previewContainerStyles}>
-                {renderPreviewContent()}
-              </div>
+           <div className="bg-muted/50 rounded-lg flex-grow overflow-auto p-4 flex items-start justify-center pt-8">
+              {renderPreviewContent()}
             </div>
         </CardContent>
       </Card>
