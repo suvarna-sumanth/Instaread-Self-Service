@@ -15,7 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 
 // Define device presets
 const devices = [
-  { name: 'Desktop', width: '100%', height: '100%' },
+  { name: 'Desktop', width: '1280px', height: '800px' },
+  { name: 'Responsive', width: '100%', height: '100%' },
   { name: 'iPad Air', width: '820px', height: '1180px' },
   { name: 'iPhone 14 Pro', width: '393px', height: '852px' },
   { name: 'Pixel 7', width: '412px', height: '915px' },
@@ -266,18 +267,16 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     )
   }
 
-  const isMobileOrTablet = selectedDevice.name !== 'Desktop';
+  const hasDeviceFrame = selectedDevice.name.includes('iPhone') || selectedDevice.name.includes('Pixel') || selectedDevice.name.includes('iPad');
+
   const previewContainerClasses = cn(
-    "bg-white rounded-lg overflow-hidden w-full relative transition-all duration-300", 
-    isMobileOrTablet ? "shadow-2xl border-[10px] border-black rounded-[40px]" : "h-full shadow-lg"
+    "bg-white rounded-lg overflow-hidden relative transition-all duration-300 flex-shrink-0", 
+    hasDeviceFrame ? "shadow-2xl border-[10px] border-black rounded-[40px]" : "shadow-lg"
   );
   
-  const previewContainerStyles: React.CSSProperties = isMobileOrTablet ? {
+  const previewContainerStyles: React.CSSProperties = {
     width: selectedDevice.width,
-    height: selectedDevice.height
-  } : {
-    width: '100%',
-    height: '100%'
+    height: selectedDevice.height,
   };
 
 
@@ -336,8 +335,8 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
         </CardHeader>
         <CardContent className="flex flex-col flex-grow p-6 pt-0">
           <div className={cn(
-              "bg-muted/50 rounded-lg p-4 mt-4 flex-grow",
-              isMobileOrTablet && "flex items-center justify-center"
+              "bg-muted/50 rounded-lg flex-grow overflow-auto p-4",
+              "flex items-start justify-center pt-8"
             )}>
               <div className={previewContainerClasses} style={previewContainerStyles}>
                 {renderPreviewContent()}
