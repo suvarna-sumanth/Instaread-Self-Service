@@ -26,13 +26,17 @@ type GeneratePluginResult = {
 }
 
 export async function generatePartnerPlugin(data: WordPressConfigFormValues): Promise<GeneratePluginResult> {
-    const { GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO } = process.env;
+    const { 
+        GITHUB_TOKEN, 
+        GITHUB_REPO_OWNER: GITHUB_OWNER, 
+        GITHUB_REPO_NAME: GITHUB_REPO 
+    } = process.env;
 
     if (!GITHUB_TOKEN || !GITHUB_OWNER || !GITHUB_REPO) {
         const missing = [
             !GITHUB_TOKEN && "GITHUB_TOKEN",
-            !GITHUB_OWNER && "GITHUB_OWNER",
-            !GITHUB_REPO && "GITHUB_REPO"
+            !GITHUB_OWNER && "GITHUB_REPO_OWNER",
+            !GITHUB_REPO && "GITHUB_REPO_NAME"
         ].filter(Boolean).join(', ');
         return { success: false, message: `Server configuration error: Missing environment variables: ${missing}. Please ask the administrator to set them.` };
     }
