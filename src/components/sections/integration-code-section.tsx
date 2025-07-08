@@ -229,6 +229,9 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
 
 
     const publication = useMemo(() => {
+        if (process.env.NODE_ENV === 'development') {
+            return 'xyz';
+        }
         if (!websiteUrl) return 'xyz';
         try {
             const url = new URL(websiteUrl);

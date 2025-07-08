@@ -101,15 +101,19 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
 
         if (targetEl) {
           const { playerType, color } = playerConfig;
+          
           let publication = 'xyz';
+          if (process.env.NODE_ENV !== 'development') {
             try {
               if (url) {
                 const urlObject = new URL(url);
                 publication = urlObject.hostname.replace(/^www\./, '').split('.')[0] || 'xyz';
               }
             } catch (e) {
-                publication = 'xyz';
+                // publication remains 'xyz' on error, which is a safe fallback
+                console.warn(`Invalid URL provided for publication name: ${url}`);
             }
+          }
           
           const playerHtml = `<instaread-player
             id="instaread-player-instance"
