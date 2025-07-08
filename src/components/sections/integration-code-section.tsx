@@ -65,8 +65,8 @@ const wordpressConfigSchema = z.object({
     domain: z.string().min(1, "Domain is required"),
     publication: z.string().min(1, "Publication is required"),
     version: z.string().min(1, "Version is required, e.g., 1.0.0"),
-    injection_context: z.enum(['singular', 'archive', 'any']),
-    injection_strategy: z.enum(['first', 'all']),
+    injection_context: z.enum(['singular', 'all', 'archive', 'front_page', 'posts_page']),
+    injection_strategy: z.enum(['first', 'all', 'none', 'custom']),
     injection_rules: z.array(injectionRuleSchema).min(1, "At least one injection rule is required.")
 });
 
@@ -279,9 +279,11 @@ const MyComponent = () => {
                                                         </SelectTrigger>
                                                         </FormControl>
                                                         <SelectContent>
-                                                            <SelectItem value="singular">Singular</SelectItem>
+                                                            <SelectItem value="singular">Single Posts/Pages</SelectItem>
+                                                            <SelectItem value="all">All Pages</SelectItem>
                                                             <SelectItem value="archive">Archive</SelectItem>
-                                                            <SelectItem value="any">Any</SelectItem>
+                                                            <SelectItem value="front_page">Front Page</SelectItem>
+                                                            <SelectItem value="posts_page">Blog Index</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                     <FormMessage />
@@ -301,8 +303,10 @@ const MyComponent = () => {
                                                         </SelectTrigger>
                                                         </FormControl>
                                                         <SelectContent>
-                                                            <SelectItem value="first">First Match</SelectItem>
-                                                            <SelectItem value="all">All Matches</SelectItem>
+                                                            <SelectItem value="first">First</SelectItem>
+                                                            <SelectItem value="all">All</SelectItem>
+                                                            <SelectItem value="none">None</SelectItem>
+                                                            <SelectItem value="custom">Custom</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                     <FormMessage />
