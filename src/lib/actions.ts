@@ -222,7 +222,10 @@ This PR will be merged automatically to trigger the build process.`;
             method: 'POST',
             headers,
             body: JSON.stringify({
-                ref: 'main'
+                ref: 'main',
+                inputs: {
+                    partner_id: data.partner_id
+                }
             }),
         });
 
