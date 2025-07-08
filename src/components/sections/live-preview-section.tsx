@@ -104,8 +104,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       if (playerType === 'newdesign' || playerType === 'shortdesign') {
           styleContent += `
               @media (max-width: 750px) {
-                  instaread-player {
-                      display: block; /* Ensure it's a block-level element */
+                  .instaread-audio-player {
                       height: 224px !important;
                   }
               }
