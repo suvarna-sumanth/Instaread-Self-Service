@@ -123,6 +123,15 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
     }, [selectedPlacement, replace]);
 
     const onSubmit: SubmitHandler<WordPressConfigFormValues> = async (data) => {
+        if (data.injection_rules.length === 0) {
+            toast({
+                title: "Injection Rule Required",
+                description: "Please add at least one injection rule before generating the plugin.",
+                variant: "destructive",
+            });
+            return;
+        }
+
         setIsBuilding(true);
         setBuildResult(null);
         try {
