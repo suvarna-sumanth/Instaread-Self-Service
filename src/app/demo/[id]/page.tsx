@@ -64,7 +64,8 @@ async function generateDemoHtml(id: string): Promise<string> {
 
 
     // Inject player element
-    const targetEl = $(placement.selector);
+    // Use .first() to ensure we only target a single element, even if the selector matches multiple
+    const targetEl = $(placement.selector).first();
     if (targetEl.length > 0) {
         let publication = 'xyz';
          if (process.env.NODE_ENV !== 'development') {
