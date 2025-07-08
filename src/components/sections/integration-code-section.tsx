@@ -19,6 +19,7 @@ import { Separator } from '../ui/separator';
 import type { WordPressConfigFormValues } from '@/lib/schemas';
 import { generatePartnerPlugin, checkWorkflowRun, getReleaseDownloadUrl } from '@/lib/actions';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
+import { ScrollArea } from '../ui/scroll-area';
 
 type CodeBlockProps = {
     content: string;
@@ -294,7 +295,7 @@ const MyComponent = () => {
                 <CardDescription>Copy a code snippet or generate a full WordPress partner plugin solution.</CardDescription>
             </CardHeader>
             <CardContent>
-                <Tabs defaultValue="html" className="w-full">
+                <Tabs defaultValue="wordpress" className="w-full">
                     <TabsList className="grid w-full grid-cols-3">
                         <TabsTrigger value="html">HTML</TabsTrigger>
                         <TabsTrigger value="react">React</TabsTrigger>
@@ -602,3 +603,5 @@ const MyComponent = () => {
 };
 
 export default IntegrationCodeSection;
+
+    
