@@ -9,12 +9,20 @@
 import { db } from '@/lib/firebase';
 import type { DemoConfig } from '@/types';
 
+
+const checkDb = () => {
+    if (!db) {
+        throw new Error('Firebase is not initialized. Please ensure FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY are set correctly in your environment variables.');
+    }
+}
+
 /**
  * Creates a new demo configuration in the database.
  * @param demoData - The configuration data for the demo.
  * @returns The unique ID of the newly created demo.
  */
 export async function createDemo(demoData: Omit<DemoConfig, 'id'>): Promise<string> {
+  checkDb();
   try {
     const docRef = await db.collection('demos').add({
         ...demoData,
@@ -33,6 +41,7 @@ export async function createDemo(demoData: Omit<DemoConfig, 'id'>): Promise<stri
  * @returns The demo configuration object, or null if not found.
  */
 export async function getDemoById(id: string): Promise<DemoConfig | null> {
+  checkDb();
   try {
     const doc = await db.collection('demos').doc(id).get();
     if (!doc.exists) {
