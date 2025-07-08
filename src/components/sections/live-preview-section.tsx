@@ -89,14 +89,14 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       const parser = new DOMParser();
       const doc = parser.parseFromString(cloneHtml, 'text/html');
       
-      // Inject the player script
-      const playerScriptElement = doc.createElement('script');
-      playerScriptElement.type = 'module';
-      playerScriptElement.setAttribute('crossorigin', '');
-      playerScriptElement.src = PLAYER_SCRIPT_URL;
-      doc.head.appendChild(playerScriptElement);
-
       if (selectedPlacement) {
+        // Inject the player script ONLY when a placement is selected
+        const playerScriptElement = doc.createElement('script');
+        playerScriptElement.type = 'module';
+        playerScriptElement.setAttribute('crossorigin', '');
+        playerScriptElement.src = PLAYER_SCRIPT_URL;
+        doc.head.appendChild(playerScriptElement);
+
         const targetEl = doc.querySelector(selectedPlacement.selector);
 
         if (targetEl) {
