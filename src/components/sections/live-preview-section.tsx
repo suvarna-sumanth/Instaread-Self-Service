@@ -89,20 +89,6 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       const parser = new DOMParser();
       const doc = parser.parseFromString(cloneHtml, 'text/html');
       
-      // Inject style override for specific player types on mobile to prevent clipping
-      if (playerConfig.playerType === 'newdesign' || playerConfig.playerType === 'shortdesign') {
-        const styleOverride = doc.createElement('style');
-        styleOverride.textContent = `
-          @media (max-width: 750px) {
-            /* This targets the container the player's script creates inside our custom element */
-            #instaread-widget.instaread-widget-mobile .instaread-audio-player {
-              height: 224px !important;
-            }
-          }
-        `;
-        doc.head.appendChild(styleOverride);
-      }
-      
       if (selectedPlacement) {
         // Inject the player script ONLY when a placement is selected
         const playerScriptElement = doc.createElement('script');
@@ -129,14 +115,12 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
             }
           }
           
-          const playerHtml = `<div id="instaread-widget">
-            <instaread-player
+          const playerHtml = `<instaread-player
               id="instaread-player-instance"
               publication="${publication}"
               playertype="${playerType}"
               colortype="${color}"
-            ></instaread-player>
-          </div>`;
+            ></instaread-player>`;
           
           const playerFragment = doc.createRange().createContextualFragment(playerHtml);
 
@@ -245,6 +229,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     
     return (
        <iframe
+        id="instaread_iframe"
         ref={iframeRef}
         srcDoc={effectiveHtml || ''}
         className="w-full h-full bg-white rounded-lg shadow-lg border"
