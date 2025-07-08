@@ -1,8 +1,8 @@
 
 'use client'
 
-import { useState, useEffect } from 'react';
-import { useForm, useFieldArray, type SubmitHandler } from 'react-hook-form';
+import { useState, useEffect, useMemo } from 'react';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { PlayerConfig, Placement } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -52,7 +52,7 @@ const CodeBlock = ({ content, language }: { content: string, language: string })
             </pre>
         </div>
     )
-}
+};
 
 const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }: IntegrationCodeSectionProps) => {
     const { toast } = useToast();
@@ -103,6 +103,7 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
             domain: newDomain,
             partner_id: newPartnerId,
             publication: newPublication,
+            injection_rules: currentValues.injection_rules 
         });
 
     }, [websiteUrl, reset, getValues]);
@@ -121,48 +122,53 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
     }, [selectedPlacement, replace]);
 
     const handleGeneratePlugin = async () => {
-        const isFormValid = await trigger();
-        if (!isFormValid) {
-            toast({
-                title: "Validation Failed",
-                description: "Please review the form for errors before submitting.",
-                variant: "destructive",
-            });
-            return;
-        }
-
-        const data = getValues();
-
-        if (!data.injection_rules || data.injection_rules.length === 0) {
-            toast({
-                title: "Injection Rule Required",
-                description: "Please add at least one injection rule before generating the plugin.",
-                variant: "destructive",
-            });
-            return;
-        }
-
-        setIsBuilding(true);
-        setBuildResult(null);
+        console.log("Attempting to generate plugin. Current form values:", getValues());
+        
         try {
+            const isFormValid = await trigger();
+            if (!isFormValid) {
+                toast({
+                    title: "Validation Failed",
+                    description: "Please review the form for errors before submitting.",
+                    variant: "destructive",
+                });
+                console.log("Form validation failed. Errors:", form.formState.errors);
+                return;
+            }
+
+            const data = getValues();
+
+            if (!data.injection_rules || data.injection_rules.length === 0) {
+                toast({
+                    title: "Injection Rule Required",
+                    description: "Please add at least one injection rule before generating the plugin.",
+                    variant: "destructive",
+                });
+                return;
+            }
+
+            setIsBuilding(true);
+            setBuildResult(null);
+            
             const result = await generatePartnerPlugin(data);
             setBuildResult(result);
             if (!result.success) {
-                 toast({
+                    toast({
                     title: "Build Failed",
                     description: result.message,
                     variant: "destructive",
                 });
             } else {
-                 toast({
+                    toast({
                     title: "Success!",
                     description: "Pull request created on GitHub.",
                 });
             }
         } catch (error) {
+            console.error("An error occurred during validation or submission:", error);
             const message = error instanceof Error ? error.message : "An unexpected client-side error occurred."
             setBuildResult({ success: false, message });
-             toast({
+                toast({
                 title: "Build Failed",
                 description: message,
                 variant: "destructive",
@@ -172,11 +178,18 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
         }
     };
 
-    const publication = process.env.NODE_ENV === 'development' ? 'xyz' : (
-        websiteUrl ? new URL(websiteUrl).hostname.replace(/^www\./, '').split('.')[0] || 'xyz' : 'xyz'
-    );
+    const publication = useMemo(() => {
+        if (!websiteUrl) return 'xyz';
+        try {
+            const url = new URL(websiteUrl);
+            return url.hostname.replace(/^www\./, '').split('.')[0] || 'xyz';
+        } catch (e) {
+            console.warn(`Invalid URL provided for publication name: ${websiteUrl}`);
+            return 'xyz';
+        }
+    }, [websiteUrl]);
 
-    const codeSnippets = {
+    const codeSnippets = useMemo(() => ({
         html: `<script type="module" crossorigin src="${PLAYER_SCRIPT_URL}"></script>
 <instaread-player
   publication="${publication}"
@@ -213,7 +226,7 @@ const MyComponent = () => {
     />
   );
 };`
-    };
+    }), [publication, playerType, color]);
 
     return (
         <Card className="shadow-md">
@@ -409,7 +422,7 @@ const MyComponent = () => {
                                                                 <FormControl>
                                                                 <SelectTrigger>
                                                                     <SelectValue placeholder="Select position" />
-                                                                </SelectTrigger>
+                                                                </Trigger>
                                                                 </FormControl>
                                                                 <SelectContent>
                                                                     <SelectItem value="before_element">Before Element</SelectItem>
@@ -473,3 +486,5 @@ const MyComponent = () => {
 };
 
 export default IntegrationCodeSection;
+
+    
