@@ -3,7 +3,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import type { PlayerConfig, Placement } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,6 +18,12 @@ import { Textarea } from '../ui/textarea';
 import { Separator } from '../ui/separator';
 import { wordpressConfigSchema, type WordPressConfigFormValues } from '@/lib/schemas';
 import { generatePartnerPlugin } from '@/lib/actions';
+
+type IntegrationCodeSectionProps = {
+    playerConfig: PlayerConfig;
+    websiteUrl: string;
+    selectedPlacement: Placement;
+};
 
 type CodeBlockProps = {
     content: string;
@@ -61,7 +66,6 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
     const { playerType, color } = playerConfig;
 
     const form = useForm<WordPressConfigFormValues>({
-        resolver: zodResolver(wordpressConfigSchema),
         defaultValues: {
             partner_id: '',
             domain: '',
@@ -73,10 +77,10 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
         }
     });
 
-    const { control, reset, getValues, trigger, formState } = form;
+    const { control, reset, getValues, setError, clearErrors, formState: { errors } } = form;
 
     const { fields, append, remove, replace } = useFieldArray({
-        control: form.control,
+        control,
         name: "injection_rules"
     });
 
@@ -121,41 +125,43 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
     }, [selectedPlacement, replace]);
 
     const handleGeneratePlugin = async () => {
-        console.log("Attempting to generate plugin. Current form values:", getValues());
+        clearErrors();
+        const data = getValues();
+        const result = wordpressConfigSchema.safeParse(data);
+
+        if (!result.success) {
+            toast({
+                title: "Validation Failed",
+                description: "Please review the form for errors.",
+                variant: "destructive",
+            });
+            result.error.issues.forEach((issue) => {
+                 // The path can be complex for array fields, so we cast to any to make it work
+                setError(issue.path.join('.') as any, { type: 'manual', message: issue.message });
+            });
+            return;
+        }
+
+        if (!result.data.injection_rules || result.data.injection_rules.length === 0) {
+            toast({
+                title: "Injection Rule Required",
+                description: "Please add at least one injection rule before generating the plugin.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        setIsBuilding(true);
+        setBuildResult(null);
         
         try {
-            const isFormValid = await trigger();
-            if (!isFormValid) {
-                toast({
-                    title: "Validation Failed",
-                    description: "Please review the form for errors before submitting.",
-                    variant: "destructive",
-                });
-                console.log("Form validation failed. Errors:", formState.errors);
-                return;
-            }
+            const actionResult = await generatePartnerPlugin(result.data);
+            setBuildResult(actionResult);
 
-            const data = getValues();
-
-            if (!data.injection_rules || data.injection_rules.length === 0) {
-                toast({
-                    title: "Injection Rule Required",
-                    description: "Please add at least one injection rule before generating the plugin.",
-                    variant: "destructive",
-                });
-                return;
-            }
-
-            setIsBuilding(true);
-            setBuildResult(null);
-            
-            const result = await generatePartnerPlugin(data);
-            setBuildResult(result);
-
-            if (!result.success) {
+            if (!actionResult.success) {
                 toast({
                     title: "Build Failed",
-                    description: result.message,
+                    description: actionResult.message,
                     variant: "destructive",
                 });
             } else {
@@ -165,7 +171,6 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
                 });
             }
         } catch (error) {
-            console.error("An error occurred during validation or submission:", error);
             const message = error instanceof Error ? error.message : "An unexpected client-side error occurred."
             setBuildResult({ success: false, message });
             toast({
@@ -488,5 +493,3 @@ const MyComponent = () => {
 };
 
 export default IntegrationCodeSection;
-
-    

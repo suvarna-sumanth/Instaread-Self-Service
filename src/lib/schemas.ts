@@ -10,10 +10,10 @@ export const injectionRuleSchema = z.object({
 });
 
 export const wordpressConfigSchema = z.object({
-    partner_id: z.string().min(1, "Partner ID is required"),
-    domain: z.string().min(1, "Domain is required"),
-    publication: z.string().min(1, "Publication is required"),
-    version: z.string().min(1, "Version is required, e.g., 1.0.0"),
+    partner_id: z.string().min(1, "Partner ID is required."),
+    domain: z.string().min(1, "Domain is required.").url("Please enter a valid domain."),
+    publication: z.string().min(1, "Publication is required."),
+    version: z.string().min(1, "Version is required, e.g., 1.0.0").regex(/^\d+\.\d+\.\d+$/, "Version must be in semantic format, e.g., 1.0.0"),
     injection_context: z.enum(['singular', 'all', 'archive', 'front_page', 'posts_page']),
     injection_strategy: z.enum(['first', 'all', 'none', 'custom']),
     injection_rules: z.array(injectionRuleSchema)
