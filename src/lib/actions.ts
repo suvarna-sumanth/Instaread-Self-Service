@@ -1,3 +1,4 @@
+
 'use server'
 
 import { generateVisualClone as generateVisualCloneFlow } from '@/ai/flows/generate-visual-clone';
@@ -117,13 +118,13 @@ This PR will be merged automatically to trigger the build process.`;
         // 3b. Create or update the plugin.json file
         const downloadUrl = `https://github.com/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/releases/download/${data.partner_id}-v${data.version}/${data.partner_id}-v${data.version}.zip`;
         const pluginJsonContent = JSON.stringify({
-            name: `Instaread Audio Player - ${data.partner_id}`,
+            name: `Instaread Audio Player - ${data.publication || data.partner_id}`,
             version: data.version,
             download_url: downloadUrl,
             requires: "5.6",
             tested: "6.5",
             sections: {
-                changelog: `<h4>${data.version}</h4><ul><li>Partner-specific build for ${data.partner_id}</li></ul>`
+                changelog: `<h4>${data.version}</h4><ul><li>Partner-specific build for ${data.publication || data.partner_id}</li></ul>`
             }
         }, null, 2);
         const encodedPluginJsonContent = Buffer.from(pluginJsonContent).toString('base64');
@@ -213,6 +214,9 @@ This PR will be merged automatically to trigger the build process.`;
             throw new Error(`Pull request was not mergeable after several retries.`);
         }
 
+        // Add a small delay to allow GitHub to process the merge before dispatching.
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
         // 6. Explicitly trigger the workflow dispatch
         const dispatchResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/actions/workflows/${GITHUB_WORKFLOW_ID}/dispatches`, {
             method: 'POST',
@@ -224,9 +228,10 @@ This PR will be merged automatically to trigger the build process.`;
 
         if (!dispatchResponse.ok) {
             const error = await dispatchResponse.json();
-            // Don't throw, just warn, as the merge might have triggered it anyway
-            console.warn(`Could not manually trigger workflow (Status: ${dispatchResponse.status}): ${error.message}`);
-            return { success: true, message: "Successfully merged Pull Request! The plugin build should start automatically.", pullRequestUrl };
+            const dispatchErrorMessage = `Successfully merged Pull Request, but failed to trigger the build workflow. Please trigger it manually. Error: ${error.message}`;
+            console.error("[GitHub Action Error]:", dispatchErrorMessage);
+            // Return success=true because the PR was made and merged, but include the warning.
+            return { success: true, message: dispatchErrorMessage, pullRequestUrl };
         }
 
         return { success: true, message: "Successfully merged Pull Request and triggered build workflow!", pullRequestUrl };
