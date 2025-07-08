@@ -95,7 +95,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
         styleOverride.textContent = `
           @media (max-width: 750px) {
             /* This targets the container the player's script creates inside our custom element */
-            #instaread-player-instance > .instaread-audio-player {
+            #instaread-widget.instaread-widget-mobile .instaread-audio-player {
               height: 224px !important;
             }
           }
@@ -129,12 +129,14 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
             }
           }
           
-          const playerHtml = `<instaread-player
-            id="instaread-player-instance"
-            publication="${publication}"
-            playertype="${playerType}"
-            colortype="${color}"
-          ></instaread-player>`;
+          const playerHtml = `<div id="instaread-widget">
+            <instaread-player
+              id="instaread-player-instance"
+              publication="${publication}"
+              playertype="${playerType}"
+              colortype="${color}"
+            ></instaread-player>
+          </div>`;
           
           const playerFragment = doc.createRange().createContextualFragment(playerHtml);
 
@@ -177,7 +179,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
           });
           
           document.addEventListener('click', (e) => {
-            if (e.target && !e.target.closest('instaread-player')) {
+            if (e.target && !e.target.closest('instaread-player') && !e.target.closest('#instaread-widget')) {
               e.preventDefault();
               e.stopPropagation();
               const selector = generateSelector(e.target);
