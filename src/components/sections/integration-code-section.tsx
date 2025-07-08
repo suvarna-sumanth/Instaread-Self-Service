@@ -20,13 +20,12 @@ import { Separator } from '../ui/separator';
 import { wordpressConfigSchema, type WordPressConfigFormValues } from '@/lib/schemas';
 import { generatePartnerPlugin } from '@/lib/actions';
 
-type IntegrationCodeSectionProps = {
-    playerConfig: PlayerConfig;
-    websiteUrl: string;
-    selectedPlacement: Placement;
+type CodeBlockProps = {
+    content: string;
+    language: string;
 };
 
-const CodeBlock = ({ content, language }: { content: string, language: string }) => {
+const CodeBlock = ({ content, language }: CodeBlockProps) => {
     const { toast } = useToast();
     const [copied, setCopied] = useState(false);
 
@@ -51,7 +50,7 @@ const CodeBlock = ({ content, language }: { content: string, language: string })
                 <code className={`font-code text-muted-foreground language-${language}`}>{content}</code>
             </pre>
         </div>
-    )
+    );
 };
 
 const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }: IntegrationCodeSectionProps) => {
@@ -74,7 +73,7 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
         }
     });
 
-    const { control, reset, getValues, trigger } = form;
+    const { control, reset, getValues, trigger, formState } = form;
 
     const { fields, append, remove, replace } = useFieldArray({
         control: form.control,
@@ -91,7 +90,7 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
             try {
                 const urlObject = new URL(websiteUrl);
                 newDomain = urlObject.hostname;
-                newPartnerId = newDomain.replace(/^www\./, '').split('.')[0];
+                newPartnerId = newDomain.replace(/^www\./, '').split('.')[0] || 'website';
                 newPublication = newPartnerId;
             } catch (e) {
                 // If URL is invalid, values will remain empty strings
@@ -103,7 +102,7 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
             domain: newDomain,
             partner_id: newPartnerId,
             publication: newPublication,
-            injection_rules: currentValues.injection_rules 
+            injection_rules: currentValues.injection_rules || []
         });
 
     }, [websiteUrl, reset, getValues]);
@@ -132,7 +131,7 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
                     description: "Please review the form for errors before submitting.",
                     variant: "destructive",
                 });
-                console.log("Form validation failed. Errors:", form.formState.errors);
+                console.log("Form validation failed. Errors:", formState.errors);
                 return;
             }
 
@@ -152,14 +151,15 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
             
             const result = await generatePartnerPlugin(data);
             setBuildResult(result);
+
             if (!result.success) {
-                    toast({
+                toast({
                     title: "Build Failed",
                     description: result.message,
                     variant: "destructive",
                 });
             } else {
-                    toast({
+                toast({
                     title: "Success!",
                     description: "Pull request created on GitHub.",
                 });
@@ -168,7 +168,7 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
             console.error("An error occurred during validation or submission:", error);
             const message = error instanceof Error ? error.message : "An unexpected client-side error occurred."
             setBuildResult({ success: false, message });
-                toast({
+            toast({
                 title: "Build Failed",
                 description: message,
                 variant: "destructive",
@@ -189,14 +189,15 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
         }
     }, [websiteUrl]);
 
-    const codeSnippets = useMemo(() => ({
-        html: `<script type="module" crossorigin src="${PLAYER_SCRIPT_URL}"></script>
+    const { html, react } = useMemo(() => {
+      const htmlContent = `<script type="module" crossorigin src="${PLAYER_SCRIPT_URL}"></script>
 <instaread-player
   publication="${publication}"
   playertype="${playerType}"
   colortype="${color}"
-></instaread-player>`,
-        react: `import { useEffect } from 'react';
+></instaread-player>`;
+      
+      const reactContent = `import { useEffect } from 'react';
 
 // In your main HTML file, add the script tag:
 // <script type="module" crossorigin src="${PLAYER_SCRIPT_URL}"></script>
@@ -225,8 +226,9 @@ const MyComponent = () => {
       colorType="${color}"
     />
   );
-};`
-    }), [publication, playerType, color]);
+};`;
+      return { html: htmlContent, react: reactContent };
+    }, [publication, playerType, color]);
 
     return (
         <Card className="shadow-md">
@@ -243,11 +245,11 @@ const MyComponent = () => {
                     </TabsList>
                     
                     <TabsContent value="html">
-                        <CodeBlock content={codeSnippets.html} language="html" />
+                        <CodeBlock content={html} language="html" />
                     </TabsContent>
 
                     <TabsContent value="react">
-                         <CodeBlock content={codeSnippets.react} language="jsx" />
+                         <CodeBlock content={react} language="jsx" />
                     </TabsContent>
                     
                     <TabsContent value="wordpress">
@@ -422,7 +424,7 @@ const MyComponent = () => {
                                                                 <FormControl>
                                                                 <SelectTrigger>
                                                                     <SelectValue placeholder="Select position" />
-                                                                </Trigger>
+                                                                </SelectTrigger>
                                                                 </FormControl>
                                                                 <SelectContent>
                                                                     <SelectItem value="before_element">Before Element</SelectItem>
