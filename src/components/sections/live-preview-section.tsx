@@ -49,6 +49,7 @@ const generateSelector = (el: Element): string => {
             }
         }
         path.unshift(selector);
+        // Stop when we reach the top of the document tree (or shadow root)
         if (el.parentElement) {
            el = el.parentElement;
         } else {
@@ -61,63 +62,11 @@ const generateSelector = (el: Element): string => {
 
 const LivePreviewSection = (props: LivePreviewSectionProps) => {
   const { url, cloneHtml, isLoading, statusText, selectedPlacement, onSelectPlacement, playerConfig } = props;
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
   const [stagedPlacement, setStagedPlacement] = useState<{ selector: string } | null>(null);
   const [effectiveHtml, setEffectiveHtml] = useState<string | null>(null);
   
-  const handleIframeLoad = () => {
-    const iframe = iframeRef.current;
-    if (!iframe?.contentWindow) return;
-    const doc = iframe.contentWindow.document;
-    if (!doc?.body) return;
-
-    let lastHovered: HTMLElement | null = null;
-    let originalOutline: string | null = null;
-
-    const handleMouseOver = (e: MouseEvent) => {
-        const target = e.target as HTMLElement;
-        if (target && target !== lastHovered) {
-            if (lastHovered) {
-                lastHovered.style.outline = originalOutline || '';
-            }
-            lastHovered = target;
-            originalOutline = target.style.outline;
-            if (!target.closest('instaread-player')) {
-                target.style.outline = '2px dashed hsl(var(--accent))';
-            }
-        }
-    };
-
-    const handleMouseOut = () => {
-        if (lastHovered) {
-            lastHovered.style.outline = originalOutline || '';
-            lastHovered = null;
-            originalOutline = null;
-        }
-    };
-
-    const handleClick = (e: MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        const doc = iframeRef.current?.contentWindow?.document;
-        if (!doc) return;
-        
-        const clickedEl = doc.elementFromPoint(e.clientX, e.clientY);
-
-        if (clickedEl && !clickedEl.closest('instaread-player')) {
-            const selector = generateSelector(clickedEl);
-            if (selector) {
-                setStagedPlacement({ selector });
-            }
-        }
-    };
-    
-    doc.body.addEventListener('mouseover', handleMouseOver);
-    doc.body.addEventListener('mouseout', handleMouseOut);
-    doc.body.addEventListener('click', handleClick);
-  };
-
+  // Effect to process the raw HTML and inject our scripts/styles
   useEffect(() => {
     if (!cloneHtml) {
       setEffectiveHtml(null);
@@ -142,9 +91,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       doc.head.appendChild(styleElement);
 
 
-      // Directly add the script tag. This will require the server at
-      // PLAYER_SCRIPT_URL to have CORS configured to allow requests
-      // from this application's origin.
+      // Directly add the script tag for the player web component.
       const scriptElement = doc.createElement('script');
       scriptElement.type = 'module';
       scriptElement.setAttribute('crossorigin', '');
@@ -158,15 +105,15 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
           const { playerType, color } = playerConfig;
           
           let publication = 'xyz';
-          if (process.env.NODE_ENV === 'production' && url) {
             try {
-              const urlObject = new URL(url);
-              const domain = urlObject.hostname.replace(/^www\./, '').split('.')[0];
-              publication = domain || 'xyz';
+              if (url) {
+                const urlObject = new URL(url);
+                const domain = urlObject.hostname.replace(/^www\./, '').split('.')[0];
+                publication = domain || 'xyz';
+              }
             } catch (e) {
               publication = 'xyz';
             }
-          }
           
           const playerHtml = `<instaread-player
             id="instaread-player-instance"
@@ -193,9 +140,76 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
 
     } catch (e) {
       console.error("[LivePreview] Error parsing or modifying HTML:", e);
-      setEffectiveHtml(cloneHtml);
+      setEffectiveHtml(cloneHtml); // Fallback to raw clone on error
     }
   }, [cloneHtml, selectedPlacement, playerConfig, url]);
+
+  // Effect to render HTML into Shadow DOM and attach event listeners
+  useEffect(() => {
+    const previewEl = previewRef.current;
+    if (!previewEl || !effectiveHtml) return;
+
+    // Ensure we have a shadow root, create if not
+    if (!previewEl.shadowRoot) {
+        previewEl.attachShadow({ mode: 'open' });
+    }
+
+    // Set the content
+    previewEl.shadowRoot!.innerHTML = effectiveHtml;
+
+    // Attach listeners
+    let lastHovered: HTMLElement | null = null;
+    let originalOutline: string | null = null;
+
+    const handleMouseOver = (e: Event) => {
+        const target = e.target as HTMLElement;
+        if (target && target !== lastHovered) {
+            if (lastHovered) {
+                lastHovered.style.outline = originalOutline || '';
+            }
+            lastHovered = target;
+            originalOutline = target.style.outline;
+            if (target.id !== 'instaread-widget-wrapper' && !target.closest('instaread-player')) {
+                target.style.outline = '2px dashed hsl(var(--accent))';
+            }
+        }
+    };
+
+    const handleMouseOut = () => {
+        if (lastHovered) {
+            lastHovered.style.outline = originalOutline || '';
+            lastHovered = null;
+            originalOutline = null;
+        }
+    };
+
+    const handleClick = (e: Event) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const target = e.target as HTMLElement;
+
+        if (target && target.id !== 'instaread-widget-wrapper' && !target.closest('instaread-player')) {
+            const selector = generateSelector(target);
+            if (selector) {
+                setStagedPlacement({ selector });
+            }
+        }
+    };
+    
+    const shadow = previewEl.shadowRoot!;
+    shadow.addEventListener('mouseover', handleMouseOver);
+    shadow.addEventListener('mouseout', handleMouseOut);
+    // Use capture phase for reliability with nested elements
+    shadow.addEventListener('click', handleClick, true); 
+
+    // Clean up listeners when component unmounts or HTML changes
+    return () => {
+        shadow.removeEventListener('mouseover', handleMouseOver);
+        shadow.removeEventListener('mouseout', handleMouseOut);
+        shadow.removeEventListener('click', handleClick, true);
+    }
+}, [effectiveHtml, onSelectPlacement, setStagedPlacement]);
 
 
   const handleClearPlacement = () => {
@@ -217,7 +231,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                 <Loader2 className="h-5 w-5 animate-spin" />
                 <p>{statusText || 'Analyzing and rendering preview...'}</p>
             </div>
-            <Skeleton className="h-[400px] w-full max-w-lg" />
+            <Skeleton className="h-full w-full max-w-lg" />
           </div>
       );
     }
@@ -241,17 +255,16 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
         );
     }
     
+    // Render into a div container that will host the Shadow DOM.
+    // The key ensures React re-creates the element when HTML changes, clearing old state.
     return (
-        <iframe
-            ref={iframeRef}
-            key={effectiveHtml} // Force re-render on HTML change
-            title="Website Preview"
-            srcDoc={effectiveHtml || ''}
-            className="w-full h-full bg-white rounded-lg shadow-lg border-0"
-            sandbox="allow-scripts allow-same-origin"
-            onLoad={handleIframeLoad}
-        />
-    )
+      <div 
+        ref={previewRef}
+        key={effectiveHtml}
+        id="instaread-widget-wrapper"
+        className="w-full h-full bg-white rounded-lg shadow-lg border"
+      />
+    );
   }
 
   return (
@@ -293,7 +306,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
           </div>
         </CardHeader>
         <CardContent className="flex flex-col flex-grow p-6 pt-0">
-           <div className="bg-muted/50 rounded-lg flex-grow overflow-auto p-4 flex items-start justify-center">
+           <div className="bg-muted/50 rounded-lg flex-grow overflow-auto p-4 flex items-start justify-center h-full">
               {renderPreviewContent()}
             </div>
         </CardContent>
