@@ -514,7 +514,7 @@ const MyComponent = () => {
                                     ))}
                                 </div>
                                 <Separator />
-                                <div className="flex justify-end gap-2">
+                                <div className="flex justify-center gap-2">
                                      <Dialog onOpenChange={(open) => !open && setPreviewContent(null)}>
                                         <DialogTrigger asChild>
                                             <Button type="button" variant="outline" onClick={handlePreview} disabled={isBuilding}>
@@ -530,7 +530,7 @@ const MyComponent = () => {
                                                 </DialogDescription>
                                             </DialogHeader>
                                             <Tabs defaultValue="config" className="w-full">
-                                                <TabsList className="grid w-full grid-cols-2">
+                                                <TabsList>
                                                     <TabsTrigger value="config">config.json</TabsTrigger>
                                                     <TabsTrigger value="plugin">plugin.json</TabsTrigger>
                                                 </TabsList>
@@ -603,5 +603,7 @@ const MyComponent = () => {
 };
 
 export default IntegrationCodeSection;
+
+    
 
     
