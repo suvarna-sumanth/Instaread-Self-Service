@@ -1,3 +1,4 @@
+
 'use client'
 
 import { useState, useEffect, useMemo } from 'react';
@@ -6,7 +7,7 @@ import type { PlayerConfig, Placement } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
-import { Clipboard, Check, Wand2, AlertTriangle, PlusCircle, Trash2, Loader2, CheckCircle, ExternalLink } from 'lucide-react';
+import { Clipboard, Check, Wand2, AlertTriangle, PlusCircle, Trash2, Loader2, CheckCircle, ExternalLink, Eye, Download } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { PLAYER_SCRIPT_URL } from '@/lib/constants';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
@@ -16,7 +17,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Textarea } from '../ui/textarea';
 import { Separator } from '../ui/separator';
 import type { WordPressConfigFormValues } from '@/lib/schemas';
-import { generatePartnerPlugin } from '@/lib/actions';
+import { generatePartnerPlugin, checkWorkflowRun, getReleaseDownloadUrl } from '@/lib/actions';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 
 type CodeBlockProps = {
     content: string;
@@ -35,16 +37,16 @@ const CodeBlock = ({ content, language }: CodeBlockProps) => {
     };
 
     return (
-        <div className="relative mt-2">
+        <div className="relative mt-2 max-h-96 overflow-auto">
             <Button
                 variant="ghost"
                 size="icon"
-                className="absolute top-2 right-2 h-7 w-7"
+                className="absolute top-2 right-2 h-7 w-7 z-10"
                 onClick={handleCopy}
             >
                 {copied ? <Check className="h-4 w-4 text-green-500" /> : <Clipboard className="h-4 w-4" />}
             </Button>
-            <pre className="bg-muted rounded-md p-4 text-sm overflow-x-auto">
+            <pre className="bg-muted rounded-md p-4 text-sm">
                 <code className={`font-code text-muted-foreground language-${language}`}>{content}</code>
             </pre>
         </div>
@@ -60,7 +62,12 @@ type IntegrationCodeSectionProps = {
 const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }: IntegrationCodeSectionProps) => {
     const { toast } = useToast();
     const [isBuilding, setIsBuilding] = useState(false);
-    const [buildResult, setBuildResult] = useState<{success: boolean; message: string; pullRequestUrl?: string;} | null>(null);
+    
+    const [buildStatus, setBuildStatus] = useState<'idle' | 'building' | 'polling' | 'success' | 'failed'>('idle');
+    const [buildLog, setBuildLog] = useState<string[]>([]);
+    const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+    const [previewContent, setPreviewContent] = useState<{ config: string; plugin: string } | null>(null);
+    const [runId, setRunId] = useState<number | null>(null);
     
     const { playerType, color } = playerConfig;
 
@@ -123,43 +130,102 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
         }
     }, [selectedPlacement, replace]);
 
+    const generateJsonContent = () => {
+        const data = getValues();
+        const configContent = JSON.stringify(data, null, 2);
+        
+        const owner = process.env.NEXT_PUBLIC_GITHUB_REPO_OWNER;
+        const repo = process.env.NEXT_PUBLIC_GITHUB_REPO_NAME;
+        const pluginDownloadUrl = `https://github.com/${owner}/${repo}/releases/download/${data.partner_id}-v${data.version}/${data.partner_id}-v${data.version}.zip`;
+
+        const pluginJsonContent = JSON.stringify({
+            name: `Instaread Audio Player - ${data.publication || data.partner_id}`,
+            version: data.version,
+            download_url: pluginDownloadUrl,
+            requires: "5.6",
+            tested: "6.5",
+            sections: {
+                changelog: `<h4>${data.version}</h4><ul><li>Partner-specific build for ${data.publication || data.partner_id}</li></ul>`
+            }
+        }, null, 2);
+        return { config: configContent, plugin: pluginJsonContent };
+    };
+
+    const handlePreview = () => {
+        setPreviewContent(generateJsonContent());
+    };
+
     const handleGeneratePlugin = async () => {
         clearErrors();
         const data = getValues();
         
-        // Validation removed for testing.
-        
         setIsBuilding(true);
-        setBuildResult(null);
+        setBuildStatus('building');
+        setBuildLog(['🚀 Starting process...', 'Generating plugin and creating pull request...']);
         
         try {
             const actionResult = await generatePartnerPlugin(data);
-            setBuildResult(actionResult);
 
-            if (!actionResult.success) {
-                toast({
-                    title: "Build Failed",
-                    description: actionResult.message,
-                    variant: "destructive",
-                });
+            if (!actionResult.success || !actionResult.runId) {
+                setBuildStatus('failed');
+                setBuildLog(prev => [...prev, `❌ Error: ${actionResult.message}`]);
+                 toast({ title: "Build Failed", description: actionResult.message, variant: "destructive" });
             } else {
-                toast({
-                    title: "Success!",
-                    description: "Pull request created on GitHub.",
-                });
+                setBuildLog(prev => [...prev, `✅ PR created and merged: ${actionResult.pullRequestUrl}`]);
+                setBuildLog(prev => [...prev, `⏱️ Build triggered (Run ID: ${actionResult.runId}). Waiting for completion...`]);
+                setRunId(actionResult.runId);
+                setBuildStatus('polling');
             }
         } catch (error) {
             const message = error instanceof Error ? error.message : "An unexpected client-side error occurred."
-            setBuildResult({ success: false, message });
-            toast({
-                title: "Build Failed",
-                description: message,
-                variant: "destructive",
-            });
+            setBuildStatus('failed');
+            setBuildLog(prev => [...prev, `❌ Error: ${message}`]);
+            toast({ title: "Build Failed", description: message, variant: "destructive" });
         } finally {
             setIsBuilding(false);
         }
     };
+    
+    useEffect(() => {
+        if (buildStatus !== 'polling' || !runId) {
+            return;
+        }
+
+        const data = getValues();
+        const interval = setInterval(async () => {
+            try {
+                const statusResult = await checkWorkflowRun(runId);
+                if (statusResult.status === 'completed') {
+                    clearInterval(interval);
+                    if (statusResult.conclusion === 'success') {
+                        setBuildLog(prev => [...prev, '✅ Build workflow completed successfully.']);
+                        setBuildLog(prev => [...prev, '⬇️ Fetching download link...']);
+                        const url = await getReleaseDownloadUrl(data.partner_id, data.version);
+                        setDownloadUrl(url);
+                        setBuildStatus('success');
+                        setBuildLog(prev => [...prev, '🎉 Download is ready!']);
+                    } else {
+                        setBuildLog(prev => [...prev, `❌ Build workflow failed with conclusion: ${statusResult.conclusion}. Check GitHub Actions for details.`]);
+                        setBuildStatus('failed');
+                    }
+                } else {
+                    const lastLog = buildLog[buildLog.length - 1];
+                    const newLog = `...workflow status: ${statusResult.status}`;
+                     if (!lastLog.startsWith('...workflow')) {
+                       setBuildLog(prev => [...prev, newLog]);
+                    }
+                }
+            } catch (error) {
+                clearInterval(interval);
+                setBuildStatus('failed');
+                const message = error instanceof Error ? error.message : "An error occurred during polling."
+                setBuildLog(prev => [...prev, `❌ Polling failed: ${message}`]);
+            }
+        }, 5000); // Poll every 5 seconds
+
+        return () => clearInterval(interval);
+    }, [buildStatus, runId, getValues, buildLog]);
+
 
     const publication = useMemo(() => {
         if (!websiteUrl) return 'xyz';
@@ -213,6 +279,14 @@ const MyComponent = () => {
       return { html: htmlContent, react: reactContent };
     }, [publication, playerType, color]);
 
+    const resetBuild = () => {
+        setBuildStatus('idle');
+        setBuildLog([]);
+        setDownloadUrl(null);
+        setRunId(null);
+        setIsBuilding(false);
+    }
+
     return (
         <Card className="shadow-md">
             <CardHeader>
@@ -236,6 +310,7 @@ const MyComponent = () => {
                     </TabsContent>
                     
                     <TabsContent value="wordpress">
+                        {buildStatus === 'idle' ? (
                         <Form {...form}>
                             <form onSubmit={(e) => e.preventDefault()} className="space-y-6 mt-4">
                                 <div className="p-4 border rounded-lg space-y-4">
@@ -438,31 +513,87 @@ const MyComponent = () => {
                                     ))}
                                 </div>
                                 <Separator />
-                                <div className="flex flex-col gap-4">
-                                    <div className="flex justify-end">
-                                        <Button type="button" onClick={handleGeneratePlugin} disabled={isBuilding}>
-                                            {isBuilding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-                                            {isBuilding ? 'Generating...' : 'Generate Plugin PR'}
-                                        </Button>
-                                    </div>
-                                    
-                                    {buildResult && (
-                                        <Alert variant={buildResult.success ? "default" : "destructive"}>
-                                            {buildResult.success ? <CheckCircle className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
-                                            <AlertTitle>{buildResult.success ? "Success" : "Error"}</AlertTitle>
-                                            <AlertDescription>
-                                                {buildResult.message}
-                                                {buildResult.success && buildResult.pullRequestUrl && (
-                                                    <a href={buildResult.pullRequestUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-bold underline mt-2">
-                                                        View Pull Request <ExternalLink className="h-3 w-3" />
-                                                    </a>
-                                                )}
-                                            </AlertDescription>
-                                        </Alert>
-                                    )}
+                                <div className="flex justify-end gap-2">
+                                     <Dialog onOpenChange={(open) => !open && setPreviewContent(null)}>
+                                        <DialogTrigger asChild>
+                                            <Button type="button" variant="outline" onClick={handlePreview} disabled={isBuilding}>
+                                                <Eye className="mr-2 h-4 w-4" />
+                                                Preview & Verify
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="sm:max-w-3xl">
+                                            <DialogHeader>
+                                                <DialogTitle>Preview Configuration Files</DialogTitle>
+                                                <DialogDescription>
+                                                    Verify the generated JSON files before creating the pull request.
+                                                </DialogDescription>
+                                            </DialogHeader>
+                                            <Tabs defaultValue="config" className="w-full">
+                                                <TabsList className="grid w-full grid-cols-2">
+                                                    <TabsTrigger value="config">config.json</TabsTrigger>
+                                                    <TabsTrigger value="plugin">plugin.json</TabsTrigger>
+                                                </TabsList>
+                                                <TabsContent value="config">
+                                                    <CodeBlock content={previewContent?.config ?? ''} language="json" />
+                                                </TabsContent>
+                                                <TabsContent value="plugin">
+                                                    <CodeBlock content={previewContent?.plugin ?? ''} language="json" />
+                                                </TabsContent>
+                                            </Tabs>
+                                        </DialogContent>
+                                    </Dialog>
+                                    <Button type="button" onClick={handleGeneratePlugin} disabled={isBuilding}>
+                                        <Wand2 className="mr-2 h-4 w-4" />
+                                        Generate Plugin
+                                    </Button>
                                 </div>
                             </form>
                         </Form>
+                        ) : (
+                        <Card className="mt-4 bg-muted/50">
+                            <CardContent className="p-6">
+                                <div className="flex items-center gap-3">
+                                    {(buildStatus === 'building' || buildStatus === 'polling') && (
+                                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                    )}
+                                    {buildStatus === 'success' && (
+                                        <CheckCircle className="h-6 w-6 text-green-600" />
+                                    )}
+                                    {buildStatus === 'failed' && (
+                                        <AlertTriangle className="h-6 w-6 text-destructive" />
+                                    )}
+                                    <div>
+                                        <p className="font-semibold text-lg">
+                                            {buildStatus === 'success' && 'Build Successful!'}
+                                            {(buildStatus === 'building' || buildStatus === 'polling') && 'Building Plugin...'}
+                                            {buildStatus === 'failed' && 'Build Failed'}
+                                        </p>
+                                        <p className="text-sm text-muted-foreground">Follow the progress below.</p>
+                                    </div>
+                                </div>
+                                
+                                <ScrollArea className="h-40 w-full rounded-md border bg-background p-3 mt-4">
+                                     <div className="space-y-1.5 text-sm font-mono text-muted-foreground">
+                                        {buildLog.map((log, i) => <p key={i}>{log}</p>)}
+                                    </div>
+                                </ScrollArea>
+                                
+                                <div className="mt-4 flex justify-end gap-2">
+                                     {buildStatus === 'success' && downloadUrl && (
+                                        <Button asChild size="lg">
+                                            <a href={downloadUrl} target="_blank" rel="noopener noreferrer">
+                                                <Download className="mr-2 h-5 w-5" />
+                                                Download Plugin
+                                            </a>
+                                        </Button>
+                                    )}
+                                    {(buildStatus === 'success' || buildStatus === 'failed') && (
+                                        <Button variant="outline" onClick={resetBuild}>Start Over</Button>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                        )}
                     </TabsContent>
                 </Tabs>
             </CardContent>
