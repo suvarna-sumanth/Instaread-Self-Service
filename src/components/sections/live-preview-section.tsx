@@ -229,7 +229,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     
     return (
        <iframe
-        id="instaread_iframe"
+        id="outer_iframe"
         ref={iframeRef}
         srcDoc={effectiveHtml || ''}
         className="w-full h-full bg-white rounded-lg shadow-lg border"
