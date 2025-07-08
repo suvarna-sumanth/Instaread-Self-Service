@@ -10,7 +10,7 @@ import type { PlayerConfig, Placement } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
-import { Clipboard, Check, Wand2, Loader2, AlertTriangle, PlusCircle, Trash2 } from 'lucide-react';
+import { Clipboard, Check, Wand2, AlertTriangle, PlusCircle, Trash2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { PLAYER_SCRIPT_URL } from '@/lib/constants';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
@@ -56,7 +56,7 @@ const CodeBlock = ({ content, language }: { content: string, language: string })
 
 const injectionRuleSchema = z.object({
     target_selector: z.string().min(1, "Selector is required"),
-    insert_position: z.enum(['before_element', 'after_element']),
+    insert_position: z.enum(['before_element', 'after_element', 'inside_first_child']),
     exclude_slugs: z.string().optional()
 });
 
@@ -64,6 +64,9 @@ const wordpressConfigSchema = z.object({
     partner_id: z.string().min(1, "Partner ID is required"),
     domain: z.string().min(1, "Domain is required"),
     publication: z.string().min(1, "Publication is required"),
+    version: z.string().min(1, "Version is required, e.g., 1.0.0"),
+    injection_context: z.enum(['singular', 'archive', 'any']),
+    injection_strategy: z.enum(['first', 'all']),
     injection_rules: z.array(injectionRuleSchema).min(1, "At least one injection rule is required.")
 });
 
@@ -81,6 +84,9 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
             partner_id: '',
             domain: '',
             publication: '',
+            version: '1.0.0',
+            injection_context: 'singular',
+            injection_strategy: 'first',
             injection_rules: []
         }
     });
@@ -105,13 +111,13 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
                 form.resetField('publication');
             }
         }
-    }, [websiteUrl, form.setValue, form.resetField]);
+    }, [websiteUrl, form]);
     
     useEffect(() => {
         if (selectedPlacement?.selector) {
             const newRule = {
                 target_selector: selectedPlacement.selector,
-                insert_position: selectedPlacement.position === 'before' ? 'before_element' : 'after_element' as 'before_element' | 'after_element',
+                insert_position: selectedPlacement.position === 'before' ? 'before_element' : 'after_element',
                 exclude_slugs: ""
             };
             // Replace all existing rules with the new one from the preview
@@ -131,17 +137,9 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
         // Phase 2 will involve calling a server action here to interact with GitHub API
     };
 
-
-    let publication = 'xyz';
-    if (process.env.NODE_ENV === 'production' && websiteUrl) {
-      try {
-        const urlObject = new URL(websiteUrl);
-        const domain = urlObject.hostname.replace(/^www\./, '').split('.')[0];
-        publication = domain || 'xyz';
-      } catch (e) {
-        publication = 'xyz';
-      }
-    }
+    const publication = process.env.NODE_ENV === 'production' && websiteUrl ? (
+        new URL(websiteUrl).hostname.replace(/^www\./, '').split('.')[0] || 'xyz'
+    ) : 'xyz';
 
     const codeSnippets = {
         html: `<script type="module" crossorigin src="${PLAYER_SCRIPT_URL}"></script>
@@ -209,7 +207,7 @@ const MyComponent = () => {
                             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-4">
                                 <div className="p-4 border rounded-lg space-y-4">
                                     <h4 className="font-semibold">Partner Details</h4>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                          <FormField
                                             control={form.control}
                                             name="partner_id"
@@ -249,9 +247,71 @@ const MyComponent = () => {
                                                 </FormItem>
                                             )}
                                         />
+                                         <FormField
+                                            control={form.control}
+                                            name="version"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                <FormLabel>Version</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="e.g. 1.0.0" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
                                     </div>
                                 </div>
                                 
+                                <div className="p-4 border rounded-lg space-y-4">
+                                     <h4 className="font-semibold">Injection Details</h4>
+                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                         <FormField
+                                            control={form.control}
+                                            name="injection_context"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Injection Context</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                        <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Select context" />
+                                                        </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="singular">Singular</SelectItem>
+                                                            <SelectItem value="archive">Archive</SelectItem>
+                                                            <SelectItem value="any">Any</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                         <FormField
+                                            control={form.control}
+                                            name="injection_strategy"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Injection Strategy</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                        <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Select strategy" />
+                                                        </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="first">First Match</SelectItem>
+                                                            <SelectItem value="all">All Matches</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                     </div>
+                                </div>
+
                                 <div className="p-4 border rounded-lg space-y-4">
                                      <div className="flex items-center justify-between">
                                         <div>
@@ -315,6 +375,7 @@ const MyComponent = () => {
                                                                 <SelectContent>
                                                                     <SelectItem value="before_element">Before Element</SelectItem>
                                                                     <SelectItem value="after_element">After Element</SelectItem>
+                                                                    <SelectItem value="inside_first_child">Inside (First Child)</SelectItem>
                                                                 </SelectContent>
                                                             </Select>
                                                             <FormMessage />
