@@ -74,6 +74,8 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
         }
     });
 
+    const { setValue, resetField } = form;
+
     const { fields, append, remove, replace } = useFieldArray({
         control: form.control,
         name: "injection_rules"
@@ -85,16 +87,16 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
                 const urlObject = new URL(websiteUrl);
                 const domain = urlObject.hostname;
                 const partnerId = domain.replace(/^www\./, '').split('.')[0];
-                form.setValue('domain', domain, { shouldValidate: true });
-                form.setValue('partner_id', partnerId, { shouldValidate: true });
-                form.setValue('publication', partnerId, { shouldValidate: true });
+                setValue('domain', domain, { shouldValidate: true });
+                setValue('partner_id', partnerId, { shouldValidate: true });
+                setValue('publication', partnerId, { shouldValidate: true });
             } catch (e) {
-                form.resetField('domain');
-                form.resetField('partner_id');
-                form.resetField('publication');
+                resetField('domain');
+                resetField('partner_id');
+                resetField('publication');
             }
         }
-    }, [websiteUrl, form]);
+    }, [websiteUrl, setValue, resetField]);
     
     useEffect(() => {
         if (selectedPlacement?.selector) {
