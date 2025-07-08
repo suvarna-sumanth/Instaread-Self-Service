@@ -89,6 +89,20 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       const parser = new DOMParser();
       const doc = parser.parseFromString(cloneHtml, 'text/html');
       
+      // Inject style override for specific player types on mobile to prevent clipping
+      if (playerConfig.playerType === 'newdesign' || playerConfig.playerType === 'shortdesign') {
+        const styleOverride = doc.createElement('style');
+        styleOverride.textContent = `
+          @media (max-width: 750px) {
+            /* This targets the container the player's script creates inside our custom element */
+            #instaread-player-instance > .instaread-audio-player {
+              height: 224px !important;
+            }
+          }
+        `;
+        doc.head.appendChild(styleOverride);
+      }
+      
       if (selectedPlacement) {
         // Inject the player script ONLY when a placement is selected
         const playerScriptElement = doc.createElement('script');
