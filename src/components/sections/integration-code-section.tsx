@@ -74,7 +74,7 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
         }
     });
 
-    const { control, handleSubmit, reset, getValues } = form;
+    const { control, reset, getValues, trigger } = form;
 
     const { fields, append, remove, replace } = useFieldArray({
         control: form.control,
@@ -98,10 +98,8 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
             }
         }
         
-        // Use reset to update the form state based on the new URL prop.
-        // This is safer than multiple setValue calls for derived state.
         reset({
-            ...currentValues, // Preserve existing values like version, rules, etc.
+            ...currentValues,
             domain: newDomain,
             partner_id: newPartnerId,
             publication: newPublication,
@@ -122,8 +120,20 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
         }
     }, [selectedPlacement, replace]);
 
-    const onSubmit: SubmitHandler<WordPressConfigFormValues> = async (data) => {
-        if (data.injection_rules.length === 0) {
+    const handleGeneratePlugin = async () => {
+        const isFormValid = await trigger();
+        if (!isFormValid) {
+            toast({
+                title: "Validation Failed",
+                description: "Please review the form for errors before submitting.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        const data = getValues();
+
+        if (!data.injection_rules || data.injection_rules.length === 0) {
             toast({
                 title: "Injection Rule Required",
                 description: "Please add at least one injection rule before generating the plugin.",
@@ -229,7 +239,7 @@ const MyComponent = () => {
                     
                     <TabsContent value="wordpress">
                         <Form {...form}>
-                            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 mt-4">
+                            <form onSubmit={(e) => e.preventDefault()} className="space-y-6 mt-4">
                                 <div className="p-4 border rounded-lg space-y-4">
                                     <h4 className="font-semibold">Partner Details</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -432,7 +442,7 @@ const MyComponent = () => {
                                 <Separator />
                                 <div className="flex flex-col gap-4">
                                     <div className="flex justify-end">
-                                        <Button type="submit" disabled={isBuilding}>
+                                        <Button type="button" onClick={handleGeneratePlugin} disabled={isBuilding}>
                                             {isBuilding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
                                             {isBuilding ? 'Generating...' : 'Generate Plugin PR'}
                                         </Button>
