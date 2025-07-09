@@ -135,3 +135,4 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
   - `email-providers/`: Contains the specific implementations for each email provider (e.g., Nodemailer).
 - `src/ai/`: Contains all AI-related logic, including flows and provider implementations.
 - `src/types/`: TypeScript type definitions for the project.
+
