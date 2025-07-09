@@ -6,15 +6,9 @@
  * To switch to a different database (e.g., PostgreSQL), only this file needs to be modified.
  */
 
-import { db } from '@/lib/firebase';
+import { getDb } from '@/lib/firebase';
 import type { DemoConfig } from '@/types';
 
-
-const checkDb = () => {
-    if (!db) {
-        throw new Error('Firebase is not initialized. Please ensure FIREBASE_SERVICE_ACCOUNT_JSON is set correctly in your environment variables.');
-    }
-}
 
 /**
  * Creates or updates a demo configuration in the database based on the websiteUrl.
@@ -22,9 +16,9 @@ const checkDb = () => {
  * @returns The unique ID of the created or updated demo.
  */
 export async function upsertDemo(demoData: Omit<DemoConfig, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
-  checkDb();
+  const db = getDb();
   try {
-    const demosRef = db!.collection('demos');
+    const demosRef = db.collection('demos');
     const q = demosRef.where('websiteUrl', '==', demoData.websiteUrl).limit(1);
     const snapshot = await q.get();
 
@@ -60,9 +54,9 @@ export async function upsertDemo(demoData: Omit<DemoConfig, 'id' | 'createdAt' |
  * @returns The demo configuration object, or null if not found.
  */
 export async function getDemoById(id: string): Promise<DemoConfig | null> {
-  checkDb();
+  const db = getDb();
   try {
-    const doc = await db!.collection('demos').doc(id).get();
+    const doc = await db.collection('demos').doc(id).get();
     if (!doc.exists) {
       return null;
     }
@@ -78,9 +72,9 @@ export async function getDemoById(id: string): Promise<DemoConfig | null> {
  * @returns An array of demo configuration objects.
  */
 export async function getAllDemos(): Promise<DemoConfig[]> {
-  checkDb();
+  const db = getDb();
   try {
-    const snapshot = await db!.collection('demos').orderBy('updatedAt', 'desc').get();
+    const snapshot = await db.collection('demos').orderBy('updatedAt', 'desc').get();
     if (snapshot.empty) {
       return [];
     }
@@ -97,9 +91,9 @@ export async function getAllDemos(): Promise<DemoConfig[]> {
  * @param id - The unique ID of the demo to delete.
  */
 export async function deleteDemo(id: string): Promise<void> {
-    checkDb();
+    const db = getDb();
     try {
-        await db!.collection('demos').doc(id).delete();
+        await db.collection('demos').doc(id).delete();
     } catch (error) {
         const message = error instanceof Error ? error.message : "An unknown error occurred.";
         console.error(`Error deleting demo ${id} from Firestore: `, message);
