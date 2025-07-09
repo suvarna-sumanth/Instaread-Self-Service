@@ -58,10 +58,9 @@ type IntegrationCodeSectionProps = {
     playerConfig: PlayerConfig;
     websiteUrl: string;
     selectedPlacement: Placement;
-    useMockData: boolean;
 };
 
-const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement, useMockData }: IntegrationCodeSectionProps) => {
+const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }: IntegrationCodeSectionProps) => {
     const { toast } = useToast();
     const [isBuilding, setIsBuilding] = useState(false);
     
@@ -230,7 +229,7 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement, u
 
 
     const publication = useMemo(() => {
-        if (useMockData) {
+        if (process.env.NODE_ENV === 'development') {
             return 'xyz';
         }
         if (!websiteUrl) return 'xyz';
@@ -241,7 +240,7 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement, u
             console.warn(`Invalid URL provided for publication name: ${websiteUrl}`);
             return 'xyz';
         }
-    }, [websiteUrl, useMockData]);
+    }, [websiteUrl]);
 
     const { html, react } = useMemo(() => {
       const htmlContent = `<script type="module" crossorigin src="${PLAYER_SCRIPT_URL}"></script>
@@ -611,4 +610,5 @@ export default IntegrationCodeSection;
     
 
     
+
 

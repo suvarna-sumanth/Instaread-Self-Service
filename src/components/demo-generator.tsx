@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Copy, Link as LinkIcon } from 'lucide-react';
 
-export default function DemoGenerator({ useMockData }: { useMockData: boolean }) {
+export default function DemoGenerator() {
   const { toast } = useToast();
   const [url, setUrl] = useState('');
   const [analysis, setAnalysis] = useState<AnalysisResult>(null);
@@ -166,7 +166,6 @@ export default function DemoGenerator({ useMockData }: { useMockData: boolean })
               playerConfig={playerConfig} 
               websiteUrl={url}
               selectedPlacement={selectedPlacement}
-              useMockData={useMockData}
             />
           </div>
         </div>

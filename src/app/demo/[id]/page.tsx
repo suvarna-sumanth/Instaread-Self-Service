@@ -76,8 +76,8 @@ async function generateDemoHtml(id: string): Promise<string> {
     const targetEl = $(placement.selector).first();
     if (targetEl.length > 0) {
         let publication = 'xyz';
-        // Use real publication name if AI analysis is enabled, mimicking production behavior.
-        if (process.env.USE_AI_ANALYSIS === 'true') {
+        // Use real publication name if not in development, mimicking production behavior.
+        if (process.env.NODE_ENV !== 'development') {
             try {
                 const urlObject = new URL(websiteUrl);
                 publication = urlObject.hostname.replace(/^www\./, '').split('.')[0] || 'xyz';
