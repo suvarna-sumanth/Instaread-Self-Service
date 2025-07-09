@@ -316,7 +316,7 @@ const MyComponent = () => {
                     <TabsContent value="wordpress">
                         {buildStatus === 'idle' ? (
                         <Form {...form}>
-                            <form onSubmit={(e) => e.preventDefault()} className="space-y-6 mt-4">
+                            <form onSubmit={(e) => e.preventDefault()} className="space-y-4 mt-4">
                                 <div className="p-4 border rounded-lg space-y-4">
                                     <h4 className="font-semibold">Partner Details</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -610,5 +610,6 @@ export default IntegrationCodeSection;
     
 
     
+
 
 

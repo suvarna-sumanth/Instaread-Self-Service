@@ -57,12 +57,12 @@ const PlayerConfigSection = ({ config, setConfig, analysis }: PlayerConfigSectio
 
         <div className="space-y-2">
           <Label htmlFor="color-picker">Accent Color</Label>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <Input 
                 id="color-picker-text"
                 value={config.color}
                 onChange={handleColorChange}
-                className="w-28"
+                className="w-24"
             />
             <Input
               id="color-picker"
