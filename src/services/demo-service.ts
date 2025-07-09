@@ -30,8 +30,9 @@ export async function createDemo(demoData: Omit<DemoConfig, 'id'>): Promise<stri
     });
     return docRef.id;
   } catch (error) {
-    console.error("Error creating demo in Firestore: ", error);
-    throw new Error("Failed to save demo configuration.");
+    const message = error instanceof Error ? error.message : "An unknown error occurred.";
+    console.error("Error creating demo in Firestore: ", message);
+    throw new Error(`Failed to save demo configuration: ${message}`);
   }
 }
 
@@ -49,8 +50,9 @@ export async function getDemoById(id: string): Promise<DemoConfig | null> {
     }
     return { id: doc.id, ...doc.data() } as DemoConfig;
   } catch (error) {
-    console.error(`Error fetching demo ${id} from Firestore: `, error);
-    throw new Error("Failed to retrieve demo configuration.");
+    const message = error instanceof Error ? error.message : "An unknown error occurred.";
+    console.error(`Error fetching demo ${id} from Firestore: `, message);
+    throw new Error(`Failed to retrieve demo configuration: ${message}`);
   }
 }
 
@@ -67,7 +69,8 @@ export async function getAllDemos(): Promise<DemoConfig[]> {
         }
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DemoConfig));
     } catch (error) {
-        console.error("Error fetching all demos from Firestore: ", error);
-        throw new Error("Failed to retrieve demo configurations.");
+        const message = error instanceof Error ? error.message : "An unknown error occurred.";
+        console.error("Error fetching all demos from Firestore: ", message);
+        throw new Error(`Failed to retrieve demo configurations: ${message}`);
     }
 }
