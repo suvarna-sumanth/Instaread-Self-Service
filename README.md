@@ -108,6 +108,7 @@ EMAIL_PASS="your-smtp-password"
 EMAIL_FROM="Instaread Notifier <your-smtp-user@example.com>"
 
 # A comma-separated list of email addresses that will receive the notifications.
+# Example: EMAIL_TO="team-member-1@example.com, team-member-2@example.com"
 EMAIL_TO="your-test-email@example.com"
 ```
 
@@ -135,4 +136,3 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
   - `email-providers/`: Contains the specific implementations for each email provider (e.g., Nodemailer).
 - `src/ai/`: Contains all AI-related logic, including flows and provider implementations.
 - `src/types/`: TypeScript type definitions for the project.
-
