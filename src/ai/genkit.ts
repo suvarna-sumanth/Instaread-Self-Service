@@ -1,1 +1,1 @@
-// This file is no longer used after switching to the official OpenAI package.
+// This file is no longer used and has been intentionally left blank.
