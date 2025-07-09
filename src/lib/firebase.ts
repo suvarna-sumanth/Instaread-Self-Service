@@ -14,25 +14,16 @@ try {
         privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
     };
     
-    if (serviceAccount.projectId && serviceAccount.clientEmail && serviceAccount.privateKey) {
-        admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount),
-        });
-        db = admin.firestore();
-    } else {
-        const missing = [
-            !serviceAccount.projectId && "FIREBASE_PROJECT_ID",
-            !serviceAccount.clientEmail && "FIREBASE_CLIENT_EMAIL",
-            !serviceAccount.privateKey && "FIREBASE_PRIVATE_KEY"
-        ].filter(Boolean).join(', ');
-        // Throw a more specific error about which credentials are missing.
-        throw new Error(`Firebase credentials are not fully set in environment variables. Missing or invalid: ${missing}. Please check your .env file.`);
-    }
+    // Directly attempt initialization and let the Firebase SDK handle validation.
+    // If any credential is missing or malformed, this will throw a specific error.
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+    db = admin.firestore();
   }
 } catch (error) {
     console.error('Firebase admin initialization error:', error);
-    // Re-throw the original error to provide full context and stop execution.
-    // This prevents the generic error message from appearing later.
+    // Re-throw the original error from the SDK to provide full context.
     throw error;
 }
 
