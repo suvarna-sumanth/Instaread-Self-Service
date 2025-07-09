@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import { ColumnDef } from "@tanstack/react-table"
-import { MoreHorizontal, ArrowUpDown, ExternalLink, Trash2 } from "lucide-react"
+import { MoreHorizontal, ArrowUpDown, ExternalLink, Trash2, CheckCircle, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -45,6 +45,36 @@ export const columns: ColumnDef<DemoConfig>[] = [
     },
     cell: ({ row }) => {
         return <div className="font-medium">{row.getValue("websiteUrl")}</div>
+    }
+  },
+  {
+    accessorKey: "isInstalled",
+    header: "Status",
+    cell: ({ row }) => {
+        const { isInstalled, installedAt } = row.original;
+        
+        if (isInstalled) {
+            return (
+                <div className="flex items-center gap-2 font-medium text-green-600">
+                    <CheckCircle className="h-4 w-4" />
+                    <div className="flex flex-col text-left">
+                        <span>Installed</span>
+                        {installedAt && (
+                             <span className="text-xs font-normal text-muted-foreground">
+                                {format(new Date(installedAt), "MMM d, yyyy")}
+                             </span>
+                        )}
+                    </div>
+                </div>
+            )
+        }
+
+        return (
+            <div className="flex items-center gap-2 font-medium text-muted-foreground">
+                <Clock className="h-4 w-4" />
+                <span>Pending</span>
+            </div>
+        )
     }
   },
   {
