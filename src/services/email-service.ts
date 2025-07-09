@@ -8,7 +8,7 @@
  */
 
 import { Resend } from 'resend';
-import { PartnerInstallNotificationEmail } from '@/components/emails/partner-install-notification-email';
+import { PartnerInstallNotificationEmail } from '../components/emails/partner-install-notification-email';
 
 // For now, we are using Resend directly. In the future, this could be
 // a factory function that returns a different provider implementation
