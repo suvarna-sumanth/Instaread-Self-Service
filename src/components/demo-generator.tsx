@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Copy, Link as LinkIcon } from 'lucide-react';
+import { Copy, Link as LinkIcon, ExternalLink } from 'lucide-react';
 
 export default function DemoGenerator() {
   const { toast } = useToast();
@@ -104,7 +104,7 @@ export default function DemoGenerator() {
             });
         }
     } catch (error) {
-        const message = error instanceof Error ? error.message : "An unexpected error occurred.";
+        const message = error instanceof Error ? error.message : "An unknown error occurred.";
         toast({
             title: "Save Failed",
             description: message,
@@ -127,16 +127,24 @@ export default function DemoGenerator() {
     <Dialog open={!!shareableLink} onOpenChange={() => setShareableLink(null)}>
         <DialogContent>
             <DialogHeader>
-                <DialogTitle className="flex items-center gap-2"><LinkIcon /> Shareable Demo Link</DialogTitle>
+                <DialogTitle className="flex items-center gap-2"><LinkIcon /> Demo Saved!</DialogTitle>
                 <DialogDescription>
-                    Anyone with this link can view the generated demo.
+                    Use this link to test the player and share the demo. Opening it will simulate an installation and update the dashboard status.
                 </DialogDescription>
             </DialogHeader>
             <div className="flex items-center space-x-2">
                 <Input value={shareableLink || ''} readOnly />
-                <Button type="button" size="icon" onClick={copyLinkToClipboard}>
+                <Button type="button" size="icon" onClick={copyLinkToClipboard} aria-label="Copy link">
                     <Copy className="h-4 w-4" />
                 </Button>
+                {process.env.NODE_ENV === 'development' && (
+                    <Button asChild variant="secondary">
+                        <a href={shareableLink!} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="mr-2 h-4 w-4" />
+                            Test Demo
+                        </a>
+                    </Button>
+                )}
             </div>
         </DialogContent>
     </Dialog>

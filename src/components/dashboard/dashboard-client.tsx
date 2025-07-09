@@ -6,6 +6,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { DemoConfig } from "@/types";
 
+
 export default function DashboardClient({ data }: { data: DemoConfig[] }) {
     return (
         <div className="container mx-auto py-10">

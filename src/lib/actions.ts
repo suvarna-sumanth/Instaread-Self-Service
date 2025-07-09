@@ -35,11 +35,26 @@ export async function saveDemo(
         if (!websiteUrl || !playerConfig || !placement) {
             return { success: false, message: 'Missing required information to save demo.' };
         }
-        const demoData: Omit<DemoConfig, 'id' | 'createdAt' | 'updatedAt'> = {
+
+        // Derive the publication name from the URL
+        let publication = 'unknown-publication';
+        try {
+            const urlObject = new URL(websiteUrl);
+            publication = urlObject.hostname.replace(/^www\./, '').split('.')[0];
+        } catch (e) {
+            console.error(`Invalid URL provided, cannot derive publication name: ${websiteUrl}`);
+        }
+        if (!publication) {
+            publication = 'unknown-publication';
+        }
+
+        const demoData: Omit<DemoConfig, 'id' | 'createdAt' | 'updatedAt' | 'isInstalled' | 'installedAt'> = {
             websiteUrl,
+            publication,
             playerConfig,
             placement,
         };
+
         const demoId = await upsertDemo(demoData);
         revalidatePath('/dashboard');
         return { success: true, message: "Demo saved successfully!", demoId };

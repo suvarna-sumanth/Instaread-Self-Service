@@ -15,27 +15,34 @@ import type { DemoConfig } from '@/types';
  * @param demoData - The configuration data for the demo.
  * @returns The unique ID of the created or updated demo.
  */
-export async function upsertDemo(demoData: Omit<DemoConfig, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+export async function upsertDemo(demoData: Omit<DemoConfig, 'id' | 'createdAt' | 'updatedAt' | 'isInstalled' | 'installedAt'>): Promise<string> {
   const db = getDb();
   try {
     const demosRef = db.collection('demos');
+    // We use websiteUrl as the unique key to find existing demos
     const q = demosRef.where('websiteUrl', '==', demoData.websiteUrl).limit(1);
     const snapshot = await q.get();
 
     const now = new Date().toISOString();
 
     if (!snapshot.empty) {
-      // Document exists, update it
+      // Document exists, update it. We preserve the original install status.
       const docId = snapshot.docs[0].id;
+      const existingData = snapshot.docs[0].data();
       await demosRef.doc(docId).update({
         ...demoData,
         updatedAt: now,
+        // Preserve install status if it exists
+        isInstalled: existingData.isInstalled || false,
+        installedAt: existingData.installedAt || null,
       });
       return docId;
     } else {
-      // Document does not exist, create it
+      // Document does not exist, create it with default installation status.
       const docRef = await demosRef.add({
         ...demoData,
+        isInstalled: false,
+        installedAt: null,
         createdAt: now,
         updatedAt: now,
       });
@@ -56,10 +63,13 @@ export async function upsertDemo(demoData: Omit<DemoConfig, 'id' | 'createdAt' |
 export async function getDemoById(id: string): Promise<DemoConfig | null> {
   const db = getDb();
   try {
-    const doc = await db.collection('demos').doc(id).get();
+    const docRef = db.collection('demos').doc(id);
+    const doc = await docRef.get();
+    
     if (!doc.exists) {
       return null;
     }
+
     return { id: doc.id, ...doc.data() } as DemoConfig;
   } catch (error) {
     console.error(`Error fetching demo ${id} from Firestore: `, error);
@@ -99,4 +109,51 @@ export async function deleteDemo(id: string): Promise<void> {
         console.error(`Error deleting demo ${id} from Firestore: `, message);
         throw new Error(`Failed to delete demo: ${message}`);
     }
+}
+
+/**
+ * Records an installation event for a given publication.
+ * Finds the corresponding demo and updates its status to installed.
+ * This function is idempotent and will not re-update a demo that is already marked as installed.
+ * @param publication - The unique publication name of the partner.
+ * @returns True if the record was successfully updated or already up-to-date, false otherwise.
+ */
+export async function recordInstall(publication: string): Promise<boolean> {
+  const db = getDb();
+  try {
+    if (!publication) {
+        console.warn(`[recordInstall] Received install ping with no publication name.`);
+        return false;
+    }
+
+    const demosRef = db.collection('demos');
+    const q = demosRef.where('publication', '==', publication).limit(1);
+    const snapshot = await q.get();
+
+    if (snapshot.empty) {
+      console.warn(`[recordInstall] Received install ping for unknown publication: "${publication}". No record found.`);
+      return false;
+    }
+
+    const demoDoc = snapshot.docs[0];
+    // Only update if it's the first time being installed. This makes the endpoint idempotent.
+    if (demoDoc.data().isInstalled) {
+        console.log(`[recordInstall] Received duplicate install ping for publication: "${publication}". No update needed.`);
+        return true; // Still considered a success.
+    }
+
+    await demosRef.doc(demoDoc.id).update({
+      isInstalled: true,
+      installedAt: new Date().toISOString(),
+    });
+
+    console.log(`[recordInstall] Successfully recorded installation for publication: "${publication}".`);
+    return true;
+
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "An unknown error occurred.";
+    console.error(`[recordInstall] Error recording install for publication "${publication}": `, message);
+    // We throw here to be explicit about failure, but the API route will catch it.
+    throw new Error(`Failed to record installation: ${message}`);
+  }
 }
