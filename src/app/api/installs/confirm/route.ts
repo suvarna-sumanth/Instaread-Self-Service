@@ -1,8 +1,6 @@
 
 import { NextResponse } from 'next/server';
 import { recordInstall } from '@/services/demo-service';
-import { sendInstallNotificationEmail } from '@/services/email-service';
-import type { DemoConfig } from '@/types';
 
 // Common headers for CORS to allow cross-origin requests
 const corsHeaders = {
@@ -37,6 +35,10 @@ export async function POST(request: Request) {
             try {
                 const appUrl = process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://your-production-app-url.com';
                 
+                // Dynamically import the email service to prevent Next.js build errors.
+                // This ensures the server-only 'react-dom/server' package is not part of the client bundle.
+                const { sendInstallNotificationEmail } = await import('@/services/email-service');
+
                 await sendInstallNotificationEmail({
                     publication: result.demo.publication,
                     websiteUrl: result.demo.websiteUrl,

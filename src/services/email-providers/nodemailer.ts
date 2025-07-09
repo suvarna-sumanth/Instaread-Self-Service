@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -6,8 +5,6 @@
  */
 
 import nodemailer from 'nodemailer';
-import { renderToStaticMarkup } from 'react-dom/server';
-import { PartnerInstallNotificationEmail } from '@/components/emails/partner-install-notification-email';
 import type { InstallNotificationArgs } from '../email-service';
 
 
@@ -34,14 +31,13 @@ const getTransporter = () => {
 
 /**
  * Sends an email using the Nodemailer provider.
- * @param args The arguments required for the email.
+ * @param args The arguments required for the email's metadata (to, from, subject).
+ * @param htmlBody The pre-rendered HTML content of the email.
  */
-export async function sendWithNodemailer({
-    publication,
-    websiteUrl,
-    installedAt,
-    dashboardUrl
-}: InstallNotificationArgs) {
+export async function sendWithNodemailer(
+    args: InstallNotificationArgs,
+    htmlBody: string
+) {
     const transporter = getTransporter();
     
     const from = process.env.EMAIL_FROM;
@@ -53,22 +49,12 @@ export async function sendWithNodemailer({
 
     const toList = to.split(',').map(email => email.trim());
 
-    // Render our React component to a static HTML string.
-    const emailHtml = renderToStaticMarkup(
-        PartnerInstallNotificationEmail({
-            publication,
-            websiteUrl,
-            installedAt,
-            dashboardUrl,
-        })
-    );
-
     try {
         const info = await transporter.sendMail({
             from: from,
             to: toList.join(', '), // Nodemailer can take a comma-separated string
-            subject: `🎉 New Installation: ${publication} has installed the AudioLeap Player!`,
-            html: emailHtml,
+            subject: `🎉 New Installation: ${args.publication} has installed the Instaread Player!`,
+            html: htmlBody,
         });
 
         console.log(`[Nodemailer Provider] Email sent successfully! Message ID: ${info.messageId}`);
