@@ -11,6 +11,7 @@
 
 import OpenAI from 'openai';
 import { fetchWebsite } from '@/lib/fetch-website';
+import { WEBSITE_ANALYSIS_MODEL } from '@/lib/constants';
 
 // Define input and output types directly
 export type WebsiteAnalysisInput = {
@@ -44,20 +45,20 @@ const mockAnalysis: WebsiteAnalysisOutput = {
 };
 
 export async function analyzeWebsite(input: WebsiteAnalysisInput): Promise<WebsiteAnalysisOutput> {
-  const useAiAnalysis = process.env.ENABLE_AI_ANALYSIS === 'true';
+  const isProduction = process.env.NODE_ENV === 'production';
 
-  // If AI analysis is disabled, or if it's enabled but the key is missing, use mock data.
-  // This prevents the app from crashing if the key is not provided.
-  if (!useAiAnalysis || !process.env.OPENAI_API_KEY) {
-    if (useAiAnalysis && !process.env.OPENAI_API_KEY) {
-        console.warn("AI analysis is enabled, but the OPENAI_API_KEY is not set. Falling back to mock data.");
+  // In production, AI analysis is used. In development, we use mock data.
+  // This also prevents the app from crashing in production if the key is not provided.
+  if (!isProduction || !process.env.OPENAI_API_KEY) {
+    if (isProduction && !process.env.OPENAI_API_KEY) {
+        console.warn("PRODUCTION: OPENAI_API_KEY is not set. Falling back to mock data for website analysis.");
     } else {
-        console.log('AI analysis is disabled. Returning mock data.');
+        console.log('DEVELOPMENT: Using mock data for website analysis.');
     }
     return mockAnalysis;
   }
 
-  // At this point, we know AI is enabled AND the key is present.
+  // At this point, we are in production AND the key is present.
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
   });
@@ -89,7 +90,7 @@ export async function analyzeWebsite(input: WebsiteAnalysisInput): Promise<Websi
   
   try {
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: WEBSITE_ANALYSIS_MODEL,
       messages: [{ role: 'user', content: prompt }],
       response_format: { type: "json_object" },
     });
