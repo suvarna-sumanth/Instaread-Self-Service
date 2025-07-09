@@ -14,6 +14,13 @@ try {
 
     try {
         const serviceAccount = JSON.parse(serviceAccountString);
+
+        // The private key from the environment variable has escaped newlines (\\n).
+        // We need to replace them with actual newline characters (\n) for the SDK.
+        if (serviceAccount.private_key) {
+            serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+        }
+
         admin.initializeApp({
           credential: admin.credential.cert(serviceAccount),
         });
