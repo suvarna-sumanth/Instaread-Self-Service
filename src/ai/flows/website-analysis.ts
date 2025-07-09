@@ -3,6 +3,8 @@
 
 /**
  * @fileOverview A flow to analyze a website's design tokens and tech stack.
+ * This flow acts as a dispatcher, selecting the appropriate AI provider
+ * based on environment variables.
  *
  * - analyzeWebsite - A function that handles the website analysis process.
  * - WebsiteAnalysisInput - The input type for the analyzeWebsite function.
@@ -11,7 +13,7 @@
 
 import OpenAI from 'openai';
 import { fetchWebsite } from '@/lib/fetch-website';
-import { WEBSITE_ANALYSIS_MODEL } from '@/lib/constants';
+import { OPENAI_WEBSITE_ANALYSIS_MODEL } from '@/lib/constants';
 
 // Define input and output types directly
 export type WebsiteAnalysisInput = {
@@ -44,15 +46,13 @@ const mockAnalysis: WebsiteAnalysisOutput = {
     techStack: ['React', 'Next.js', 'Mock Data'],
 };
 
-export async function analyzeWebsite(input: WebsiteAnalysisInput): Promise<WebsiteAnalysisOutput> {
-  const useAiAnalysis = !!process.env.OPENAI_API_KEY;
+// --- Provider-specific Implementations ---
 
-  if (!useAiAnalysis) {
-    console.log('OPENAI_API_KEY not found. Using mock data for website analysis.');
-    return mockAnalysis;
+async function analyzeWithOpenAI(input: WebsiteAnalysisInput): Promise<WebsiteAnalysisOutput> {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OpenAI API key is missing. Please set OPENAI_API_KEY in your environment variables.');
   }
   
-  // From here, we are using the AI.
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
   });
@@ -84,7 +84,7 @@ export async function analyzeWebsite(input: WebsiteAnalysisInput): Promise<Websi
   
   try {
     const response = await openai.chat.completions.create({
-      model: WEBSITE_ANALYSIS_MODEL,
+      model: OPENAI_WEBSITE_ANALYSIS_MODEL,
       messages: [{ role: 'user', content: prompt }],
       response_format: { type: "json_object" },
     });
@@ -98,7 +98,39 @@ export async function analyzeWebsite(input: WebsiteAnalysisInput): Promise<Websi
     return analysisResult;
 
   } catch (error) {
-    console.error("[Website Analysis] Error analyzing with OpenAI:", error);
+    console.error("[OpenAI Analysis Error]:", error);
     throw new Error(`AI analysis failed. ${error instanceof Error ? error.message : 'An unexpected error occurred.'}`);
+  }
+}
+
+// In the future, you could add:
+// async function analyzeWithGemini(input: WebsiteAnalysisInput): Promise<WebsiteAnalysisOutput> { ... }
+
+
+// --- Main Dispatcher Flow ---
+
+export async function analyzeWebsite(input: WebsiteAnalysisInput): Promise<WebsiteAnalysisOutput> {
+  const useAi = process.env.USE_AI_ANALYSIS === 'true';
+
+  if (!useAi) {
+    console.log('USE_AI_ANALYSIS is not true. Using mock data for website analysis.');
+    return mockAnalysis;
+  }
+  
+  const provider = process.env.AI_PROVIDER;
+
+  switch (provider) {
+    case 'openai':
+      console.log(`Analyzing website with OpenAI: ${input.url}`);
+      return analyzeWithOpenAI(input);
+    
+    // To add Gemini support in the future, you would uncomment the following lines:
+    // case 'gemini':
+    //   console.log(`Analyzing website with Gemini: ${input.url}`);
+    //   return analyzeWithGemini(input);
+
+    default:
+      console.warn(`Unsupported AI_PROVIDER "${provider}". Falling back to mock data.`);
+      return mockAnalysis;
   }
 }
