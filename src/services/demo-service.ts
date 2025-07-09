@@ -8,6 +8,7 @@
 
 import { getDb } from '@/lib/firebase';
 import type { DemoConfig } from '@/types';
+import { sendInstallNotificationEmail } from '@/services/email-service';
 
 
 /**
@@ -142,12 +143,33 @@ export async function recordInstall(publication: string): Promise<boolean> {
         return true; // Still considered a success.
     }
 
+    const installedAt = new Date().toISOString();
     await demosRef.doc(demoDoc.id).update({
       isInstalled: true,
-      installedAt: new Date().toISOString(),
+      installedAt: installedAt,
     });
 
     console.log(`[recordInstall] Successfully recorded installation for publication: "${publication}".`);
+
+    // After successfully updating the database, send an email notification.
+    try {
+        const demoData = demoDoc.data() as DemoConfig;
+        const appUrl = process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://your-production-app-url.com';
+        
+        await sendInstallNotificationEmail({
+            publication: demoData.publication,
+            websiteUrl: demoData.websiteUrl,
+            installedAt: installedAt,
+            dashboardUrl: `${appUrl}/dashboard`
+        });
+        console.log(`[recordInstall] Email notification sent for publication: "${publication}".`);
+    } catch (emailError) {
+        // IMPORTANT: Log the email error but do not throw it.
+        // The primary function (recording the install) succeeded, and we don't
+        // want an email failure to break the core functionality.
+        console.error(`[recordInstall] Failed to send email notification for "${publication}":`, emailError);
+    }
+
     return true;
 
   } catch (error) {

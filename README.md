@@ -12,6 +12,7 @@ This application is a powerful self-service tool designed to generate live, inte
 - **WordPress Plugin Generation**: Automatically generate and build a complete, ready-to-install WordPress plugin for a specific partner via GitHub Actions.
 - **Save & Share**: Persists demo configurations to a database (Firebase Firestore) and generates unique, shareable links for each demo.
 - **Dashboard**: A central dashboard to view, manage, and delete all created demos, sorted by the most recently updated.
+- **Installation Notifications**: Receive real-time in-app and email notifications when a partner installs the player script.
 
 ## Tech Stack
 
@@ -21,6 +22,7 @@ This application is a powerful self-service tool designed to generate live, inte
 - **UI Components**: shadcn/ui
 - **Database**: Firebase Firestore
 - **AI Analysis**: OpenAI API (`gpt-4o-mini`)
+- **Email**: Resend
 - **Automation**: GitHub API & GitHub Actions for plugin generation
 
 ## Getting Started
@@ -85,6 +87,18 @@ OPENAI_API_KEY=""
 # 3. Copy the entire contents of that JSON file and paste it here as a single line.
 # IMPORTANT: The entire JSON string must be enclosed in double quotes ("").
 FIREBASE_SERVICE_ACCOUNT_JSON=""
+
+# --- Email Notification Configuration ---
+# Your Resend API Key for sending email notifications.
+# https://resend.com/docs/api-reference/api-keys
+RESEND_API_KEY=""
+
+# The email address that notifications will be sent FROM.
+# You must verify this domain/address with Resend.
+EMAIL_FROM="Instaread Notifier <onboarding@resend.dev>"
+
+# A comma-separated list of email addresses that will receive the notifications.
+EMAIL_TO=""
 ```
 
 ### 4. Run the Development Server
@@ -102,10 +116,11 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
   - `demo/[id]/`: The dynamic page for rendering shared demos.
 - `src/components/`: Shared React components used across the application.
   - `sections/`: Larger components that make up the main sections of the generator page.
+  - `emails/`: React components used as email templates.
   - `ui/`: Core UI components from shadcn/ui.
 - `src/lib/`: Core utilities, server actions, and constants.
   - `actions.ts`: Server Actions for handling form submissions and backend logic.
   - `firebase.ts`: Firebase Admin SDK initialization logic.
-- `src/services/`: Data access layer. Handles all direct communication with the database.
+- `src/services/`: Data access layer. Handles all direct communication with the database and external services like email.
 - `src/ai/`: Contains all AI-related logic, including flows and provider implementations.
 - `src/types/`: TypeScript type definitions for the project.
