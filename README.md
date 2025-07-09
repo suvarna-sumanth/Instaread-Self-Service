@@ -89,7 +89,12 @@ FIREBASE_CLIENT_EMAIL=""
 # You can use a tool like https://www.text-magic.com/free-tools/find-and-replace to replace '\n' with '\\n'.
 FIREBASE_PRIVATE_KEY=""
 
-# --- Email Notification Configuration (Nodemailer with SMTP) ---
+# --- Email Notification Configuration ---
+# Specify the email provider to use. Currently supports "nodemailer".
+# In the future, you could add support for "resend", "sendgrid", etc.
+EMAIL_PROVIDER="nodemailer"
+
+# -- For Nodemailer Provider --
 # For development, you can use a service like Ethereal (https://ethereal.email/) to create a free
 # test SMTP account. Or, you can use a real email provider like Gmail with an "App Password".
 # How to generate a Gmail App Password: https://support.google.com/accounts/answer/185833
@@ -127,5 +132,6 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
   - `actions.ts`: Server Actions for handling form submissions and backend logic.
   - `firebase.ts`: Firebase Admin SDK initialization logic.
 - `src/services/`: Data access layer. Handles all direct communication with the database and external services like email.
+  - `email-providers/`: Contains the specific implementations for each email provider (e.g., Nodemailer).
 - `src/ai/`: Contains all AI-related logic, including flows and provider implementations.
 - `src/types/`: TypeScript type definitions for the project.
