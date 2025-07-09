@@ -138,7 +138,8 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
 
         if (targetEl) {
           let publication = 'xyz';
-          if (process.env.NODE_ENV !== 'development') {
+          // Use real publication name if AI analysis is enabled, mimicking production behavior.
+          if (process.env.USE_AI_ANALYSIS === 'true') {
             try {
               if (url) {
                 const urlObject = new URL(url);
