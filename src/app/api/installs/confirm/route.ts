@@ -2,7 +2,6 @@
 
 import { NextResponse } from 'next/server';
 import { recordInstall } from '@/services/demo-service';
-import { sendInstallNotificationEmail } from '@/services/email-service';
 
 // Common headers for CORS to allow cross-origin requests
 const corsHeaders = {
@@ -35,6 +34,9 @@ export async function POST(request: Request) {
         if (result.success) {
             // After successfully updating the database, send an email notification.
             try {
+                // Dynamically import the email service ONLY when it's needed.
+                // This prevents the bundler from analyzing its dependencies at build time.
+                const { sendInstallNotificationEmail } = await import('@/services/email-service');
                 const appUrl = process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://your-production-app-url.com';
                 
                 await sendInstallNotificationEmail({
