@@ -6,9 +6,6 @@
  * the EMAIL_PROVIDER environment variable.
  */
 
-import { renderInstallNotificationHtml } from '@/lib/email-renderer';
-import { sendWithNodemailer } from './email-providers/nodemailer';
-
 // The arguments required to send an installation notification email.
 // This type is shared across all provider implementations.
 export type InstallNotificationArgs = {
@@ -19,28 +16,27 @@ export type InstallNotificationArgs = {
 };
 
 /**
- * Renders an email template and sends it using the configured provider.
- * @param args The arguments needed to construct the email.
+ * Sends an email using the configured provider.
+ * @param args The arguments needed to construct the email metadata (e.g. subject line).
+ * @param htmlBody The pre-rendered HTML string of the email.
  */
-export async function sendInstallNotificationEmail(args: InstallNotificationArgs) {
-    // 1. Render the React component to an HTML string.
-    const emailHtml = renderInstallNotificationHtml(args);
-
-    // 2. Select the provider and send the email with the pre-rendered HTML.
+export async function sendInstallNotificationEmail(args: InstallNotificationArgs, htmlBody: string) {
+    // Select the provider and send the email with the pre-rendered HTML.
     const provider = process.env.EMAIL_PROVIDER || 'nodemailer';
 
     console.log(`[Email Factory] Using email provider: ${provider}`);
 
     switch (provider.toLowerCase()) {
         case 'nodemailer': {
-            return sendWithNodemailer(args, emailHtml);
+            const { sendWithNodemailer } = await import('./email-providers/nodemailer');
+            return sendWithNodemailer(args, htmlBody);
         }
         
         // To add a new provider, you would add a new case here.
         // For example:
         // case 'resend':
         //     const { sendWithResend } = await import('./email-providers/resend');
-        //     return sendWithResend(args, emailHtml);
+        //     return sendWithResend(args, htmlBody);
 
         default:
             console.error(`[Email Factory] Unsupported email provider specified: "${provider}"`);
