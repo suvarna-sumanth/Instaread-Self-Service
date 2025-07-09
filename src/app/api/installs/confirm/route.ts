@@ -1,6 +1,8 @@
 
 import { NextResponse } from 'next/server';
 import { recordInstall } from '@/services/demo-service';
+import { sendInstallNotificationEmail } from '@/services/email-service';
+import type { DemoConfig } from '@/types';
 
 // Common headers for CORS to allow cross-origin requests
 const corsHeaders = {
@@ -28,10 +30,29 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: 'Publication name is required.' }, { status: 400, headers: corsHeaders });
         }
 
-        const success = await recordInstall(publication);
+        const result = await recordInstall(publication);
         
-        if (success) {
-             // Add CORS headers to the success response
+        if (result.success) {
+            // After successfully updating the database, send an email notification.
+            try {
+                const appUrl = process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://your-production-app-url.com';
+                
+                await sendInstallNotificationEmail({
+                    publication: result.demo.publication,
+                    websiteUrl: result.demo.websiteUrl,
+                    installedAt: result.installedAt,
+                    dashboardUrl: `${appUrl}/dashboard`
+                });
+                console.log(`[API /api/installs/confirm] Email notification sent for publication: "${publication}".`);
+
+            } catch (emailError) {
+                // IMPORTANT: Log the email error but do not throw it or fail the request.
+                // The primary function (recording the install) succeeded, and we don't
+                // want an email failure to break the core functionality.
+                console.error(`[API /api/installs/confirm] Failed to send email notification for "${publication}":`, emailError);
+            }
+
+            // Add CORS headers to the success response
             return NextResponse.json({ message: 'Installation event processed.' }, { status: 200, headers: corsHeaders });
         } else {
             // Add CORS headers to the 'not found' response

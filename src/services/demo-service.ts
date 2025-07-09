@@ -111,19 +111,23 @@ export async function deleteDemo(id: string): Promise<void> {
     }
 }
 
+type RecordInstallResult = 
+    | { success: true, demo: DemoConfig, installedAt: string }
+    | { success: false }
+
 /**
  * Records an installation event for a given publication.
  * Finds the corresponding demo and updates its status to installed.
  * This function is idempotent and will not re-update a demo that is already marked as installed.
  * @param publication - The unique publication name of the partner.
- * @returns True if the record was successfully updated or already up-to-date, false otherwise.
+ * @returns A result object indicating success and containing demo data for the caller.
  */
-export async function recordInstall(publication: string): Promise<boolean> {
+export async function recordInstall(publication: string): Promise<RecordInstallResult> {
   const db = getDb();
   try {
     if (!publication) {
         console.warn(`[recordInstall] Received install ping with no publication name.`);
-        return false;
+        return { success: false };
     }
 
     const demosRef = db.collection('demos');
@@ -132,14 +136,16 @@ export async function recordInstall(publication: string): Promise<boolean> {
 
     if (snapshot.empty) {
       console.warn(`[recordInstall] Received install ping for unknown publication: "${publication}". No record found.`);
-      return false;
+      return { success: false };
     }
 
     const demoDoc = snapshot.docs[0];
+    const demoData = { id: demoDoc.id, ...demoDoc.data() } as DemoConfig;
+    
     // Only update if it's the first time being installed. This makes the endpoint idempotent.
-    if (demoDoc.data().isInstalled) {
+    if (demoData.isInstalled) {
         console.log(`[recordInstall] Received duplicate install ping for publication: "${publication}". No update needed.`);
-        return true; // Still considered a success.
+        return { success: true, demo: demoData, installedAt: demoData.installedAt! };
     }
 
     const installedAt = new Date().toISOString();
@@ -149,29 +155,9 @@ export async function recordInstall(publication: string): Promise<boolean> {
     });
 
     console.log(`[recordInstall] Successfully recorded installation for publication: "${publication}".`);
-
-    // After successfully updating the database, send an email notification.
-    try {
-        // Dynamically import the email service to avoid bundling react-dom/server on the client
-        const { sendInstallNotificationEmail } = await import('@/services/email-service');
-        const demoData = demoDoc.data() as DemoConfig;
-        const appUrl = process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://your-production-app-url.com';
-        
-        await sendInstallNotificationEmail({
-            publication: demoData.publication,
-            websiteUrl: demoData.websiteUrl,
-            installedAt: installedAt,
-            dashboardUrl: `${appUrl}/dashboard`
-        });
-        console.log(`[recordInstall] Email notification sent for publication: "${publication}".`);
-    } catch (emailError) {
-        // IMPORTANT: Log the email error but do not throw it.
-        // The primary function (recording the install) succeeded, and we don't
-        // want an email failure to break the core functionality.
-        console.error(`[recordInstall] Failed to send email notification for "${publication}":`, emailError);
-    }
-
-    return true;
+    
+    const updatedDemoData = { ...demoData, isInstalled: true, installedAt };
+    return { success: true, demo: updatedDemoData, installedAt };
 
   } catch (error) {
     const message = error instanceof Error ? error.message : "An unknown error occurred.";
