@@ -1,6 +1,7 @@
 
 "use client"
 
+import { useState, useEffect } from "react";
 import { ColumnDef } from "@tanstack/react-table"
 import { MoreHorizontal, ArrowUpDown, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -14,6 +15,7 @@ import {
 import Link from "next/link"
 import { format } from 'date-fns';
 import type { DemoConfig } from "@/types"
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const columns: ColumnDef<DemoConfig>[] = [
   {
@@ -47,7 +49,19 @@ export const columns: ColumnDef<DemoConfig>[] = [
       )
     },
     cell: ({ row }) => {
-        const date = new Date(row.getValue("createdAt"));
+        const [isMounted, setIsMounted] = useState(false);
+
+        useEffect(() => {
+            setIsMounted(true);
+        }, []);
+
+        const dateString = row.getValue("createdAt") as string;
+        
+        if (!isMounted) {
+            return <Skeleton className="h-4 w-48" />;
+        }
+    
+        const date = new Date(dateString);
         const formattedDate = format(date, "MMMM d, yyyy 'at' h:mm a");
         return <div>{formattedDate}</div>
     }
