@@ -137,18 +137,10 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
         const targetEl = doc.querySelector(selectedPlacement.selector);
 
         if (targetEl) {
-          let publication = 'xyz';
-          // Use real publication name if not in development, mimicking production behavior.
-          if (process.env.NODE_ENV !== 'development') {
-            try {
-              if (url) {
-                const urlObject = new URL(url);
-                publication = urlObject.hostname.replace(/^www\./, '').split('.')[0] || 'xyz';
-              }
-            } catch (e) {
-                console.warn(`Invalid URL provided for publication name: ${url}`);
-            }
-          }
+          // Always use 'xyz' for the live preview on the main page.
+          // This provides a stable sandbox for testing player visual styles.
+          // The final, shareable demo page (/demo/[id]) will use the correct publication name.
+          const publication = 'xyz';
           
           const playerHtml = `<instaread-player
               id="instaread-player-instance"

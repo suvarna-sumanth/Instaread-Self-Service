@@ -229,15 +229,17 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
 
 
     const publication = useMemo(() => {
-        if (process.env.NODE_ENV === 'development') {
+        if (!websiteUrl) {
+            // When no URL is provided yet, show 'xyz' as a placeholder in the snippet.
             return 'xyz';
         }
-        if (!websiteUrl) return 'xyz';
         try {
             const url = new URL(websiteUrl);
+            // This logic correctly derives the publication name (e.g., 'sammobile')
             return url.hostname.replace(/^www\./, '').split('.')[0] || 'xyz';
         } catch (e) {
             console.warn(`Invalid URL provided for publication name: ${websiteUrl}`);
+            // Fallback to 'xyz' if the URL is invalid.
             return 'xyz';
         }
     }, [websiteUrl]);
@@ -610,6 +612,7 @@ export default IntegrationCodeSection;
     
 
     
+
 
 
 
