@@ -8,7 +8,6 @@
 
 import { getDb } from '@/lib/firebase';
 import type { DemoConfig } from '@/types';
-import { sendInstallNotificationEmail } from '@/services/email-service';
 
 
 /**
@@ -153,6 +152,8 @@ export async function recordInstall(publication: string): Promise<boolean> {
 
     // After successfully updating the database, send an email notification.
     try {
+        // Dynamically import the email service to avoid bundling react-dom/server on the client
+        const { sendInstallNotificationEmail } = await import('@/services/email-service');
         const demoData = demoDoc.data() as DemoConfig;
         const appUrl = process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://your-production-app-url.com';
         

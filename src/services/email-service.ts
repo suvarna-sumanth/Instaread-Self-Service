@@ -9,7 +9,7 @@
 
 import nodemailer from 'nodemailer';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { PartnerInstallNotificationEmail } from '../components/emails/partner-install-notification-email';
+import { PartnerInstallNotificationEmail } from '@/components/emails/partner-install-notification-email';
 
 // This function creates and configures a Nodemailer "transporter" which is
 // the object responsible for the actual sending of the email.
