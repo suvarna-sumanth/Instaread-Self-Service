@@ -2,7 +2,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Instaread Demo',
+  title: 'AudioLeap Demo',
   description: 'Live demo preview',
 };
 

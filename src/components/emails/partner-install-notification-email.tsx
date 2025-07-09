@@ -39,7 +39,7 @@ export const PartnerInstallNotificationEmail: React.FC<Readonly<PartnerInstallNo
           <div className="content">
             <p>Hello Team,</p>
             <p>
-              Great news! A new partner has successfully installed the Instaread audio player on their website.
+              Great news! A new partner has successfully installed the AudioLeap audio player on their website.
             </p>
             <div className="info-box">
               <p><strong>Partner:</strong> {publication}</p>
@@ -56,7 +56,7 @@ export const PartnerInstallNotificationEmail: React.FC<Readonly<PartnerInstallNo
             </div>
           </div>
           <div className="footer">
-            <p>This is an automated notification from the Instaread Demo Generator.</p>
+            <p>This is an automated notification from the AudioLeap Demo Generator.</p>
           </div>
         </div>
       </body>

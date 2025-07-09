@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -5,10 +6,6 @@
  * This service uses a factory pattern to select the email provider based on
  * the EMAIL_PROVIDER environment variable.
  */
-
-import { sendWithNodemailer } from './email-providers/nodemailer';
-// In the future, you could add another provider like this:
-// import { sendWithResend } from './email-providers/resend';
 
 // The arguments required to send an installation notification email.
 // This type is shared across all provider implementations.
@@ -30,12 +27,15 @@ export async function sendInstallNotificationEmail(args: InstallNotificationArgs
     console.log(`[Email Factory] Using email provider: ${provider}`);
 
     switch (provider.toLowerCase()) {
-        case 'nodemailer':
+        case 'nodemailer': {
+            const { sendWithNodemailer } = await import('./email-providers/nodemailer');
             return sendWithNodemailer(args);
+        }
         
         // To add a new provider, you would add a new case here.
         // For example:
         // case 'resend':
+        //     const { sendWithResend } = await import('./email-providers/resend');
         //     return sendWithResend(args);
 
         default:

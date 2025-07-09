@@ -41,7 +41,7 @@ async function generateDemoHtml(id: string): Promise<string> {
 
     // Inject custom styles
     let styleContent = `
-        instaread-player {
+        audioleap-player {
             opacity: 0;
             transition: opacity 0.5s ease-in-out;
         }
@@ -49,7 +49,7 @@ async function generateDemoHtml(id: string): Promise<string> {
         @keyframes fadeIn {
             to { opacity: 1; }
         }
-        .instaread-player-fade-in {
+        .audioleap-player-fade-in {
             animation: fadeIn 0.5s ease-in-out 0.5s forwards;
         }
     `;
@@ -57,12 +57,12 @@ async function generateDemoHtml(id: string): Promise<string> {
     if (playerConfig.playerType === 'newdesign' || playerConfig.playerType === 'shortdesign') {
         styleContent += `
             @media (max-width: 1199px) {
-                .instaread-audio-player {
+                .audioleap-audio-player {
                     height: 224px !important;
                 }
             }
             @media (min-width: 1200px) {
-                .instaread-audio-player {
+                .audioleap-audio-player {
                     height: 144px !important;
                 }
             }
@@ -79,13 +79,13 @@ async function generateDemoHtml(id: string): Promise<string> {
         // This ensures consistency between what's saved and what's tested.
         const publication = demoConfig.publication;
 
-        const playerHtml = `<instaread-player
-            id="instaread-player-instance"
+        const playerHtml = `<audioleap-player
+            id="audioleap-player-instance"
             publication="${publication}"
             playertype="${playerConfig.playerType}"
             colortype="${playerConfig.color}"
-            class="instaread-player-fade-in"
-          ></instaread-player>`;
+            class="audioleap-player-fade-in"
+          ></audioleap-player>`;
         
         if (placement.position === 'before') {
             targetEl.before(playerHtml);

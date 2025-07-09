@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster"
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Instaread',
+  title: 'AudioLeap',
   description: 'Self-Service Demo Generator for Live Audio Players',
 };
 

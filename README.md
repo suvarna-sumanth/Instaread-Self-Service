@@ -1,6 +1,7 @@
-# Instaread - Self-Service Demo Generator
 
-This application is a powerful self-service tool designed to generate live, interactive demos of the Instaread audio player on any website. It enables sales and support teams to quickly create and share compelling demonstrations for potential partners without needing to write any code.
+# AudioLeap - Self-Service Demo Generator
+
+This application is a powerful self-service tool designed to generate live, interactive demos of the AudioLeap audio player on any website. It enables sales and support teams to quickly create and share compelling demonstrations for potential partners without needing to write any code.
 
 ## Key Features
 
@@ -105,7 +106,7 @@ EMAIL_PASS="your-smtp-password"
 
 # The email address that notifications will be sent FROM.
 # This should match the user for your SMTP account.
-EMAIL_FROM="Instaread Notifier <your-smtp-user@example.com>"
+EMAIL_FROM="AudioLeap Notifier <your-smtp-user@example.com>"
 
 # A comma-separated list of email addresses that will receive the notifications.
 # Example: EMAIL_TO="team-member-1@example.com, team-member-2@example.com"

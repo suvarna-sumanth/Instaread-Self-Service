@@ -140,7 +140,7 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
         const pluginDownloadUrl = `https://github.com/${owner}/${repo}/releases/download/${data.partner_id}-v${data.version}/${data.partner_id}-v${data.version}.zip`;
 
         const pluginJsonContent = JSON.stringify({
-            name: `Instaread Audio Player - ${data.publication || data.partner_id}`,
+            name: `AudioLeap Audio Player - ${data.publication || data.partner_id}`,
             version: data.version,
             download_url: pluginDownloadUrl,
             requires: "5.6",
@@ -246,18 +246,18 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }:
 
     const { html, react } = useMemo(() => {
       const htmlContent = `<script type="module" crossorigin src="${PLAYER_SCRIPT_URL}"></script>
-<instaread-player
+<audioleap-player
   publication="${publication}"
   playertype="${playerType}"
   colortype="${color}"
-></instaread-player>`;
+></audioleap-player>`;
       
       const reactContent = `import { useEffect } from 'react';
 
 // In your main HTML file, add the script tag:
 // <script type="module" crossorigin src="${PLAYER_SCRIPT_URL}"></script>
 
-const InstareadPlayer = ({ publication, playerType, colorType }) => {
+const AudioLeapPlayer = ({ publication, playerType, colorType }) => {
   // This tells TypeScript to expect a custom element
   useEffect(() => {
     // You might need to declare the custom element type for TypeScript
@@ -265,17 +265,17 @@ const InstareadPlayer = ({ publication, playerType, colorType }) => {
   }, []);
 
   return (
-    <instaread-player
+    <audioleap-player
       publication={publication}
       playertype={playerType}
       colortype={colorType}
-    ></instaread-player>
+    ></audioleap-player>
   );
 };
 
 const MyComponent = () => {
   return (
-    <InstareadPlayer
+    <AudioLeapPlayer
       publication="${publication}"
       playerType="${playerType}"
       colorType="${color}"
@@ -608,12 +608,3 @@ const MyComponent = () => {
 };
 
 export default IntegrationCodeSection;
-
-    
-
-    
-
-
-
-
-

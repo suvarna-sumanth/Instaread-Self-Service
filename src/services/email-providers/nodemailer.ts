@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -66,7 +67,7 @@ export async function sendWithNodemailer({
         const info = await transporter.sendMail({
             from: from,
             to: toList.join(', '), // Nodemailer can take a comma-separated string
-            subject: `🎉 New Installation: ${publication} has installed the Instaread Player!`,
+            subject: `🎉 New Installation: ${publication} has installed the AudioLeap Player!`,
             html: emailHtml,
         });
 

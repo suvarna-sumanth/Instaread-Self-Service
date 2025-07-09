@@ -1,9 +1,9 @@
 
 // Utility function to encode the article title slug
-if (!window.__ir_player_loaded) {
-  window.__ir_player_loaded = true;
+if (!window.__al_player_loaded) {
+  window.__al_player_loaded = true;
   (function () {
-    function instareadPlayerTitleSlug(e) {
+    function audioleapPlayerTitleSlug(e) {
       if (e.includes("http://") || e.includes("https://")) {
         return encodeURIComponent(e);
       } else {
@@ -25,12 +25,12 @@ if (!window.__ir_player_loaded) {
     // var addStyletoiframediv = function (e) {
     //   let t = document.createElement("style");
     //   t.textContent = e;
-    //   const player = document.querySelector(".instaread-audio-player");
+    //   const player = document.querySelector(".audioleap-audio-player");
     //   if (!!player) player?.append(t);
     // };
     //     addStyletoiframediv(`
     //         @media only screen and (min-width: 1100px) {
-    //     .instaread-audio-player {
+    //     .audioleap-audio-player {
     //         width: 766px;
     //         height: 144px;
     //         position: relative;
@@ -48,7 +48,7 @@ if (!window.__ir_player_loaded) {
     // }
 
     // @media only screen and (min-width: 660px) and (max-width: 1099px) {
-    //     .instaread-audio-player {
+    //     .audioleap-audio-player {
     //         max-width: 100%;
     //         min-width: 332px;
     //         height: 224px;
@@ -117,7 +117,7 @@ if (!window.__ir_player_loaded) {
     // }
 
     // @media only screen and (max-width: 659px) {
-    //     .instaread-audio-player {
+    //     .audioleap-audio-player {
     //         max-width: 100%;
     //         min-width: 332px;
     //         height: 224px;
@@ -147,9 +147,9 @@ if (!window.__ir_player_loaded) {
     //       `);
 
     // Function to load the player
-    function loadIRPlayer() {
-      const instareadPlayerIframe = document.getElementById("instaread_iframe");
-      console.log("instareadPlayerIframe: ", instareadPlayerIframe);
+    function loadALPlayer() {
+      const audioleapPlayerIframe = document.getElementById("audioleap_iframe");
+      console.log("audioleapPlayerIframe: ", audioleapPlayerIframe);
       // const pageTitleElement = document.querySelector(
       //   "h1.Heading-sc-1w5xk2o-0.iSsUwa"
       // );
@@ -161,7 +161,7 @@ if (!window.__ir_player_loaded) {
       // } else if (titleElement) {
       //   content = titleElement.content;
       // }
-      // const ir_titleSlug = instareadPlayerTitleSlug(content);
+      // const ir_titleSlug = audioleapPlayerTitleSlug(content);
       // const ir_article_url = document.location.href;
       // let urlToFind;
       // if (ir_article_url) {
@@ -179,20 +179,20 @@ if (!window.__ir_player_loaded) {
       }
       const ir_version = getUniqueTimestampForHour();
 
-      const instareadPlayer = document.querySelector("instaread-player");
+      const audioleapPlayer = document.querySelector("audioleap-player");
 
       const ir_publication =
-        instareadPlayer?.getAttribute("publication") || "default";
+        audioleapPlayer?.getAttribute("publication") || "default";
       const ir_color_type =
-        instareadPlayer?.getAttribute("colortype") || "blue";
-      const ir_playertype = instareadPlayer?.getAttribute("playertype");
+        audioleapPlayer?.getAttribute("colortype") || "blue";
+      const ir_playertype = audioleapPlayer?.getAttribute("playertype");
       
-      // --- Instaread Installation Pingback ---
+      // --- AudioLeap Installation Pingback ---
       // This sends a one-time signal to the demo generator to mark this partner as "installed".
       (async function() {
         try {
           // Use a publication-specific key to avoid conflicts and ensure accuracy.
-          const pingSentKey = `instaread_install_ping_sent_${ir_publication}`;
+          const pingSentKey = `audioleap_install_ping_sent_${ir_publication}`;
           
           if (localStorage.getItem(pingSentKey)) {
             return; // Ping has already been sent for this publication on this browser.
@@ -211,7 +211,7 @@ if (!window.__ir_player_loaded) {
     
         } catch (error) {
           // Silently log the error. This must not break the player loading functionality.
-          console.error('Instaread: Install ping failed. This does not affect player functionality.', error);
+          console.error('AudioLeap: Install ping failed. This does not affect player functionality.', error);
         }
       })();
       // --- End of Pingback ---
@@ -224,16 +224,16 @@ if (!window.__ir_player_loaded) {
       const encodedPlayerDesign = encodeURIComponent(ir_playertype || "");
       const encodedColorType = encodeURIComponent(ir_color_type || "");
 
-      instareadPlayerIframe.setAttribute(
+      audioleapPlayerIframe.setAttribute(
         "src",
         `http://localhost:3001/playerdesign?player_design=${encodedPlayerDesign}&colortype=${encodedColorType}`
       );
 
-      console.log("instareadPlayerIframe.src:", instareadPlayerIframe.src);
+      console.log("audioleapPlayerIframe.src:", audioleapPlayerIframe.src);
     }
 
     // Call the loadPlayer function
-    loadIRPlayer();
+    loadALPlayer();
     (function () {
       // Helper to check conditions
       function shouldSetHeight(player) {
@@ -241,19 +241,19 @@ if (!window.__ir_player_loaded) {
         const playertype = player.getAttribute("playertype");
         return (
           (playertype === "newdesign" || playertype === "shortdesign") &&
-          document.querySelector(".instaread-widget-mobile")
+          document.querySelector(".audioleap-widget-mobile")
         );
       }
 
       function setAudioPlayerHeight() {
-        const audioPlayer = document.querySelector(".instaread-audio-player");
+        const audioPlayer = document.querySelector(".audioleap-audio-player");
         if (audioPlayer) {
           audioPlayer.style.height = "224px";
         }
       }
 
-      // Observe <instaread-player> attribute changes
-      const player = document.querySelector("instaread-player");
+      // Observe <audioleap-player> attribute changes
+      const player = document.querySelector("audioleap-player");
       if (player) {
         const observer = new MutationObserver(() => {
           if (shouldSetHeight(player)) {
@@ -267,7 +267,7 @@ if (!window.__ir_player_loaded) {
         });
       }
 
-      // Also observe DOM for .instaread-widget-mobile insertion
+      // Also observe DOM for .audioleap-widget-mobile insertion
       const domObserver = new MutationObserver(() => {
         if (shouldSetHeight(player)) {
           setAudioPlayerHeight();

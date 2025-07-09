@@ -103,7 +103,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       const styleEl = doc.createElement('style');
       let styleContent = `
           /* Initially hide the player to prevent seeing "loading" text */
-          instaread-player {
+          audioleap-player {
               opacity: 0;
               transition: opacity 0.5s ease-in-out;
           }
@@ -112,12 +112,12 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       if (playerType === 'newdesign' || playerType === 'shortdesign') {
           styleContent += `
               @media (max-width: 1199px) {
-                  .instaread-audio-player {
+                  .audioleap-audio-player {
                       height: 224px !important;
                   }
               }
               @media (min-width: 1200px) {
-                  .instaread-audio-player {
+                  .audioleap-audio-player {
                       height: 144px !important;
                   }
               }
@@ -142,12 +142,12 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
           // The final, shareable demo page (/demo/[id]) will use the correct publication name.
           const publication = 'xyz';
           
-          const playerHtml = `<instaread-player
-              id="instaread-player-instance"
+          const playerHtml = `<audioleap-player
+              id="audioleap-player-instance"
               publication="${publication}"
               playertype="${playerType}"
               colortype="${color}"
-            ></instaread-player>`;
+            ></audioleap-player>`;
           
           const playerFragment = doc.createRange().createContextualFragment(playerHtml);
 
@@ -168,10 +168,10 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
           let originalOutline = null;
 
           /* Logic to show fade-in player after a short delay */
-          const instareadPlayer = document.querySelector('instaread-player');
-          if (instareadPlayer) {
+          const audioleapPlayer = document.querySelector('audioleap-player');
+          if (audioleapPlayer) {
               setTimeout(() => {
-                  instareadPlayer.style.opacity = '1';
+                  audioleapPlayer.style.opacity = '1';
               }, 500);
           }
 
@@ -183,7 +183,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                   }
                   lastHovered = target;
                   originalOutline = target.style.outline;
-                  if (!target.closest('instaread-player')) {
+                  if (!target.closest('audioleap-player')) {
                        target.style.outline = '2px dashed #FF8C00';
                   }
               }
@@ -198,7 +198,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
           });
           
           document.addEventListener('click', (e) => {
-            if (e.target && !e.target.closest('instaread-player')) {
+            if (e.target && !e.target.closest('audioleap-player')) {
               e.preventDefault();
               e.stopPropagation();
               const selector = generateSelector(e.target);
