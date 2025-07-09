@@ -53,3 +53,21 @@ export async function getDemoById(id: string): Promise<DemoConfig | null> {
     throw new Error("Failed to retrieve demo configuration.");
   }
 }
+
+/**
+ * Retrieves all demo configurations from the database.
+ * @returns An array of all demo configurations.
+ */
+export async function getAllDemos(): Promise<DemoConfig[]> {
+    checkDb();
+    try {
+        const snapshot = await db.collection('demos').orderBy('createdAt', 'desc').get();
+        if (snapshot.empty) {
+            return [];
+        }
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DemoConfig));
+    } catch (error) {
+        console.error("Error fetching all demos from Firestore: ", error);
+        throw new Error("Failed to retrieve demo configurations.");
+    }
+}

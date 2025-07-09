@@ -3,7 +3,6 @@
 
 import { useState } from 'react';
 import type { PlayerConfig, AnalysisResult, Placement } from '@/types';
-import Header from '@/components/layout/header';
 import WebsiteAnalysisSection from '@/components/sections/website-analysis-section';
 import PlayerConfigSection from '@/components/sections/player-config-section';
 import IntegrationCodeSection from '@/components/sections/integration-code-section';
@@ -143,46 +142,43 @@ export default function DemoGenerator() {
         </DialogContent>
     </Dialog>
 
-    <div className="min-h-screen bg-background text-foreground">
-      <Header />
-      <div className="flex flex-col gap-8 p-4 md:p-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-           <div className="lg:col-span-1">
-             <WebsiteAnalysisSection 
-                url={url}
-                onAnalyze={handleAnalyze} 
-                analysis={analysis} 
-                isLoading={isLoading} 
-                statusText={statusText}
-              />
-          </div>
-          <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
-            <PlayerConfigSection 
-              config={playerConfig} 
-              setConfig={setPlayerConfig} 
-              analysis={analysis}
+    <div className="flex flex-col gap-8 p-4 md:p-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          <div className="lg:col-span-1">
+            <WebsiteAnalysisSection 
+              url={url}
+              onAnalyze={handleAnalyze} 
+              analysis={analysis} 
+              isLoading={isLoading} 
+              statusText={statusText}
             />
-            <IntegrationCodeSection 
-              playerConfig={playerConfig} 
-              websiteUrl={url}
-              selectedPlacement={selectedPlacement}
-            />
-          </div>
         </div>
-        <main className="min-h-[80vh]">
-          <LivePreviewSection
-            url={url}
-            cloneHtml={cloneHtml}
-            isLoading={isLoading}
-            statusText={statusText}
-            selectedPlacement={selectedPlacement}
-            onSelectPlacement={handlePlacementSelect}
-            playerConfig={playerConfig}
-            onSaveDemo={handleSaveDemo}
-            isSaving={isSaving}
+        <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
+          <PlayerConfigSection 
+            config={playerConfig} 
+            setConfig={setPlayerConfig} 
+            analysis={analysis}
           />
-        </main>
+          <IntegrationCodeSection 
+            playerConfig={playerConfig} 
+            websiteUrl={url}
+            selectedPlacement={selectedPlacement}
+          />
+        </div>
       </div>
+      <main className="min-h-[80vh]">
+        <LivePreviewSection
+          url={url}
+          cloneHtml={cloneHtml}
+          isLoading={isLoading}
+          statusText={statusText}
+          selectedPlacement={selectedPlacement}
+          onSelectPlacement={handlePlacementSelect}
+          playerConfig={playerConfig}
+          onSaveDemo={handleSaveDemo}
+          isSaving={isSaving}
+        />
+      </main>
     </div>
     </>
   );
