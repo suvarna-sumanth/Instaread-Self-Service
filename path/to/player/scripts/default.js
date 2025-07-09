@@ -1,7 +1,7 @@
 
 // Utility function to encode the article title slug
-if (!window.__al_player_loaded) {
-  window.__al_player_loaded = true;
+if (!window.__ir_player_loaded) {
+  window.__ir_player_loaded = true;
   (function () {
     function audioleapPlayerTitleSlug(e) {
       if (e.includes("http://") || e.includes("https://")) {
@@ -22,153 +22,11 @@ if (!window.__al_player_loaded) {
       }
     }
 
-    // var addStyletoiframediv = function (e) {
-    //   let t = document.createElement("style");
-    //   t.textContent = e;
-    //   const player = document.querySelector(".audioleap-audio-player");
-    //   if (!!player) player?.append(t);
-    // };
-    //     addStyletoiframediv(`
-    //         @media only screen and (min-width: 1100px) {
-    //     .audioleap-audio-player {
-    //         width: 766px;
-    //         height: 144px;
-    //         position: relative;
-    //     }
-
-    //     .ir-player-alignment,
-    //     .adp-interscroller-container {
-    //         position: absolute !important;
-    //         margin: auto !important;
-    //         bottom: 44.2px !important;
-    //         cursor: pointer;
-    //         right: 14.4px !important;
-    //         z-index: 99 !important;
-    //     }
-    // }
-
-    // @media only screen and (min-width: 660px) and (max-width: 1099px) {
-    //     .audioleap-audio-player {
-    //         max-width: 100%;
-    //         min-width: 332px;
-    //         height: 224px;
-    //         position: relative;
-    //     }
-    // }
-
-    // @media only screen and (min-width: 660px) and (max-width: 783px) {
-    //     .ir-player-alignment {
-    //         position: absolute !important;
-    //         left: 0px !important;
-    //         right: 0.27rem !important;
-    //         cursor: pointer;
-    //         bottom: 0.9rem !important;
-    //         z-index: 99 !important;
-    //         margin: 0px auto !important;
-    //     }
-    // }
-
-    // @media only screen and (min-width: 783px) and (max-width: 818px) {
-    //     .ir-player-alignment {
-    //         position: absolute !important;
-    //         left: 25rem !important;
-    //         right: 0.27rem !important;
-    //         cursor: pointer;
-    //         bottom: 7.8rem !important;
-    //         z-index: 99 !important;
-    //         margin: 0px auto !important;
-    //     }
-    // }
-
-    // @media only screen and (min-width: 818px) and (max-width: 922px) {
-    //     .ir-player-alignment {
-    //         position: absolute !important;
-    //         left: 26.4rem !important;
-    //         right: 0.27rem !important;
-    //         cursor: pointer;
-    //         bottom: 7.8rem !important;
-    //         z-index: 99 !important;
-    //         margin: 0px auto !important;
-    //     }
-    // }
-
-    // @media only screen and (min-width: 922px) and (max-width: 1024px) {
-    //     .ir-player-alignment {
-    //         position: absolute !important;
-    //         left: 29.4rem !important;
-    //         right: 0.27rem !important;
-    //         cursor: pointer;
-    //         bottom: 7.8rem !important;
-    //         z-index: 99 !important;
-    //         margin: 0px auto !important;
-    //     }
-    // }
-
-    // @media only screen and (min-width: 1024px) and (max-width: 1099px) {
-    //     .ir-player-alignment {
-    //         position: absolute !important;
-    //         left: 0.4rem !important;
-    //         right: 0.27rem !important;
-    //         cursor: pointer;
-    //         bottom: 0.9rem !important;
-    //         z-index: 99 !important;
-    //         margin: 0px auto !important;
-    //     }
-    // }
-
-    // @media only screen and (max-width: 659px) {
-    //     .audioleap-audio-player {
-    //         max-width: 100%;
-    //         min-width: 332px;
-    //         height: 224px;
-    //         position: relative;
-    //     }
-
-    //     .ir-player-alignment {
-    //         position: absolute !important;
-    //         left: 0px !important;
-    //         right: 0.27rem !important;
-    //         cursor: pointer;
-    //         bottom: 0.9rem !important;
-    //         z-index: 99 !important;
-    //         margin: 0px auto !important;
-    //     }
-
-    //     .adp-interscroller-container {
-    //         position: absolute !important;
-    //         left: 0px !important;
-    //         right: 0.27rem !important;
-    //         cursor: pointer;
-    //         bottom: 0.6rem !important;
-    //         z-index: 99 !important;
-    //         margin: 0px auto !important;
-    //     }
-    // }
-    //       `);
-
     // Function to load the player
-    function loadALPlayer() {
-      const audioleapPlayerIframe = document.getElementById("audioleap_iframe");
-      console.log("audioleapPlayerIframe: ", audioleapPlayerIframe);
-      // const pageTitleElement = document.querySelector(
-      //   "h1.Heading-sc-1w5xk2o-0.iSsUwa"
-      // );
-      // const titleElement = document.querySelector('meta[property="og:title"]');
-      // // const ir_version = new Date().valueOf();
-      // let content;
-      // if (pageTitleElement) {
-      //   content = pageTitleElement.innerText;
-      // } else if (titleElement) {
-      //   content = titleElement.content;
-      // }
-      // const ir_titleSlug = audioleapPlayerTitleSlug(content);
-      // const ir_article_url = document.location.href;
-      // let urlToFind;
-      // if (ir_article_url) {
-      //   const domain = new URL(ir_article_url);
-      //   urlToFind = `${domain.origin}${domain.pathname}`;
-      //   urlToFind = encodeURIComponent(urlToFind.replace(/\/+$/, ""));
-      // }
+    function loadIRPlayer() {
+      const instareadPlayerIframe = document.getElementById("instaread_iframe");
+      console.log("instareadPlayerIframe: ", instareadPlayerIframe);
+
       function getUniqueTimestampForHour() {
         const currentTimestamp = Date.now(); // Get current timestamp in milliseconds
         const roundedTimestamp =
@@ -179,20 +37,20 @@ if (!window.__al_player_loaded) {
       }
       const ir_version = getUniqueTimestampForHour();
 
-      const audioleapPlayer = document.querySelector("audioleap-player");
+      const instareadPlayer = document.querySelector("instaread-player");
 
       const ir_publication =
-        audioleapPlayer?.getAttribute("publication") || "default";
+        instareadPlayer?.getAttribute("publication") || "default";
       const ir_color_type =
-        audioleapPlayer?.getAttribute("colortype") || "blue";
-      const ir_playertype = audioleapPlayer?.getAttribute("playertype");
+        instareadPlayer?.getAttribute("colortype") || "blue";
+      const ir_playertype = instareadPlayer?.getAttribute("playertype");
       
-      // --- AudioLeap Installation Pingback ---
+      // --- Instaread Installation Pingback ---
       // This sends a one-time signal to the demo generator to mark this partner as "installed".
       (async function() {
         try {
           // Use a publication-specific key to avoid conflicts and ensure accuracy.
-          const pingSentKey = `audioleap_install_ping_sent_${ir_publication}`;
+          const pingSentKey = `instaread_install_ping_sent_${ir_publication}`;
           
           if (localStorage.getItem(pingSentKey)) {
             return; // Ping has already been sent for this publication on this browser.
@@ -211,7 +69,7 @@ if (!window.__al_player_loaded) {
     
         } catch (error) {
           // Silently log the error. This must not break the player loading functionality.
-          console.error('AudioLeap: Install ping failed. This does not affect player functionality.', error);
+          console.error('Instaread: Install ping failed. This does not affect player functionality.', error);
         }
       })();
       // --- End of Pingback ---
@@ -224,16 +82,16 @@ if (!window.__al_player_loaded) {
       const encodedPlayerDesign = encodeURIComponent(ir_playertype || "");
       const encodedColorType = encodeURIComponent(ir_color_type || "");
 
-      audioleapPlayerIframe.setAttribute(
+      instareadPlayerIframe.setAttribute(
         "src",
         `http://localhost:3001/playerdesign?player_design=${encodedPlayerDesign}&colortype=${encodedColorType}`
       );
 
-      console.log("audioleapPlayerIframe.src:", audioleapPlayerIframe.src);
+      console.log("instareadPlayerIframe.src:", instareadPlayerIframe.src);
     }
 
     // Call the loadPlayer function
-    loadALPlayer();
+    loadIRPlayer();
     (function () {
       // Helper to check conditions
       function shouldSetHeight(player) {
@@ -241,19 +99,19 @@ if (!window.__al_player_loaded) {
         const playertype = player.getAttribute("playertype");
         return (
           (playertype === "newdesign" || playertype === "shortdesign") &&
-          document.querySelector(".audioleap-widget-mobile")
+          document.querySelector(".instaread-widget-mobile")
         );
       }
 
       function setAudioPlayerHeight() {
-        const audioPlayer = document.querySelector(".audioleap-audio-player");
+        const audioPlayer = document.querySelector(".instaread-audio-player");
         if (audioPlayer) {
           audioPlayer.style.height = "224px";
         }
       }
 
-      // Observe <audioleap-player> attribute changes
-      const player = document.querySelector("audioleap-player");
+      // Observe <instaread-player> attribute changes
+      const player = document.querySelector("instaread-player");
       if (player) {
         const observer = new MutationObserver(() => {
           if (shouldSetHeight(player)) {
@@ -267,7 +125,7 @@ if (!window.__al_player_loaded) {
         });
       }
 
-      // Also observe DOM for .audioleap-widget-mobile insertion
+      // Also observe DOM for .instaread-widget-mobile insertion
       const domObserver = new MutationObserver(() => {
         if (shouldSetHeight(player)) {
           setAudioPlayerHeight();

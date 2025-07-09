@@ -12,7 +12,7 @@ const Header = () => {
             <div className="p-2 bg-primary/10 rounded-lg">
                 <BookAudio className="h-7 w-7 text-primary" />
             </div>
-            <h1 className="text-2xl font-headline font-bold text-foreground">AudioLeap</h1>
+            <h1 className="text-2xl font-headline font-bold text-foreground">Instaread</h1>
         </Link>
       </div>
       <div className="flex items-center gap-2">
