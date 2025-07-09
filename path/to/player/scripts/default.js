@@ -198,9 +198,8 @@ if (!window.__ir_player_loaded) {
             return; // Ping has already been sent for this publication on this browser.
           }
     
-          // IMPORTANT: Replace 'http://localhost:3000' with the actual URL 
-          // of your deployed demo generator app.
-          constapiUrl = 'http://localhost:3000/api/installs/confirm';
+          // IMPORTANT: This URL points to your deployed testing environment.
+          const apiUrl = 'https://6000-firebase-studio-1750674614783.cluster-ubrd2huk7jh6otbgyei4h62ope.cloudworkstations.dev/api/installs/confirm';
           
           await fetch(apiUrl, {
             method: 'POST',
