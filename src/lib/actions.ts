@@ -70,7 +70,7 @@ export async function deleteDemo(id: string): Promise<{ success: boolean, messag
         await deleteDemoFromDb(id);
         revalidatePath('/dashboard');
         return { success: true, message: 'Demo deleted successfully.' };
-    } catch (error)
+    } catch (error) {
         const message = error instanceof Error ? error.message : "An unknown error occurred.";
         return { success: false, message: `Failed to delete demo: ${message}` };
     }
