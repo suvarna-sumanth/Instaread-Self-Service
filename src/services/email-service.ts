@@ -1,13 +1,11 @@
 'use server';
-
 /**
- * @fileOverview An abstracted service for sending emails.
- * This service uses a factory pattern to select the email provider based on
- * the EMAIL_PROVIDER environment variable.
+ * @fileOverview Email service factory.
+ * This service acts as a dispatcher to send emails using the configured provider.
+ * It uses dynamic imports to load providers only when needed, which is crucial
+ * for avoiding Next.js build errors with server-only packages.
  */
 
-// The arguments required to send an installation notification email.
-// This type is shared across all provider implementations.
 export type InstallNotificationArgs = {
     publication: string;
     websiteUrl: string;
@@ -15,31 +13,27 @@ export type InstallNotificationArgs = {
     dashboardUrl: string;
 };
 
-/**
- * Sends an email using the configured provider.
- * @param args The arguments needed to construct the email metadata (e.g. subject line).
- * @param htmlBody The pre-rendered HTML string of the email.
- */
-export async function sendInstallNotificationEmail(args: InstallNotificationArgs, htmlBody: string) {
-    // Select the provider and send the email with the pre-rendered HTML.
-    const provider = process.env.EMAIL_PROVIDER || 'nodemailer';
-
-    console.log(`[Email Factory] Using email provider: ${provider}`);
-
-    switch (provider.toLowerCase()) {
-        case 'nodemailer': {
-            const { sendWithNodemailer } = await import('./email-providers/nodemailer');
-            return sendWithNodemailer(args, htmlBody);
+export async function sendInstallNotificationEmail(args: InstallNotificationArgs): Promise<void> {
+    const providerName = process.env.EMAIL_PROVIDER || 'nodemailer';
+    
+    try {
+        switch (providerName) {
+            case 'nodemailer':
+                // Dynamically import the provider to break the static analysis chain
+                const { sendInstallNotification } = await import('./email-providers/nodemailer');
+                await sendInstallNotification(args);
+                break;
+            // Future providers like 'resend' could be added here
+            // case 'resend':
+            //     const resendProvider = await import('./email-providers/resend');
+            //     await resendProvider.sendInstallNotification(args);
+            //     break;
+            default:
+                throw new Error(`Unsupported email provider: ${providerName}`);
         }
-        
-        // To add a new provider, you would add a new case here.
-        // For example:
-        // case 'resend':
-        //     const { sendWithResend } = await import('./email-providers/resend');
-        //     return sendWithResend(args, htmlBody);
-
-        default:
-            console.error(`[Email Factory] Unsupported email provider specified: "${provider}"`);
-            throw new Error(`Unsupported email provider: ${provider}`);
+    } catch (error) {
+        console.error(`[Email Service] Failed to send email using provider "${providerName}":`, error);
+        // Re-throw the error to be handled by the caller (API route)
+        throw error;
     }
 }

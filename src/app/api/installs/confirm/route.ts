@@ -2,8 +2,6 @@
 
 import { NextResponse } from 'next/server';
 import { recordInstall } from '@/services/demo-service';
-import { renderToStaticMarkup } from 'react-dom/server';
-import { PartnerInstallNotificationEmail } from '@/components/emails/partner-install-notification-email';
 import { sendInstallNotificationEmail } from '@/services/email-service';
 
 // Common headers for CORS to allow cross-origin requests
@@ -39,20 +37,12 @@ export async function POST(request: Request) {
             try {
                 const appUrl = process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://your-production-app-url.com';
                 
-                const emailArgs = {
+                await sendInstallNotificationEmail({
                     publication: result.demo.publication,
                     websiteUrl: result.demo.websiteUrl,
                     installedAt: result.installedAt,
                     dashboardUrl: `${appUrl}/dashboard`
-                };
-                
-                // Render the email component to an HTML string here, in a server-only context.
-                const emailHtml = renderToStaticMarkup(
-                    PartnerInstallNotificationEmail(emailArgs)
-                );
-
-                // Pass the pre-rendered HTML to the email service.
-                await sendInstallNotificationEmail(emailArgs, emailHtml);
+                });
 
                 console.log(`[API /api/installs/confirm] Email notification sent for publication: "${publication}".`);
 
