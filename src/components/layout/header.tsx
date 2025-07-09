@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { BookAudio, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import NotificationBell from './notification-bell';
 
 const Header = () => {
   return (
@@ -14,8 +15,9 @@ const Header = () => {
             <h1 className="text-2xl font-headline font-bold text-foreground">Instaread</h1>
         </Link>
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2">
         <p className="hidden md:block text-sm text-muted-foreground">Self-Service Demo Generator</p>
+        <NotificationBell />
         <Link href="/dashboard" passHref>
             <Button variant="outline" size="sm">
                 <LayoutDashboard className="mr-2 h-4 w-4"/>
