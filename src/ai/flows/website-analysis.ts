@@ -45,19 +45,14 @@ const mockAnalysis: WebsiteAnalysisOutput = {
 };
 
 export async function analyzeWebsite(input: WebsiteAnalysisInput): Promise<WebsiteAnalysisOutput> {
-  const isProduction = process.env.NODE_ENV === 'production';
+  const useAiAnalysis = !!process.env.OPENAI_API_KEY;
 
-  // In production, AI analysis is used. In development, we use mock data.
-  if (!isProduction) {
-    console.log('DEVELOPMENT: Using mock data for website analysis.');
+  if (!useAiAnalysis) {
+    console.log('OPENAI_API_KEY not found. Using mock data for website analysis.');
     return mockAnalysis;
   }
   
-  // From here, we are in PRODUCTION mode.
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error("Cannot analyze website in production: The OPENAI_API_KEY environment variable is not set. Please add it to your .env file.");
-  }
-
+  // From here, we are using the AI.
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
   });
