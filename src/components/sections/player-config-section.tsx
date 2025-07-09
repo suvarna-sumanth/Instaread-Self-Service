@@ -35,7 +35,7 @@ const PlayerConfigSection = ({ config, setConfig, analysis }: PlayerConfigSectio
         <CardTitle className="font-headline text-2xl">2. Player Configuration</CardTitle>
         <CardDescription>Customize the player's appearance and features.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4">
         <div className="space-y-2">
             <Label htmlFor="player-type">Player Type</Label>
             <Select 

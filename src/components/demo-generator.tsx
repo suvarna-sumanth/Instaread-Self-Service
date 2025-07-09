@@ -142,7 +142,7 @@ export default function DemoGenerator() {
         </DialogContent>
     </Dialog>
 
-    <div className="flex flex-col gap-8 p-4 md:p-8">
+    <div className="mx-auto max-w-screen-2xl space-y-6 p-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           <WebsiteAnalysisSection 
             url={url}

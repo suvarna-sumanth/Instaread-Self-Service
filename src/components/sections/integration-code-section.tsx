@@ -316,8 +316,8 @@ const MyComponent = () => {
                     <TabsContent value="wordpress">
                         {buildStatus === 'idle' ? (
                         <Form {...form}>
-                            <form onSubmit={(e) => e.preventDefault()} className="space-y-4 mt-4">
-                                <div className="p-4 border rounded-lg space-y-4">
+                            <form onSubmit={(e) => e.preventDefault()} className="space-y-3 mt-4">
+                                <div className="p-3 border rounded-lg space-y-3">
                                     <h4 className="font-semibold">Partner Details</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                          <FormField
@@ -375,7 +375,7 @@ const MyComponent = () => {
                                     </div>
                                 </div>
                                 
-                                <div className="p-4 border rounded-lg space-y-4">
+                                <div className="p-3 border rounded-lg space-y-3">
                                      <h4 className="font-semibold">Injection Details</h4>
                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                          <FormField
@@ -428,7 +428,7 @@ const MyComponent = () => {
                                      </div>
                                 </div>
 
-                                <div className="p-4 border rounded-lg space-y-4">
+                                <div className="p-3 border rounded-lg space-y-3">
                                      <div className="flex items-center justify-between">
                                         <div>
                                             <h4 className="font-semibold">Injection Rules</h4>
@@ -610,6 +610,7 @@ export default IntegrationCodeSection;
     
 
     
+
 
 
 
