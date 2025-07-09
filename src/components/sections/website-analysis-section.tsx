@@ -29,7 +29,7 @@ const WebsiteAnalysisSection = ({ url, onAnalyze, analysis, isLoading, statusTex
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      url: "https://example.com"
+      url: ""
     }
   });
 
@@ -62,13 +62,13 @@ const WebsiteAnalysisSection = ({ url, onAnalyze, analysis, isLoading, statusTex
                 <FormItem className="flex-grow">
                   <FormLabel className="sr-only">Website URL</FormLabel>
                   <FormControl>
-                    <Input placeholder="https://your-customers-website.com" {...field} />
+                    <Input placeholder="https://www.example.com" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <Button type="submit" disabled={isLoading} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+            <Button type="submit" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Analyze
             </Button>

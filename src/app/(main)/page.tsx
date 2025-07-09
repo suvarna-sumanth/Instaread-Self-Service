@@ -6,8 +6,6 @@ export default function Home() {
   // This provides a single switch to toggle between mock and real AI analysis.
   // The publication name logic is handled separately based on NODE_ENV.
   return (
-    <main>
       <DemoGenerator />
-    </main>
   );
 }

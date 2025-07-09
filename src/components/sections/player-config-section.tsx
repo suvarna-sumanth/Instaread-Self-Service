@@ -35,7 +35,7 @@ const PlayerConfigSection = ({ config, setConfig, analysis }: PlayerConfigSectio
         <CardTitle className="font-headline text-2xl">2. Player Configuration</CardTitle>
         <CardDescription>Customize the player's appearance and features.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4">
         <div className="space-y-2">
             <Label htmlFor="player-type">Player Type</Label>
             <Select 
@@ -57,12 +57,12 @@ const PlayerConfigSection = ({ config, setConfig, analysis }: PlayerConfigSectio
 
         <div className="space-y-2">
           <Label htmlFor="color-picker">Accent Color</Label>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <Input 
                 id="color-picker-text"
                 value={config.color}
                 onChange={handleColorChange}
-                className="w-28"
+                className="w-24"
             />
             <Input
               id="color-picker"
