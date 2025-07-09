@@ -76,14 +76,15 @@ async function generateDemoHtml(id: string): Promise<string> {
     const targetEl = $(placement.selector).first();
     if (targetEl.length > 0) {
         let publication = 'xyz';
-         if (process.env.NODE_ENV !== 'development') {
+        // Use real publication name if an OpenAI key is provided, mimicking production behavior.
+        if (!!process.env.OPENAI_API_KEY) {
             try {
                 const urlObject = new URL(websiteUrl);
                 publication = urlObject.hostname.replace(/^www\./, '').split('.')[0] || 'xyz';
             } catch (e) {
                 console.warn(`Invalid URL provided for publication name: ${websiteUrl}`);
             }
-         }
+        }
 
         const playerHtml = `<instaread-player
             id="instaread-player-instance"
