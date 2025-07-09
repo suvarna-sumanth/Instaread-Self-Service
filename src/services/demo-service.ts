@@ -6,8 +6,15 @@
  * To switch to a different database (e.g., PostgreSQL), only this file needs to be modified.
  */
 
-import { getDb } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import type { DemoConfig } from '@/types';
+
+
+const checkDb = () => {
+    if (!db) {
+        throw new Error('Firebase is not initialized. Please ensure FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY are set correctly in your environment variables.');
+    }
+}
 
 /**
  * Creates a new demo configuration in the database.
@@ -15,17 +22,16 @@ import type { DemoConfig } from '@/types';
  * @returns The unique ID of the newly created demo.
  */
 export async function createDemo(demoData: Omit<DemoConfig, 'id'>): Promise<string> {
-  const db = getDb();
+  checkDb();
   try {
-    const docRef = await db.collection('demos').add({
+    const docRef = await db!.collection('demos').add({
         ...demoData,
         createdAt: new Date().toISOString(),
     });
     return docRef.id;
   } catch (error) {
-    const message = error instanceof Error ? error.message : "An unknown error occurred.";
-    console.error("Error creating demo in Firestore: ", message);
-    throw new Error(`Failed to save demo configuration: ${message}`);
+    console.error("Error creating demo in Firestore: ", error);
+    throw new Error("Failed to save demo configuration.");
   }
 }
 
@@ -35,35 +41,34 @@ export async function createDemo(demoData: Omit<DemoConfig, 'id'>): Promise<stri
  * @returns The demo configuration object, or null if not found.
  */
 export async function getDemoById(id: string): Promise<DemoConfig | null> {
-  const db = getDb();
+  checkDb();
   try {
-    const doc = await db.collection('demos').doc(id).get();
+    const doc = await db!.collection('demos').doc(id).get();
     if (!doc.exists) {
       return null;
     }
     return { id: doc.id, ...doc.data() } as DemoConfig;
   } catch (error) {
-    const message = error instanceof Error ? error.message : "An unknown error occurred.";
-    console.error(`Error fetching demo ${id} from Firestore: `, message);
-    throw new Error(`Failed to retrieve demo configuration: ${message}`);
+    console.error(`Error fetching demo ${id} from Firestore: `, error);
+    throw new Error("Failed to retrieve demo configuration.");
   }
 }
 
 /**
- * Retrieves all demo configurations from the database.
- * @returns An array of all demo configurations.
+ * Retrieves all demo configurations from the database, ordered by creation date.
+ * @returns An array of demo configuration objects.
  */
 export async function getAllDemos(): Promise<DemoConfig[]> {
-    const db = getDb();
-    try {
-        const snapshot = await db.collection('demos').orderBy('createdAt', 'desc').get();
-        if (snapshot.empty) {
-            return [];
-        }
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DemoConfig));
-    } catch (error) {
-        const message = error instanceof Error ? error.message : "An unknown error occurred.";
-        console.error("Error fetching all demos from Firestore: ", message);
-        throw new Error(`Failed to retrieve demo configurations: ${message}`);
+  checkDb();
+  try {
+    const snapshot = await db!.collection('demos').orderBy('createdAt', 'desc').get();
+    if (snapshot.empty) {
+      return [];
     }
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DemoConfig));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "An unknown error occurred.";
+    console.error("Error fetching all demos from Firestore: ", message);
+    throw new Error(`Failed to retrieve demo configurations: ${message}`);
+  }
 }
