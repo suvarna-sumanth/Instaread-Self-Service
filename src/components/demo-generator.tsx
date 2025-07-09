@@ -104,7 +104,7 @@ export default function DemoGenerator() {
             });
         }
     } catch (error) {
-        const message = error instanceof Error ? error.message : "An unexpected error occurred.";
+        const message = error instanceof Error ? error.message : "An unknown error occurred.";
         toast({
             title: "Save Failed",
             description: message,
@@ -137,12 +137,14 @@ export default function DemoGenerator() {
                 <Button type="button" size="icon" onClick={copyLinkToClipboard} aria-label="Copy link">
                     <Copy className="h-4 w-4" />
                 </Button>
-                 <Button asChild variant="secondary">
-                    <a href={shareableLink!} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="mr-2 h-4 w-4" />
-                        Test Demo
-                    </a>
-                </Button>
+                {process.env.NODE_ENV === 'development' && (
+                    <Button asChild variant="secondary">
+                        <a href={shareableLink!} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="mr-2 h-4 w-4" />
+                            Test Demo
+                        </a>
+                    </Button>
+                )}
             </div>
         </DialogContent>
     </Dialog>
