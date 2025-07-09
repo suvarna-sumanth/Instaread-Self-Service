@@ -59,20 +59,23 @@ type GeneratePluginResult = {
 export async function generatePartnerPlugin(data: WordPressConfigFormValues): Promise<GeneratePluginResult> {
     const { 
         GITHUB_TOKEN, 
-        GITHUB_REPO_OWNER, 
-        GITHUB_REPO_NAME,
+        NEXT_PUBLIC_GITHUB_REPO_OWNER, 
+        NEXT_PUBLIC_GITHUB_REPO_NAME,
         GITHUB_WORKFLOW_ID
     } = process.env;
 
-    if (!GITHUB_TOKEN || !GITHUB_REPO_OWNER || !GITHUB_REPO_NAME || !GITHUB_WORKFLOW_ID) {
+    if (!GITHUB_TOKEN || !NEXT_PUBLIC_GITHUB_REPO_OWNER || !NEXT_PUBLIC_GITHUB_REPO_NAME || !GITHUB_WORKFLOW_ID) {
         const missing = [
             !GITHUB_TOKEN && "GITHUB_TOKEN",
-            !GITHUB_REPO_OWNER && "GITHUB_REPO_OWNER",
-            !GITHUB_REPO_NAME && "GITHUB_REPO_NAME",
+            !NEXT_PUBLIC_GITHUB_REPO_OWNER && "NEXT_PUBLIC_GITHUB_REPO_OWNER",
+            !NEXT_PUBLIC_GITHUB_REPO_NAME && "NEXT_PUBLIC_GITHUB_REPO_NAME",
             !GITHUB_WORKFLOW_ID && "GITHUB_WORKFLOW_ID"
         ].filter(Boolean).join(', ');
         return { success: false, message: `Server configuration error: Missing environment variables: ${missing}.` };
     }
+    
+    const GITHUB_REPO_OWNER = NEXT_PUBLIC_GITHUB_REPO_OWNER;
+    const GITHUB_REPO_NAME = NEXT_PUBLIC_GITHUB_REPO_NAME;
 
     const branchName = `partner/${data.partner_id}-v${data.version}`;
     const configFilePath = `partners/${data.partner_id}/config.json`;
@@ -93,7 +96,10 @@ This PR will be merged automatically to trigger the build process.`;
 
     try {
         const refResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/git/ref/heads/main`, { headers });
-        if (!refResponse.ok) throw new Error(`Failed to get main branch SHA: ${(await refResponse.json()).message}`);
+        if (!refResponse.ok) {
+            const errorData = await refResponse.json();
+            throw new Error(`Failed to get main branch SHA: ${errorData.message}`);
+        }
         const refData = await refResponse.json();
         const mainBranchSha = refData.object.sha;
 
@@ -170,21 +176,21 @@ This PR will be merged automatically to trigger the build process.`;
 }
 
 export async function checkWorkflowRun(runId: number): Promise<{ status: string; conclusion: string | null }> {
-    const { GITHUB_TOKEN, GITHUB_REPO_OWNER, GITHUB_REPO_NAME } = process.env;
+    const { GITHUB_TOKEN, NEXT_PUBLIC_GITHUB_REPO_OWNER, NEXT_PUBLIC_GITHUB_REPO_NAME } = process.env;
     const headers = { 'Authorization': `token ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github.v3+json' };
-    const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/actions/runs/${runId}`, { headers });
+    const response = await fetch(`https://api.github.com/repos/${NEXT_PUBLIC_GITHUB_REPO_OWNER}/${NEXT_PUBLIC_GITHUB_REPO_NAME}/actions/runs/${runId}`, { headers });
     if (!response.ok) throw new Error(`Failed to check workflow status: ${(await response.json()).message}`);
     const data = await response.json();
     return { status: data.status, conclusion: data.conclusion };
 }
 
 export async function getReleaseDownloadUrl(partnerId: string, version: string): Promise<string> {
-    const { GITHUB_TOKEN, GITHUB_REPO_OWNER, GITHUB_REPO_NAME } = process.env;
+    const { GITHUB_TOKEN, NEXT_PUBLIC_GITHUB_REPO_OWNER, NEXT_PUBLIC_GITHUB_REPO_NAME } = process.env;
     const headers = { 'Authorization': `token ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github.v3+json' };
     const tagName = `${partnerId}-v${version}`;
 
     for (let i = 0; i < 12; i++) { // Poll for up to 60 seconds
-        const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/releases/tags/${tagName}`, { headers });
+        const response = await fetch(`https://api.github.com/repos/${NEXT_PUBLIC_GITHUB_REPO_OWNER}/${NEXT_PUBLIC_GITHUB_REPO_NAME}/releases/tags/${tagName}`, { headers });
         if (response.ok) {
             const data = await response.json();
             const asset = data.assets?.find((a: any) => a.name.endsWith('.zip'));
