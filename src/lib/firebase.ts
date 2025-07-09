@@ -7,24 +7,28 @@ try {
   if (admin.apps.length) {
     db = admin.firestore();
   } else {
-    // The Firebase SDK expects the service account keys to be in snake_case.
-    const serviceAccount = {
-        project_id: process.env.FIREBASE_PROJECT_ID,
-        client_email: process.env.FIREBASE_CLIENT_EMAIL,
-        // The private key needs to be parsed correctly to handle escaped newlines.
-        private_key: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
-    };
-    
-    // Directly attempt initialization and let the Firebase SDK handle validation.
-    // If any credential is missing or malformed, this will throw a specific error.
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-    db = admin.firestore();
+    const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+    if (!serviceAccountString) {
+      throw new Error('Firebase service account JSON is not set in environment variables. Please set FIREBASE_SERVICE_ACCOUNT_JSON.');
+    }
+
+    try {
+        const serviceAccount = JSON.parse(serviceAccountString);
+        admin.initializeApp({
+          credential: admin.credential.cert(serviceAccount),
+        });
+        db = admin.firestore();
+    } catch (e) {
+        // This will catch errors from JSON.parse or from initializeApp
+        const message = e instanceof Error ? e.message : 'An unknown error occurred during Firebase initialization.';
+        console.error("Firebase Initialization Error:", message);
+        throw new Error(`Failed to parse or initialize Firebase Admin SDK: ${message}`);
+    }
   }
 } catch (error) {
-    console.error('Firebase admin initialization error:', error);
-    // Re-throw the original error from the SDK to provide full context.
+    // This catches the high-level error from the logic above
+    console.error('Firebase admin setup failed:', error);
+    // Re-throw the original error to provide full context to the caller.
     throw error;
 }
 
