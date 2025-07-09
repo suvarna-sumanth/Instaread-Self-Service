@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -142,8 +141,8 @@ export default function DemoGenerator() {
         </DialogContent>
     </Dialog>
 
-    <div className="mx-auto max-w-screen-2xl space-y-6 p-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+    <div className="mx-auto max-w-screen-xl space-y-8 p-8">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_400px]">
           <WebsiteAnalysisSection 
             url={url}
             onAnalyze={handleAnalyze} 
@@ -151,16 +150,18 @@ export default function DemoGenerator() {
             isLoading={isLoading} 
             statusText={statusText}
           />
-          <PlayerConfigSection 
-            config={playerConfig} 
-            setConfig={setPlayerConfig} 
-            analysis={analysis}
-          />
-          <IntegrationCodeSection 
-            playerConfig={playerConfig} 
-            websiteUrl={url}
-            selectedPlacement={selectedPlacement}
-          />
+          <div className="space-y-8">
+            <PlayerConfigSection 
+              config={playerConfig} 
+              setConfig={setPlayerConfig} 
+              analysis={analysis}
+            />
+            <IntegrationCodeSection 
+              playerConfig={playerConfig} 
+              websiteUrl={url}
+              selectedPlacement={selectedPlacement}
+            />
+          </div>
       </div>
       <main className="min-h-[80vh]">
         <LivePreviewSection
