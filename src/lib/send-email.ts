@@ -1,4 +1,3 @@
-'use server';
 /**
  * @fileOverview A self-contained utility for rendering and sending the partner installation email.
  * This file is dynamically imported by the API route to avoid Next.js build issues
