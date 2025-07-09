@@ -22,4 +22,5 @@ export type DemoConfig = {
     playerConfig: PlayerConfig;
     placement: NonNullable<Placement>;
     createdAt: string;
+    updatedAt: string;
 };

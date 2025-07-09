@@ -17,21 +17,40 @@ const checkDb = () => {
 }
 
 /**
- * Creates a new demo configuration in the database.
+ * Creates or updates a demo configuration in the database based on the websiteUrl.
  * @param demoData - The configuration data for the demo.
- * @returns The unique ID of the newly created demo.
+ * @returns The unique ID of the created or updated demo.
  */
-export async function createDemo(demoData: Omit<DemoConfig, 'id'>): Promise<string> {
+export async function upsertDemo(demoData: Omit<DemoConfig, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
   checkDb();
   try {
-    const docRef = await db!.collection('demos').add({
+    const demosRef = db!.collection('demos');
+    const q = demosRef.where('websiteUrl', '==', demoData.websiteUrl).limit(1);
+    const snapshot = await q.get();
+
+    const now = new Date().toISOString();
+
+    if (!snapshot.empty) {
+      // Document exists, update it
+      const docId = snapshot.docs[0].id;
+      await demosRef.doc(docId).update({
         ...demoData,
-        createdAt: new Date().toISOString(),
-    });
-    return docRef.id;
+        updatedAt: now,
+      });
+      return docId;
+    } else {
+      // Document does not exist, create it
+      const docRef = await demosRef.add({
+        ...demoData,
+        createdAt: now,
+        updatedAt: now,
+      });
+      return docRef.id;
+    }
   } catch (error) {
-    console.error("Error creating demo in Firestore: ", error);
-    throw new Error("Failed to save demo configuration.");
+    const message = error instanceof Error ? error.message : "An unknown error occurred.";
+    console.error("Error upserting demo in Firestore: ", message);
+    throw new Error(`Failed to save demo configuration: ${message}`);
   }
 }
 
@@ -55,13 +74,13 @@ export async function getDemoById(id: string): Promise<DemoConfig | null> {
 }
 
 /**
- * Retrieves all demo configurations from the database, ordered by creation date.
+ * Retrieves all demo configurations from the database, ordered by last update time.
  * @returns An array of demo configuration objects.
  */
 export async function getAllDemos(): Promise<DemoConfig[]> {
   checkDb();
   try {
-    const snapshot = await db!.collection('demos').orderBy('createdAt', 'desc').get();
+    const snapshot = await db!.collection('demos').orderBy('updatedAt', 'desc').get();
     if (snapshot.empty) {
       return [];
     }
@@ -71,4 +90,19 @@ export async function getAllDemos(): Promise<DemoConfig[]> {
     console.error("Error fetching all demos from Firestore: ", message);
     throw new Error(`Failed to retrieve demo configurations: ${message}`);
   }
+}
+
+/**
+ * Deletes a demo configuration by its ID.
+ * @param id - The unique ID of the demo to delete.
+ */
+export async function deleteDemo(id: string): Promise<void> {
+    checkDb();
+    try {
+        await db!.collection('demos').doc(id).delete();
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "An unknown error occurred.";
+        console.error(`Error deleting demo ${id} from Firestore: `, message);
+        throw new Error(`Failed to delete demo: ${message}`);
+    }
 }

@@ -3,9 +3,10 @@
 
 import { generateVisualClone as generateVisualCloneFlow } from '@/ai/flows/generate-visual-clone';
 import { analyzeWebsite as analyzeWebsiteFlow, type WebsiteAnalysisOutput } from '@/ai/flows/website-analysis';
-import { createDemo } from '@/services/demo-service';
+import { upsertDemo, deleteDemo as deleteDemoFromDb } from '@/services/demo-service';
 import type { WordPressConfigFormValues } from '@/lib/schemas';
 import type { DemoConfig, Placement, PlayerConfig } from '@/types';
+import { revalidatePath } from 'next/cache';
 
 export async function getVisualClone(url: string): Promise<string> {
     console.log(`Generating visual clone for: ${url}`);
@@ -34,17 +35,29 @@ export async function saveDemo(
         if (!websiteUrl || !playerConfig || !placement) {
             return { success: false, message: 'Missing required information to save demo.' };
         }
-        const demoData: Omit<DemoConfig, 'id' | 'createdAt'> = {
+        const demoData: Omit<DemoConfig, 'id' | 'createdAt' | 'updatedAt'> = {
             websiteUrl,
             playerConfig,
             placement,
         };
-        const demoId = await createDemo(demoData as Omit<DemoConfig, 'id'>);
+        const demoId = await upsertDemo(demoData);
+        revalidatePath('/dashboard');
         return { success: true, message: "Demo saved successfully!", demoId };
     } catch (error) {
         const message = error instanceof Error ? error.message : "An unknown error occurred.";
         console.error("[SaveDemo Action Error]:", message);
         return { success: false, message };
+    }
+}
+
+export async function deleteDemo(id: string): Promise<{ success: boolean, message: string }> {
+    try {
+        await deleteDemoFromDb(id);
+        revalidatePath('/dashboard');
+        return { success: true, message: 'Demo deleted successfully.' };
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "An unknown error occurred.";
+        return { success: false, message: `Failed to delete demo: ${message}` };
     }
 }
 
@@ -75,7 +88,7 @@ export async function generatePartnerPlugin(data: WordPressConfigFormValues): Pr
     }
     
     const GITHUB_REPO_OWNER = NEXT_PUBLIC_GITHUB_REPO_OWNER;
-    const GITHUB_REPO_NAME = NEXT_PUBLIC_GITHUB_REPO_NAME;
+    const GithubRepoName = NEXT_PUBLIC_GITHUB_REPO_NAME;
 
     const branchName = `partner/${data.partner_id}-v${data.version}`;
     const configFilePath = `partners/${data.partner_id}/config.json`;
@@ -95,7 +108,7 @@ This PR will be merged automatically to trigger the build process.`;
     };
 
     try {
-        const refResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/git/ref/heads/main`, { headers });
+        const refResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GithubRepoName}/git/ref/heads/main`, { headers });
         if (!refResponse.ok) {
             const errorData = await refResponse.json();
             throw new Error(`Failed to get main branch SHA: ${errorData.message}`);
@@ -103,7 +116,7 @@ This PR will be merged automatically to trigger the build process.`;
         const refData = await refResponse.json();
         const mainBranchSha = refData.object.sha;
 
-        const createBranchResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/git/refs`, {
+        const createBranchResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GithubRepoName}/git/refs`, {
             method: 'POST',
             headers,
             body: JSON.stringify({ ref: `refs/heads/${branchName}`, sha: mainBranchSha }),
@@ -111,13 +124,13 @@ This PR will be merged automatically to trigger the build process.`;
         if (!createBranchResponse.ok && createBranchResponse.status !== 422) throw new Error(`Failed to create branch: ${(await createBranchResponse.json()).message}`);
         
         const configContent = Buffer.from(JSON.stringify(data, null, 2)).toString('base64');
-        await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/contents/${configFilePath}`, {
+        await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GithubRepoName}/contents/${configFilePath}`, {
             method: 'PUT',
             headers,
             body: JSON.stringify({ message: `feat(config): Create config for ${data.partner_id}`, content: configContent, branch: branchName }),
         });
 
-        const downloadUrl = `https://github.com/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/releases/download/${data.partner_id}-v${data.version}/${data.partner_id}-v${data.version}.zip`;
+        const downloadUrl = `https://github.com/${GITHUB_REPO_OWNER}/${GithubRepoName}/releases/download/${data.partner_id}-v${data.version}/${data.partner_id}-v${data.version}.zip`;
         const pluginJsonContent = Buffer.from(JSON.stringify({
             name: `Instaread Audio Player - ${data.publication || data.partner_id}`,
             version: data.version,
@@ -125,13 +138,13 @@ This PR will be merged automatically to trigger the build process.`;
             requires: "5.6", tested: "6.5",
             sections: { changelog: `<h4>${data.version}</h4><ul><li>Partner-specific build for ${data.publication || data.partner_id}</li></ul>` }
         }, null, 2)).toString('base64');
-        await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/contents/${pluginJsonFilePath}`, {
+        await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GithubRepoName}/contents/${pluginJsonFilePath}`, {
             method: 'PUT',
             headers,
             body: JSON.stringify({ message: `feat(plugin): Create plugin.json for ${data.partner_id}`, content: pluginJsonContent, branch: branchName }),
         });
 
-        const createPrResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/pulls`, {
+        const createPrResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GithubRepoName}/pulls`, {
             method: 'POST',
             headers,
             body: JSON.stringify({ title: pullRequestTitle, body: pullRequestBody, head: branchName, base: 'main' }),
@@ -143,7 +156,7 @@ This PR will be merged automatically to trigger the build process.`;
         let mergeSucceeded = false;
         for (let i = 0; i < 5; i++) {
             await new Promise(resolve => setTimeout(resolve, 2000));
-            const mergePrResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/pulls/${pullRequestNumber}/merge`, { method: 'PUT', headers });
+            const mergePrResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GithubRepoName}/pulls/${pullRequestNumber}/merge`, { method: 'PUT', headers });
             if (mergePrResponse.ok || mergePrResponse.status === 409) {
                 mergeSucceeded = true;
                 break;
@@ -152,7 +165,7 @@ This PR will be merged automatically to trigger the build process.`;
         if (!mergeSucceeded) throw new Error(`Pull request was not mergeable after several retries.`);
 
         await new Promise(resolve => setTimeout(resolve, 2000));
-        const dispatchResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/actions/workflows/${GITHUB_WORKFLOW_ID}/dispatches`, {
+        const dispatchResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GithubRepoName}/actions/workflows/${GITHUB_WORKFLOW_ID}/dispatches`, {
             method: 'POST',
             headers,
             body: JSON.stringify({ ref: 'main', inputs: { partner_id: data.partner_id, version: data.version } }),
@@ -160,7 +173,7 @@ This PR will be merged automatically to trigger the build process.`;
         if (!dispatchResponse.ok) throw new Error(`PR merged, but failed to trigger workflow: ${(await dispatchResponse.json()).message}`);
 
         await new Promise(resolve => setTimeout(resolve, 5000));
-        const getRunsResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/actions/workflows/${GITHUB_WORKFLOW_ID}/runs?per_page=5`, { headers });
+        const getRunsResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GithubRepoName}/actions/workflows/${GITHUB_WORKFLOW_ID}/runs?per_page=5`, { headers });
         if (!getRunsResponse.ok) throw new Error("Could not fetch workflow runs to get Run ID.");
         const runsData = await getRunsResponse.json();
         const runId = runsData.workflow_runs?.[0]?.id;
