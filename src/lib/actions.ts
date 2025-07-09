@@ -3,7 +3,7 @@
 
 import { generateVisualClone as generateVisualCloneFlow } from '@/ai/flows/generate-visual-clone';
 import { analyzeWebsite as analyzeWebsiteFlow, type WebsiteAnalysisOutput } from '@/ai/flows/website-analysis';
-import { upsertDemo, deleteDemo as deleteDemoFromDb } from '@/services/demo-service';
+import { upsertDemo, deleteDemo as deleteDemoFromDb, resetDemoStatus as resetDemoStatusFromDb } from '@/services/demo-service';
 import type { WordPressConfigFormValues } from '@/lib/schemas';
 import type { DemoConfig, Placement, PlayerConfig } from '@/types';
 import { revalidatePath } from 'next/cache';
@@ -73,6 +73,20 @@ export async function deleteDemo(id: string): Promise<{ success: boolean, messag
     } catch (error) {
         const message = error instanceof Error ? error.message : "An unknown error occurred.";
         return { success: false, message: `Failed to delete demo: ${message}` };
+    }
+}
+
+export async function resetDemoStatus(id: string): Promise<{ success: boolean; message: string }> {
+    try {
+        if (process.env.NODE_ENV !== 'development') {
+            return { success: false, message: 'This action is only available in development mode.' };
+        }
+        await resetDemoStatusFromDb(id);
+        revalidatePath('/dashboard');
+        return { success: true, message: 'Demo status reset successfully.' };
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "An unknown error occurred.";
+        return { success: false, message: `Failed to reset demo status: ${message}` };
     }
 }
 

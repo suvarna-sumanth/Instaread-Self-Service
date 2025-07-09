@@ -157,3 +157,24 @@ export async function recordInstall(publication: string): Promise<boolean> {
     throw new Error(`Failed to record installation: ${message}`);
   }
 }
+
+
+/**
+ * Resets the installation status of a demo.
+ * @param id The ID of the demo to reset.
+ */
+export async function resetDemoStatus(id: string): Promise<void> {
+    const db = getDb();
+    try {
+        const docRef = db.collection('demos').doc(id);
+        await docRef.update({
+            isInstalled: false,
+            installedAt: null,
+            updatedAt: new Date().toISOString(),
+        });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "An unknown error occurred.";
+        console.error(`Error resetting demo status for ${id} in Firestore: `, message);
+        throw new Error(`Failed to reset demo status: ${message}`);
+    }
+}

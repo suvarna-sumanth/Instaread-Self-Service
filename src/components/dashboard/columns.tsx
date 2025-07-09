@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import { ColumnDef } from "@tanstack/react-table"
-import { MoreHorizontal, ArrowUpDown, ExternalLink, Trash2, CheckCircle, Clock } from "lucide-react"
+import { MoreHorizontal, ArrowUpDown, ExternalLink, Trash2, CheckCircle, Clock, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -27,7 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
-import { deleteDemo } from "@/lib/actions"
+import { deleteDemo, resetDemoStatus } from "@/lib/actions"
 
 export const columns: ColumnDef<DemoConfig>[] = [
   {
@@ -115,6 +115,8 @@ export const columns: ColumnDef<DemoConfig>[] = [
       const { toast } = useToast()
       const [isDeleting, setIsDeleting] = React.useState(false)
       const [isDeleteOpen, setIsDeleteOpen] = React.useState(false)
+      const [isResetting, setIsResetting] = React.useState(false)
+      const [isResetOpen, setIsResetOpen] = React.useState(false)
       
       const handleDelete = async () => {
           setIsDeleting(true)
@@ -133,6 +135,25 @@ export const columns: ColumnDef<DemoConfig>[] = [
           }
           setIsDeleting(false)
           setIsDeleteOpen(false)
+      }
+
+      const handleReset = async () => {
+          setIsResetting(true)
+          const result = await resetDemoStatus(demo.id)
+          if (result.success) {
+            toast({
+                title: "Status Reset",
+                description: "The demo status has been successfully reset to Pending.",
+            })
+          } else {
+            toast({
+                title: "Error",
+                description: result.message,
+                variant: "destructive",
+            })
+          }
+          setIsResetting(false)
+          setIsResetOpen(false)
       }
 
 
@@ -159,6 +180,26 @@ export const columns: ColumnDef<DemoConfig>[] = [
             </AlertDialogContent>
         </AlertDialog>
 
+        <AlertDialog open={isResetOpen} onOpenChange={setIsResetOpen}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This will reset the installation status for <strong className="break-all">{demo.websiteUrl}</strong> to &quot;Pending&quot;. This is intended for testing purposes only.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel disabled={isResetting}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                        onClick={handleReset}
+                        disabled={isResetting}
+                    >
+                        {isResetting ? "Resetting..." : "Reset Status"}
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
         <div className="text-right">
             <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -175,6 +216,12 @@ export const columns: ColumnDef<DemoConfig>[] = [
                         View Demo
                     </Link>
                 </DropdownMenuItem>
+                {process.env.NODE_ENV === 'development' && (
+                  <DropdownMenuItem onClick={() => setIsResetOpen(true)}>
+                      <RotateCcw className="mr-2 h-4 w-4" />
+                      Reset Status
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={() => setIsDeleteOpen(true)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
                     <Trash2 className="mr-2 h-4 w-4" />
                     Delete
