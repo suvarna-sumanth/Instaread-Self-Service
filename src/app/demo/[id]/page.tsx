@@ -75,16 +75,9 @@ async function generateDemoHtml(id: string): Promise<string> {
     // Use .first() to ensure we only target a single element, even if the selector matches multiple
     const targetEl = $(placement.selector).first();
     if (targetEl.length > 0) {
-        let publication = 'xyz';
-        // Use real publication name if not in development, mimicking production behavior.
-        if (process.env.NODE_ENV !== 'development') {
-            try {
-                const urlObject = new URL(websiteUrl);
-                publication = urlObject.hostname.replace(/^www\./, '').split('.')[0] || 'xyz';
-            } catch (e) {
-                console.warn(`Invalid URL provided for publication name: ${websiteUrl}`);
-            }
-        }
+        // Use the exact publication name from the saved demo configuration.
+        // This ensures consistency between what's saved and what's tested.
+        const publication = demoConfig.publication;
 
         const playerHtml = `<instaread-player
             id="instaread-player-instance"
