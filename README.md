@@ -22,7 +22,7 @@ This application is a powerful self-service tool designed to generate live, inte
 - **UI Components**: shadcn/ui
 - **Database**: Firebase Firestore
 - **AI Analysis**: OpenAI API (`gpt-4o-mini`)
-- **Email**: Resend
+- **Email**: Nodemailer
 - **Automation**: GitHub API & GitHub Actions for plugin generation
 
 ## Getting Started
@@ -82,23 +82,28 @@ OPENAI_API_KEY=""
 
 # --- Firebase Credentials ---
 # These are required for the "Save & Share" functionality and the dashboard.
-# 1. Go to your Firebase project -> Project Settings -> Service Accounts.
-# 2. Click "Generate new private key". A JSON file will be downloaded.
-# 3. Copy the entire contents of that JSON file and paste it here as a single line.
-# IMPORTANT: The entire JSON string must be enclosed in double quotes ("").
-FIREBASE_SERVICE_ACCOUNT_JSON=""
+# Your Firebase project credentials JSON object. This must be a single-line string.
+FIREBASE_PROJECT_ID=""
+FIREBASE_CLIENT_EMAIL=""
+# For the private key, you must replace all newline characters with '\\n'.
+# You can use a tool like https://www.text-magic.com/free-tools/find-and-replace to replace '\n' with '\\n'.
+FIREBASE_PRIVATE_KEY=""
 
-# --- Email Notification Configuration ---
-# Your Resend API Key for sending email notifications.
-# https://resend.com/docs/api-reference/api-keys
-RESEND_API_KEY=""
+# --- Email Notification Configuration (Nodemailer with SMTP) ---
+# For development, you can use a service like Ethereal (https://ethereal.email/) to create a free
+# test SMTP account. Or, you can use a real email provider like Gmail with an "App Password".
+# How to generate a Gmail App Password: https://support.google.com/accounts/answer/185833
+EMAIL_HOST="smtp.ethereal.email"
+EMAIL_PORT="587"
+EMAIL_USER="your-smtp-user@example.com"
+EMAIL_PASS="your-smtp-password"
 
 # The email address that notifications will be sent FROM.
-# You must verify this domain/address with Resend.
-EMAIL_FROM="Instaread Notifier <onboarding@resend.dev>"
+# This should match the user for your SMTP account.
+EMAIL_FROM="Instaread Notifier <your-smtp-user@example.com>"
 
 # A comma-separated list of email addresses that will receive the notifications.
-EMAIL_TO=""
+EMAIL_TO="your-test-email@example.com"
 ```
 
 ### 4. Run the Development Server

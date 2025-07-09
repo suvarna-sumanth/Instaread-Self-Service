@@ -7,18 +7,28 @@
  * you would only need to modify the logic within this file.
  */
 
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { PartnerInstallNotificationEmail } from '../components/emails/partner-install-notification-email';
 
-// For now, we are using Resend directly. In the future, this could be
-// a factory function that returns a different provider implementation
-// based on an environment variable (e.g., process.env.EMAIL_PROVIDER).
-const getEmailProvider = () => {
-    const apiKey = process.env.RESEND_API_KEY;
-    if (!apiKey) {
-        throw new Error('Resend API key is missing. Please set RESEND_API_KEY in your environment variables.');
+// This function creates and configures a Nodemailer "transporter" which is
+// the object responsible for the actual sending of the email.
+const getTransporter = () => {
+    const { EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS } = process.env;
+
+    if (!EMAIL_HOST || !EMAIL_PORT || !EMAIL_USER || !EMAIL_PASS) {
+        throw new Error('Email provider credentials are not configured in environment variables.');
     }
-    return new Resend(apiKey);
+
+    return nodemailer.createTransport({
+        host: EMAIL_HOST,
+        port: parseInt(EMAIL_PORT, 10),
+        secure: parseInt(EMAIL_PORT, 10) === 465, // true for 465, false for other ports
+        auth: {
+            user: EMAIL_USER,
+            pass: EMAIL_PASS,
+        },
+    });
 };
 
 type InstallNotificationArgs = {
@@ -34,7 +44,7 @@ export async function sendInstallNotificationEmail({
     installedAt,
     dashboardUrl
 }: InstallNotificationArgs) {
-    const resend = getEmailProvider();
+    const transporter = getTransporter();
     
     const from = process.env.EMAIL_FROM;
     const to = process.env.EMAIL_TO;
@@ -45,17 +55,22 @@ export async function sendInstallNotificationEmail({
 
     const toList = to.split(',').map(email => email.trim());
 
+    // Render our React component to a static HTML string.
+    const emailHtml = renderToStaticMarkup(
+        PartnerInstallNotificationEmail({
+            publication,
+            websiteUrl,
+            installedAt,
+            dashboardUrl,
+        })
+    );
+
     try {
-        await resend.emails.send({
+        await transporter.sendMail({
             from: from,
-            to: toList,
+            to: toList.join(', '), // Nodemailer can take a comma-separated string
             subject: `🎉 New Installation: ${publication} has installed the Instaread Player!`,
-            react: PartnerInstallNotificationEmail({
-                publication,
-                websiteUrl,
-                installedAt,
-                dashboardUrl,
-            }),
+            html: emailHtml,
         });
     } catch (error) {
         console.error("[Email Service Error]", error);
