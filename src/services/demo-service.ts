@@ -6,15 +6,8 @@
  * To switch to a different database (e.g., PostgreSQL), only this file needs to be modified.
  */
 
-import { db } from '@/lib/firebase';
+import { getDb } from '@/lib/firebase';
 import type { DemoConfig } from '@/types';
-
-
-const checkDb = () => {
-    if (!db) {
-        throw new Error('Firebase is not initialized. Please ensure FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY are set correctly in your environment variables.');
-    }
-}
 
 /**
  * Creates a new demo configuration in the database.
@@ -22,7 +15,7 @@ const checkDb = () => {
  * @returns The unique ID of the newly created demo.
  */
 export async function createDemo(demoData: Omit<DemoConfig, 'id'>): Promise<string> {
-  checkDb();
+  const db = getDb();
   try {
     const docRef = await db.collection('demos').add({
         ...demoData,
@@ -42,7 +35,7 @@ export async function createDemo(demoData: Omit<DemoConfig, 'id'>): Promise<stri
  * @returns The demo configuration object, or null if not found.
  */
 export async function getDemoById(id: string): Promise<DemoConfig | null> {
-  checkDb();
+  const db = getDb();
   try {
     const doc = await db.collection('demos').doc(id).get();
     if (!doc.exists) {
@@ -61,7 +54,7 @@ export async function getDemoById(id: string): Promise<DemoConfig | null> {
  * @returns An array of all demo configurations.
  */
 export async function getAllDemos(): Promise<DemoConfig[]> {
-    checkDb();
+    const db = getDb();
     try {
         const snapshot = await db.collection('demos').orderBy('createdAt', 'desc').get();
         if (snapshot.empty) {
