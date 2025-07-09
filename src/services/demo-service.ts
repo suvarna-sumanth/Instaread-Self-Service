@@ -8,7 +8,6 @@
 
 import { getDb } from '@/lib/firebase';
 import type { DemoConfig } from '@/types';
-import { FieldValue } from 'firebase-admin/firestore';
 
 
 /**
@@ -16,7 +15,7 @@ import { FieldValue } from 'firebase-admin/firestore';
  * @param demoData - The configuration data for the demo.
  * @returns The unique ID of the created or updated demo.
  */
-export async function upsertDemo(demoData: Omit<DemoConfig, 'id' | 'createdAt' | 'updatedAt' | 'viewCount'>): Promise<string> {
+export async function upsertDemo(demoData: Omit<DemoConfig, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
   const db = getDb();
   try {
     const demosRef = db.collection('demos');
@@ -39,7 +38,6 @@ export async function upsertDemo(demoData: Omit<DemoConfig, 'id' | 'createdAt' |
         ...demoData,
         createdAt: now,
         updatedAt: now,
-        viewCount: 0,
       });
       return docRef.id;
     }
@@ -51,7 +49,7 @@ export async function upsertDemo(demoData: Omit<DemoConfig, 'id' | 'createdAt' |
 }
 
 /**
- * Retrieves a demo configuration by its ID and increments its view count.
+ * Retrieves a demo configuration by its ID.
  * @param id - The unique ID of the demo.
  * @returns The demo configuration object, or null if not found.
  */
@@ -64,12 +62,6 @@ export async function getDemoById(id: string): Promise<DemoConfig | null> {
     if (!doc.exists) {
       return null;
     }
-
-    // Asynchronously increment the view count without waiting for it to complete.
-    // This prevents blocking the page render.
-    docRef.update({ viewCount: FieldValue.increment(1) }).catch(err => {
-        console.error(`Failed to increment view count for demo ${id}:`, err);
-    });
 
     return { id: doc.id, ...doc.data() } as DemoConfig;
   } catch (error) {

@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import { ColumnDef } from "@tanstack/react-table"
-import { MoreHorizontal, ArrowUpDown, ExternalLink, Trash2, Eye } from "lucide-react"
+import { MoreHorizontal, ArrowUpDown, ExternalLink, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -76,21 +76,6 @@ export const columns: ColumnDef<DemoConfig>[] = [
         const date = new Date(dateString);
         const formattedDate = format(date, "MMMM d, yyyy 'at' h:mm a");
         return <div>{formattedDate}</div>
-    }
-  },
-  {
-    accessorKey: "viewCount",
-    header: () => (
-        <div className="text-center">Views</div>
-    ),
-    cell: ({ row }) => {
-        const views = row.getValue("viewCount") as number || 0;
-        return (
-            <div className="flex items-center justify-center gap-2">
-                <Eye className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">{views}</span>
-            </div>
-        )
     }
   },
   {

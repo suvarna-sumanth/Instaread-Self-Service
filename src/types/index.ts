@@ -23,5 +23,4 @@ export type DemoConfig = {
     placement: NonNullable<Placement>;
     createdAt: string;
     updatedAt: string;
-    viewCount?: number;
 };
