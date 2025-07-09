@@ -1,4 +1,3 @@
-'use server';
 
 import { renderToStaticMarkup } from 'react-dom/server';
 import { PartnerInstallNotificationEmail } from '@/components/emails/partner-install-notification-email';
