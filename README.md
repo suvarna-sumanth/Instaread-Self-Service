@@ -91,7 +91,6 @@ FIREBASE_CLIENT_EMAIL=""
 FIREBASE_PRIVATE_KEY=""
 
 # --- Email Notification Configuration ---
-# -- For Nodemailer Provider --
 # For development, you can use a service like Ethereal (https://ethereal.email/) to create a free
 # test SMTP account. Or, you can use a real email provider like Gmail with an "App Password".
 # How to generate a Gmail App Password: https://support.google.com/accounts/answer/185833

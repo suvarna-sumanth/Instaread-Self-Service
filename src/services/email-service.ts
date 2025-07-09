@@ -1,9 +1,9 @@
 'use server';
 /**
- * @fileOverview Email service factory.
- * This service acts as a dispatcher to send emails using the configured provider.
- * It uses dynamic imports to load providers only when needed, which is crucial
- * for avoiding Next.js build errors with server-only packages.
+ * @fileOverview This file is no longer used for sending emails.
+ * The email logic has been consolidated into the API route at
+ * /api/installs/confirm to resolve a Next.js build issue.
+ * This file is kept to prevent breaking potential imports, but is not actively used.
  */
 
 export type InstallNotificationArgs = {
@@ -13,27 +13,11 @@ export type InstallNotificationArgs = {
     dashboardUrl: string;
 };
 
+/**
+ * This is now a no-op function.
+ * The email sending logic has been moved directly into the API route that uses it.
+ */
 export async function sendInstallNotificationEmail(args: InstallNotificationArgs): Promise<void> {
-    const providerName = process.env.EMAIL_PROVIDER || 'nodemailer';
-    
-    try {
-        switch (providerName) {
-            case 'nodemailer':
-                // Dynamically import the provider to break the static analysis chain
-                const { sendInstallNotification } = await import('./email-providers/nodemailer');
-                await sendInstallNotification(args);
-                break;
-            // Future providers like 'resend' could be added here
-            // case 'resend':
-            //     const resendProvider = await import('./email-providers/resend');
-            //     await resendProvider.sendInstallNotification(args);
-            //     break;
-            default:
-                throw new Error(`Unsupported email provider: ${providerName}`);
-        }
-    } catch (error) {
-        console.error(`[Email Service] Failed to send email using provider "${providerName}":`, error);
-        // Re-throw the error to be handled by the caller (API route)
-        throw error;
-    }
+    console.warn("DEPRECATED: sendInstallNotificationEmail is a no-op. The email logic has been moved to the API route at /api/installs/confirm.");
+    return Promise.resolve();
 }
