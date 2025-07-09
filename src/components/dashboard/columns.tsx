@@ -52,6 +52,11 @@ export const columns: ColumnDef<DemoConfig>[] = [
     header: "Status",
     cell: ({ row }) => {
         const { isInstalled, installedAt } = row.original;
+        const [isMounted, setIsMounted] = React.useState(false);
+
+        React.useEffect(() => {
+            setIsMounted(true);
+        }, []);
         
         if (isInstalled) {
             return (
@@ -61,7 +66,7 @@ export const columns: ColumnDef<DemoConfig>[] = [
                         <span>Installed</span>
                         {installedAt && (
                              <span className="text-xs font-normal text-muted-foreground">
-                                {format(new Date(installedAt), "MMM d, yyyy")}
+                                {isMounted ? format(new Date(installedAt), "MMM d, yyyy") : <Skeleton className="h-4 w-24" />}
                              </span>
                         )}
                     </div>
