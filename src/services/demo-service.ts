@@ -12,7 +12,7 @@ import type { DemoConfig } from '@/types';
 
 const checkDb = () => {
     if (!db) {
-        throw new Error('Firebase is not initialized. Please ensure FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY are set correctly in your environment variables.');
+        throw new Error('Firebase is not initialized. Please ensure FIREBASE_SERVICE_ACCOUNT_JSON is set correctly in your environment variables.');
     }
 }
 

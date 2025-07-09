@@ -108,4 +108,3 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - `src/services/`: Data access layer. Handles all direct communication with the database.
 - `src/ai/`: Contains all AI-related logic, including flows and provider implementations.
 - `src/types/`: TypeScript type definitions for the project.
-```
