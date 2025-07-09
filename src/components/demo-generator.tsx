@@ -141,41 +141,45 @@ export default function DemoGenerator() {
         </DialogContent>
     </Dialog>
 
-    <div className="mx-auto max-w-screen-xl space-y-8 p-8">
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_400px]">
-          <WebsiteAnalysisSection 
-            url={url}
-            onAnalyze={handleAnalyze} 
-            analysis={analysis} 
-            isLoading={isLoading} 
-            statusText={statusText}
-          />
-          <div className="space-y-8">
-            <PlayerConfigSection 
-              config={playerConfig} 
-              setConfig={setPlayerConfig} 
-              analysis={analysis}
+    <div className="space-y-8">
+      <div className="mx-auto max-w-screen-xl px-8 pt-8">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_400px]">
+            <WebsiteAnalysisSection 
+              url={url}
+              onAnalyze={handleAnalyze} 
+              analysis={analysis} 
+              isLoading={isLoading} 
+              statusText={statusText}
             />
-            <IntegrationCodeSection 
-              playerConfig={playerConfig} 
-              websiteUrl={url}
-              selectedPlacement={selectedPlacement}
-            />
-          </div>
+            <div className="space-y-8">
+              <PlayerConfigSection 
+                config={playerConfig} 
+                setConfig={setPlayerConfig} 
+                analysis={analysis}
+              />
+              <IntegrationCodeSection 
+                playerConfig={playerConfig} 
+                websiteUrl={url}
+                selectedPlacement={selectedPlacement}
+              />
+            </div>
+        </div>
       </div>
-      <main className="min-h-[80vh]">
-        <LivePreviewSection
-          url={url}
-          cloneHtml={cloneHtml}
-          isLoading={isLoading}
-          statusText={statusText}
-          selectedPlacement={selectedPlacement}
-          onSelectPlacement={handlePlacementSelect}
-          playerConfig={playerConfig}
-          onSaveDemo={handleSaveDemo}
-          isSaving={isSaving}
-        />
-      </main>
+      <div className="px-8 pb-8">
+        <div className="min-h-[80vh]">
+          <LivePreviewSection
+            url={url}
+            cloneHtml={cloneHtml}
+            isLoading={isLoading}
+            statusText={statusText}
+            selectedPlacement={selectedPlacement}
+            onSelectPlacement={handlePlacementSelect}
+            playerConfig={playerConfig}
+            onSaveDemo={handleSaveDemo}
+            isSaving={isSaving}
+          />
+        </div>
+      </div>
     </div>
     </>
   );
