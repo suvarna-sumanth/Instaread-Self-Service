@@ -19,8 +19,11 @@ export type Placement = {
 export type DemoConfig = {
     id: string;
     websiteUrl: string;
+    publication: string; // The unique identifier for the partner
     playerConfig: PlayerConfig;
     placement: NonNullable<Placement>;
+    isInstalled: boolean; // Tracks if the player has been installed on the partner site
+    installedAt: string | null; // The timestamp of the first installation
     createdAt: string;
     updatedAt: string;
 };

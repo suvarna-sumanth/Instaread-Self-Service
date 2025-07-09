@@ -15,17 +15,18 @@ import type { DemoConfig } from '@/types';
  * @param demoData - The configuration data for the demo.
  * @returns The unique ID of the created or updated demo.
  */
-export async function upsertDemo(demoData: Omit<DemoConfig, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+export async function upsertDemo(demoData: Omit<DemoConfig, 'id' | 'createdAt' | 'updatedAt' | 'isInstalled' | 'installedAt'>): Promise<string> {
   const db = getDb();
   try {
     const demosRef = db.collection('demos');
+    // We use websiteUrl as the unique key to find existing demos
     const q = demosRef.where('websiteUrl', '==', demoData.websiteUrl).limit(1);
     const snapshot = await q.get();
 
     const now = new Date().toISOString();
 
     if (!snapshot.empty) {
-      // Document exists, update it
+      // Document exists, update it. We preserve the original install status.
       const docId = snapshot.docs[0].id;
       await demosRef.doc(docId).update({
         ...demoData,
@@ -33,9 +34,11 @@ export async function upsertDemo(demoData: Omit<DemoConfig, 'id' | 'createdAt' |
       });
       return docId;
     } else {
-      // Document does not exist, create it
+      // Document does not exist, create it with default installation status.
       const docRef = await demosRef.add({
         ...demoData,
+        isInstalled: false,
+        installedAt: null,
         createdAt: now,
         updatedAt: now,
       });
