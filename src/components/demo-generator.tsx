@@ -151,7 +151,8 @@ export default function DemoGenerator() {
         </DialogContent>
     </Dialog>
 
-    <div className="flex flex-col">
+    <div className="flex flex-col space-y-8">
+      {/* Row 1: Website Analysis (Full Width) */}
       <div className="mx-auto w-full max-w-screen-xl px-4 pt-8 sm:px-6 lg:px-8">
         <WebsiteAnalysisSection 
           url={url}
@@ -162,38 +163,37 @@ export default function DemoGenerator() {
         />
       </div>
 
-      <div className="flex-grow">
-          <div className="mx-auto mt-8 w-full max-w-screen-xl px-4 sm:px-6 lg:px-8">
-              <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-                  <div className="space-y-8 lg:col-span-4">
-                      <PlayerConfigSection 
-                        config={playerConfig} 
-                        setConfig={setPlayerConfig} 
-                        analysis={analysis}
-                        disabled={!analysis || isLoading}
-                      />
-                      <IntegrationCodeSection 
-                        playerConfig={playerConfig} 
-                        websiteUrl={url}
-                        selectedPlacement={selectedPlacement}
-                        disabled={!analysis || isLoading}
-                      />
-                  </div>
-                  <div className="lg:col-span-8">
-                      <LivePreviewSection
-                        url={url}
-                        cloneHtml={cloneHtml}
-                        isLoading={isLoading}
-                        statusText={statusText}
-                        selectedPlacement={selectedPlacement}
-                        onSelectPlacement={handlePlacementSelect}
-                        playerConfig={playerConfig}
-                        onSaveDemo={handleSaveDemo}
-                        isSaving={isSaving}
-                      />
-                  </div>
-              </div>
+      {/* Row 2: Config and Integration (Side-by-side) */}
+      <div className="mx-auto w-full max-w-screen-xl px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+              <PlayerConfigSection 
+                config={playerConfig} 
+                setConfig={setPlayerConfig} 
+                analysis={analysis}
+                disabled={!analysis || isLoading}
+              />
+              <IntegrationCodeSection 
+                playerConfig={playerConfig} 
+                websiteUrl={url}
+                selectedPlacement={selectedPlacement}
+                disabled={!analysis || isLoading}
+              />
           </div>
+      </div>
+      
+      {/* Row 3: Live Preview (Full Width) */}
+      <div className="w-full">
+            <LivePreviewSection
+                url={url}
+                cloneHtml={cloneHtml}
+                isLoading={isLoading}
+                statusText={statusText}
+                selectedPlacement={selectedPlacement}
+                onSelectPlacement={handlePlacementSelect}
+                playerConfig={playerConfig}
+                onSaveDemo={handleSaveDemo}
+                isSaving={isSaving}
+            />
       </div>
     </div>
     </>

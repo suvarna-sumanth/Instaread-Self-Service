@@ -1,3 +1,4 @@
+
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -204,6 +205,24 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
               window.parent.postMessage({ type: 'placement-click', selector: selector }, '*');
             }
           }, true);
+
+          // Resize the iframe to fit its content
+          const sendHeight = () => {
+              const height = document.body.scrollHeight;
+              window.parent.postMessage({ type: 'iframe-resize', height: height }, '*');
+          };
+          
+          // Send height on load and on any mutations
+          const observer = new MutationObserver(sendHeight);
+          observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+          });
+
+          window.addEventListener('load', sendHeight);
+          sendHeight();
+
         })();
       `;
       doc.body.appendChild(interactionScriptEl);
@@ -216,6 +235,17 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       setEffectiveHtml(cloneHtml); // Fallback to raw clone on error
     }
   }, [cloneHtml, selectedPlacement, playerConfig, url]);
+
+  // Effect to handle iframe height resizing
+  useEffect(() => {
+    const handleResizeMessage = (event: MessageEvent) => {
+        if (event.data && event.data.type === 'iframe-resize' && iframeRef.current) {
+            iframeRef.current.style.height = `${event.data.height}px`;
+        }
+    };
+    window.addEventListener('message', handleResizeMessage);
+    return () => window.removeEventListener('message', handleResizeMessage);
+  }, []);
 
 
   const handleClearPlacement = () => {
@@ -237,7 +267,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                 <Loader2 className="h-5 w-5 animate-spin" />
                 <p>{statusText || 'Analyzing and rendering preview...'}</p>
             </div>
-            <Skeleton className="h-full w-full flex-grow" />
+            <Skeleton className="h-[60vh] w-full flex-grow" />
           </div>
       );
     }
@@ -269,7 +299,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
         ref={iframeRef}
         srcDoc={effectiveHtml || ''}
         className="w-full h-full bg-white rounded-lg shadow-lg border"
-        style={{minHeight: '100vh'}}
+        style={{height: '100vh', transition: 'height 0.3s ease-in-out'}}
         sandbox="allow-scripts allow-same-origin allow-forms"
         title="Live Preview"
       />
