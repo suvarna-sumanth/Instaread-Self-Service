@@ -13,7 +13,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Copy, Link as LinkIcon, ExternalLink } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
 
 export default function DemoGenerator() {
   const { toast } = useToast();
@@ -151,8 +150,8 @@ export default function DemoGenerator() {
         </DialogContent>
     </Dialog>
 
-    <div className="flex flex-col space-y-8 mx-auto w-full max-w-screen-xl px-4 pt-8 sm:px-6 lg:px-8">
-      {/* Row 1: Website Analysis (Full Width in container) */}
+    <div className="flex flex-col space-y-8 mx-auto w-full max-w-screen-2xl px-4 pt-8">
+      {/* Row 1: Website Analysis */}
       <div>
         <WebsiteAnalysisSection 
           url={url}
@@ -163,37 +162,35 @@ export default function DemoGenerator() {
         />
       </div>
 
-      {/* Row 2: Config and Integration (Side-by-side in container) */}
-      <div>
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-              <PlayerConfigSection 
-                config={playerConfig} 
-                setConfig={setPlayerConfig} 
-                analysis={analysis}
-                disabled={!analysis || isLoading}
-              />
-              <IntegrationCodeSection 
-                playerConfig={playerConfig} 
-                websiteUrl={url}
-                selectedPlacement={selectedPlacement}
-                disabled={!analysis || isLoading}
-              />
-          </div>
+      {/* Row 2: Config and Integration (Side-by-side) */}
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+          <PlayerConfigSection 
+            config={playerConfig} 
+            setConfig={setPlayerConfig} 
+            analysis={analysis}
+            disabled={!analysis || isLoading}
+          />
+          <IntegrationCodeSection 
+            playerConfig={playerConfig} 
+            websiteUrl={url}
+            selectedPlacement={selectedPlacement}
+            disabled={!analysis || isLoading}
+          />
       </div>
       
-      {/* Row 3: Live Preview (Full Width in container) */}
+      {/* Row 3: Live Preview */}
       <div>
-            <LivePreviewSection
-                url={url}
-                cloneHtml={cloneHtml}
-                isLoading={isLoading}
-                statusText={statusText}
-                selectedPlacement={selectedPlacement}
-                onSelectPlacement={handlePlacementSelect}
-                playerConfig={playerConfig}
-                onSaveDemo={handleSaveDemo}
-                isSaving={isSaving}
-            />
+        <LivePreviewSection
+            url={url}
+            cloneHtml={cloneHtml}
+            isLoading={isLoading}
+            statusText={statusText}
+            selectedPlacement={selectedPlacement}
+            onSelectPlacement={handlePlacementSelect}
+            playerConfig={playerConfig}
+            onSaveDemo={handleSaveDemo}
+            isSaving={isSaving}
+        />
       </div>
     </div>
     </>
