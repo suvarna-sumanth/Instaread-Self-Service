@@ -12,6 +12,15 @@ import type { DemoConfig } from '@/types';
 const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID;
 const SHEET_NAME = 'Sheet1'; // The name of the specific sheet (tab) in your spreadsheet
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
+const HEADERS = [
+    'Demo ID', 
+    'Partner Website', 
+    'Sales Rep', 
+    'Demo Created At', 
+    'Status', 
+    'Installation Date', 
+    'Shareable Link'
+];
 
 // --- Authentication ---
 
@@ -41,6 +50,7 @@ async function getSheetsClient() {
 
 /**
  * Appends a new row to the configured Google Sheet with the demo details.
+ * If the sheet is empty, it first adds a header row.
  * @param demo - The full demo configuration object.
  */
 export async function appendDemoToSheet(demo: DemoConfig) {
@@ -52,13 +62,31 @@ export async function appendDemoToSheet(demo: DemoConfig) {
   try {
     const sheets = await getSheetsClient();
     
-    // Determine the base URL for the shareable link
-    const appUrl = process.env.NODE_ENV === 'development' 
-        ? 'http://localhost:3000' 
-        : `https://${process.env.VERCEL_URL || 'your-production-domain.com'}`; // Vercel provides VERCEL_URL. Use a fallback.
+    // Check if the sheet has a header row.
+    const getResult = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${SHEET_NAME}!A1:G1`,
+    });
 
-    // The order of values MUST match the column order in your sheet
-    // Column A: Demo ID, B: Website, C: Sales Rep, D: Created At, E: Status, F: Installed, G: Link
+    if (!getResult.data.values || getResult.data.values.length === 0) {
+        // Sheet is empty, add headers first.
+        await sheets.spreadsheets.values.append({
+            spreadsheetId: SPREADSHEET_ID,
+            range: `${SHEET_NAME}!A1:G1`,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: {
+                values: [HEADERS],
+            },
+        });
+    }
+
+    // Determine the base URL for the shareable link
+    const appUrl = process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL}` 
+      : (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://your-production-domain.com');
+
+
+    // The order of values MUST match the column order defined in HEADERS
     const values = [
       [
         demo.id,
@@ -73,7 +101,7 @@ export async function appendDemoToSheet(demo: DemoConfig) {
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAME}!A:G`, // Append to the sheet, covering all columns
+      range: `${SHEET_NAME}!A:G`,
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: values,
