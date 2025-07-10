@@ -10,7 +10,7 @@ import type { DemoConfig } from '@/types';
 // --- Configuration ---
 
 const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID;
-const SHEET_NAME = 'Sales Demo Tracker'; // The name of the specific sheet (tab) in your spreadsheet
+const SHEET_NAME = 'Sheet1'; // The name of the specific sheet (tab) in your spreadsheet
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 
 // --- Authentication ---
