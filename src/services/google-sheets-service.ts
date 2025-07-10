@@ -6,21 +6,25 @@
 
 import { google } from 'googleapis';
 import type { DemoConfig } from '@/types';
-import { formatInTimeZone } from 'date-fns-tz';
 
 // --- Configuration ---
 
 const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID;
 const SHEET_NAME = 'Sheet1'; // The name of the specific sheet (tab) in your spreadsheet
-const TIME_ZONE = 'Asia/Kolkata'; // IST Timezone
-const DATE_FORMAT_STRING = "MMMM d, yyyy 'at' h:mm a";
+const DATE_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = {
+    year: 'numeric', month: 'long', day: 'numeric',
+    hour: 'numeric', minute: '2-digit',
+    timeZone: 'UTC',
+    hour12: true,
+    timeZoneName: 'short'
+};
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 const HEADERS = [
     'Demo ID', 
     'Partner Website', 
-    'Demo Created At (IST)', 
+    'Demo Created At (UTC)', 
     'Status', 
-    'Installation Date (IST)', 
+    'Installation Date (UTC)', 
     'Shareable Link'
 ];
 
@@ -67,7 +71,7 @@ export async function appendDemoToSheet(demo: DemoConfig) {
     // Check if the sheet has a header row.
     const getResult = await sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
-        range: `${SHEET_NAME}!A1:G1`,
+        range: `${SHEET_NAME}!A1:F1`,
     });
 
     if (!getResult.data.values || getResult.data.values.length === 0) {
@@ -108,16 +112,14 @@ export async function appendDemoToSheet(demo: DemoConfig) {
         }
     }
 
-    const appUrl = process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}` 
-      : (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://your-production-domain.com');
-
+    const appUrl = process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : (process.env.NEXT_PUBLIC_APP_URL || 'https://your-app-url.com');
+    
     // The order of values MUST match the column order defined in HEADERS
     const values = [
       [
         demo.id,
         demo.websiteUrl,
-        formatInTimeZone(new Date(demo.createdAt), TIME_ZONE, DATE_FORMAT_STRING),
+        new Date(demo.createdAt).toLocaleString('en-US', DATE_FORMAT_OPTIONS),
         'Pending',
         '', // Installation Date (blank initially)
         `${appUrl}/demo/${demo.id}`
@@ -186,7 +188,7 @@ export async function updateDemoStatusInSheet(demoId: string, installedAt: strin
                 values: [
                     [
                         '✅ Installed', // New status for column D
-                        formatInTimeZone(new Date(installedAt), TIME_ZONE, DATE_FORMAT_STRING)
+                        new Date(installedAt).toLocaleString('en-US', DATE_FORMAT_OPTIONS)
                     ]
                 ],
             },
