@@ -87,3 +87,62 @@ export async function appendDemoToSheet(demo: DemoConfig) {
     throw new Error(`Failed to append row to Google Sheet: ${message}`);
   }
 }
+
+/**
+ * Finds a row by the demo ID and updates its status and installation date.
+ * @param demoId The ID of the demo to update.
+ * @param installedAt The ISO string of the installation date.
+ */
+export async function updateDemoStatusInSheet(demoId: string, installedAt: string) {
+    if (!SPREADSHEET_ID) {
+        console.warn('GOOGLE_SHEET_ID is not set. Skipping update to Google Sheet.');
+        return;
+    }
+
+    try {
+        const sheets = await getSheetsClient();
+
+        // 1. Find the row number for the given demoId
+        const readResult = await sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: `${SHEET_NAME}!A:A`, // Only need to read the ID column
+        });
+
+        const rows = readResult.data.values;
+        if (!rows || rows.length === 0) {
+            console.warn(`[Google Sheets] Sheet "${SHEET_NAME}" is empty. Cannot update status for demo ${demoId}.`);
+            return;
+        }
+
+        const rowIndex = rows.findIndex(row => row[0] === demoId);
+        if (rowIndex === -1) {
+            console.warn(`[Google Sheets] Demo ID ${demoId} not found in sheet. Cannot update status.`);
+            return;
+        }
+
+        const rowNumber = rowIndex + 1; // Sheet rows are 1-based
+
+        // 2. Update the Status (column E) and Installation Date (column F)
+        await sheets.spreadsheets.values.update({
+            spreadsheetId: SPREADSHEET_ID,
+            range: `${SHEET_NAME}!E${rowNumber}:F${rowNumber}`, // Range for Status and Install Date
+            valueInputOption: 'USER_ENTERED',
+            requestBody: {
+                values: [
+                    [
+                        '✅ Installed', // New status
+                        new Date(installedAt).toISOString() // New installation date
+                    ]
+                ],
+            },
+        });
+
+        console.log(`[Google Sheets] Successfully updated status for demo ${demoId} in row ${rowNumber}.`);
+
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "An unknown error occurred.";
+        console.error(`[Google Sheets] Error updating sheet for demo ${demoId}: ${message}`);
+        // We throw so the calling API route can know about the failure
+        throw new Error(`Failed to update row in Google Sheet: ${message}`);
+    }
+}

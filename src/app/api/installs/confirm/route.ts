@@ -2,6 +2,7 @@
 
 import { NextResponse } from 'next/server';
 import { recordInstall } from '@/services/demo-service';
+import { updateDemoStatusInSheet } from '@/services/google-sheets-service';
 
 // Common headers for CORS to allow cross-origin requests
 const corsHeaders = {
@@ -50,6 +51,14 @@ export async function POST(request: Request) {
                 // The primary function (recording the install) succeeded, and we don't
                 // want an email failure to break the core functionality.
                 console.error(`[API /api/installs/confirm] Failed to send email notification for "${publication}":`, emailError);
+            }
+
+            // Also update the Google Sheet.
+            try {
+                await updateDemoStatusInSheet(result.demo.id, result.installedAt);
+            } catch (sheetError) {
+                // Log the sheet error but do not fail the request.
+                console.error(`[API /api/installs/confirm] Failed to update Google Sheet for demo "${result.demo.id}":`, sheetError);
             }
 
             // Add CORS headers to the success response
