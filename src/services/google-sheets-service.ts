@@ -52,9 +52,10 @@ export async function appendDemoToSheet(demo: DemoConfig) {
   try {
     const sheets = await getSheetsClient();
     
+    // Determine the base URL for the shareable link
     const appUrl = process.env.NODE_ENV === 'development' 
         ? 'http://localhost:3000' 
-        : `https://${process.env.NEXT_PUBLIC_APP_HOSTNAME || 'your-app-url.com'}`;
+        : `https://${process.env.VERCEL_URL || 'your-production-domain.com'}`; // Vercel provides VERCEL_URL. Use a fallback.
 
     // The order of values MUST match the column order in your sheet
     // Column A: Demo ID, B: Website, C: Sales Rep, D: Created At, E: Status, F: Installed, G: Link
