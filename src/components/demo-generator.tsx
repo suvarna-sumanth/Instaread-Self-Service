@@ -174,7 +174,6 @@ export default function DemoGenerator() {
         </div>
       </div>
       <div className="px-8 pb-8">
-        <div className="min-h-[80vh]">
           <LivePreviewSection
             url={url}
             cloneHtml={cloneHtml}
@@ -186,7 +185,6 @@ export default function DemoGenerator() {
             onSaveDemo={handleSaveDemo}
             isSaving={isSaving}
           />
-        </div>
       </div>
     </div>
     </>

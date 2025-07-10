@@ -233,7 +233,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   const renderPreviewContent = () => {
     if (isLoading) {
       return (
-          <div className="p-4 space-y-4 h-full w-full flex flex-col items-center justify-center">
+          <div className="p-4 space-y-4 h-[60vh] w-full flex flex-col items-center justify-center">
             <div className="flex items-center justify-center gap-2 text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin" />
                 <p>{statusText || 'Analyzing and rendering preview...'}</p>
@@ -245,7 +245,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     
     if (!url) {
       return (
-        <div className="flex flex-col items-center justify-center h-full text-center p-8">
+        <div className="flex flex-col items-center justify-center h-[60vh] text-center p-8">
             <Info className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="font-semibold text-lg">Live Preview</h3>
             <p className="text-muted-foreground">Enter a URL to start generating your demo.</p>
@@ -267,7 +267,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
         id="outer_iframe"
         ref={iframeRef}
         srcDoc={effectiveHtml || ''}
-        className="w-full h-full bg-white rounded-lg shadow-lg border"
+        className="w-full h-[80vh] bg-white rounded-lg shadow-lg border"
         sandbox="allow-scripts allow-same-origin allow-forms"
         title="Live Preview"
       />
@@ -298,7 +298,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
           </DialogContent>
       </Dialog>
       
-      <Card className="shadow-md relative flex flex-col h-[80vh]">
+      <Card className="shadow-md">
         <CardHeader>
           <div className="flex justify-between items-start">
               <div>
@@ -316,8 +316,8 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
               </div>
           </div>
         </CardHeader>
-        <CardContent className="flex flex-col flex-grow p-6 pt-0">
-          <div className="bg-muted/50 rounded-lg flex-grow overflow-auto p-4 flex items-start justify-center h-full">
+        <CardContent>
+          <div className="bg-muted/50 rounded-lg p-4">
               {renderPreviewContent()}
             </div>
         </CardContent>
