@@ -151,9 +151,9 @@ export default function DemoGenerator() {
         </DialogContent>
     </Dialog>
 
-    <div className="flex flex-col space-y-8">
-      {/* Row 1: Website Analysis (Full Width) */}
-      <div className="mx-auto w-full max-w-screen-xl px-4 pt-8 sm:px-6 lg:px-8">
+    <div className="flex flex-col space-y-8 mx-auto w-full max-w-screen-xl px-4 pt-8 sm:px-6 lg:px-8">
+      {/* Row 1: Website Analysis (Full Width in container) */}
+      <div>
         <WebsiteAnalysisSection 
           url={url}
           onAnalyze={handleAnalyze} 
@@ -163,8 +163,8 @@ export default function DemoGenerator() {
         />
       </div>
 
-      {/* Row 2: Config and Integration (Side-by-side) */}
-      <div className="mx-auto w-full max-w-screen-xl px-4 sm:px-6 lg:px-8">
+      {/* Row 2: Config and Integration (Side-by-side in container) */}
+      <div>
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
               <PlayerConfigSection 
                 config={playerConfig} 
@@ -181,8 +181,8 @@ export default function DemoGenerator() {
           </div>
       </div>
       
-      {/* Row 3: Live Preview (Full Width) */}
-      <div className="w-full">
+      {/* Row 3: Live Preview (Full Width in container) */}
+      <div>
             <LivePreviewSection
                 url={url}
                 cloneHtml={cloneHtml}
