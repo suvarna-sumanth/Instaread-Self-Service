@@ -6,19 +6,21 @@
 
 import { google } from 'googleapis';
 import type { DemoConfig } from '@/types';
-import { format } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 
 // --- Configuration ---
 
 const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID;
 const SHEET_NAME = 'Sheet1'; // The name of the specific sheet (tab) in your spreadsheet
+const TIME_ZONE = 'Asia/Kolkata'; // IST Timezone
+const DATE_FORMAT_STRING = "MMMM d, yyyy 'at' h:mm a";
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 const HEADERS = [
     'Demo ID', 
     'Partner Website', 
-    'Demo Created At', 
+    'Demo Created At (IST)', 
     'Status', 
-    'Installation Date', 
+    'Installation Date (IST)', 
     'Shareable Link'
 ];
 
@@ -115,7 +117,7 @@ export async function appendDemoToSheet(demo: DemoConfig) {
       [
         demo.id,
         demo.websiteUrl,
-        format(new Date(demo.createdAt), "MMMM d, yyyy 'at' h:mm a"),
+        formatInTimeZone(new Date(demo.createdAt), TIME_ZONE, DATE_FORMAT_STRING),
         'Pending',
         '', // Installation Date (blank initially)
         `${appUrl}/demo/${demo.id}`
@@ -184,7 +186,7 @@ export async function updateDemoStatusInSheet(demoId: string, installedAt: strin
                 values: [
                     [
                         '✅ Installed', // New status for column D
-                        format(new Date(installedAt), "MMMM d, yyyy 'at' h:mm a") // New formatted installation date for column E
+                        formatInTimeZone(new Date(installedAt), TIME_ZONE, DATE_FORMAT_STRING)
                     ]
                 ],
             },
