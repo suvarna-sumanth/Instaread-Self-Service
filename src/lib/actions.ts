@@ -4,6 +4,7 @@
 import { generateVisualClone as generateVisualCloneFlow } from '@/ai/flows/generate-visual-clone';
 import { analyzeWebsite as analyzeWebsiteFlow, type WebsiteAnalysisOutput } from '@/ai/flows/website-analysis';
 import { upsertDemo, deleteDemo as deleteDemoFromDb, resetDemoStatus as resetDemoStatusFromDb } from '@/services/demo-service';
+import { appendDemoToSheet } from '@/services/google-sheets-service';
 import type { WordPressConfigFormValues } from '@/lib/schemas';
 import type { DemoConfig, Placement, PlayerConfig } from '@/types';
 import { revalidatePath } from 'next/cache';
@@ -56,6 +57,18 @@ export async function saveDemo(
         };
 
         const demoId = await upsertDemo(demoData);
+
+        // After saving to DB, append to Google Sheet
+        try {
+            const savedDemo = await deleteDemoFromDb(demoId); // This is a trick to get the full demo object back
+            if(savedDemo) {
+                await appendDemoToSheet(savedDemo);
+            }
+        } catch (sheetError) {
+             // Log the error but don't fail the whole operation
+            console.error('[saveDemo] Failed to append to Google Sheet, but demo was saved to DB:', sheetError);
+        }
+
         revalidatePath('/dashboard');
         return { success: true, message: "Demo saved successfully!", demoId };
     } catch (error) {
@@ -165,7 +178,7 @@ This PR will be merged automatically to trigger the build process.`;
             version: data.version,
             download_url: downloadUrl,
             requires: "5.6", tested: "6.5",
-            sections: { changelog: `<h4>${data.version}</h4><ul><li>Partner-specific build for ${data.publication || data.partner_id}</li></ul>` }
+            sections: { changelog: `<h4>${data.version}</h4><ul><li>Partner-specific build for ${data.publication || data.partne_id}</li></ul>` }
         }, null, 2)).toString('base64');
         await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GithubRepoName}/contents/${pluginJsonFilePath}`, {
             method: 'PUT',

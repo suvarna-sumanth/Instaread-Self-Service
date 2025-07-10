@@ -100,10 +100,15 @@ export async function getAllDemos(): Promise<DemoConfig[]> {
  * Deletes a demo configuration by its ID.
  * @param id - The unique ID of the demo to delete.
  */
-export async function deleteDemo(id: string): Promise<void> {
+export async function deleteDemo(id: string): Promise<DemoConfig | null> {
     const db = getDb();
     try {
-        await db.collection('demos').doc(id).delete();
+        const docRef = db.collection('demos').doc(id);
+        const doc = await docRef.get();
+        if (!doc.exists) return null;
+        const data = { id: doc.id, ...doc.data() } as DemoConfig;
+        await docRef.delete();
+        return data;
     } catch (error) {
         const message = error instanceof Error ? error.message : "An unknown error occurred.";
         console.error(`Error deleting demo ${id} from Firestore: `, message);
