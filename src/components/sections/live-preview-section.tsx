@@ -1,4 +1,3 @@
-
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -233,19 +232,19 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   const renderPreviewContent = () => {
     if (isLoading) {
       return (
-          <div className="p-4 space-y-4 h-[60vh] w-full flex flex-col items-center justify-center">
+          <div className="p-4 space-y-4 w-full flex flex-col items-center justify-center min-h-[60vh]">
             <div className="flex items-center justify-center gap-2 text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin" />
                 <p>{statusText || 'Analyzing and rendering preview...'}</p>
             </div>
-            <Skeleton className="h-full w-full" />
+            <Skeleton className="h-full w-full flex-grow" />
           </div>
       );
     }
     
     if (!url) {
       return (
-        <div className="flex flex-col items-center justify-center h-[60vh] text-center p-8">
+        <div className="flex flex-col items-center justify-center text-center p-8 mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8">
             <Info className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="font-semibold text-lg">Live Preview</h3>
             <p className="text-muted-foreground">Enter a URL to start generating your demo.</p>
@@ -255,10 +254,12 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
 
     if (!effectiveHtml && url && !isLoading) {
         return (
-            <Alert variant="destructive" className="m-4">
-                <AlertTitle>Preview Generation Failed</AlertTitle>
-                <AlertDescription>We couldn't generate a visual clone for this website. It may be protected or unreachable. Please try a different URL.</AlertDescription>
-            </Alert>
+            <div className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8">
+                <Alert variant="destructive" className="m-4">
+                    <AlertTitle>Preview Generation Failed</AlertTitle>
+                    <AlertDescription>We couldn't generate a visual clone for this website. It may be protected or unreachable. Please try a different URL.</AlertDescription>
+                </Alert>
+            </div>
         );
     }
     
@@ -267,7 +268,8 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
         id="outer_iframe"
         ref={iframeRef}
         srcDoc={effectiveHtml || ''}
-        className="w-full h-[80vh] bg-white rounded-lg shadow-lg border"
+        className="w-full h-full bg-white rounded-lg shadow-lg border"
+        style={{minHeight: '100vh'}}
         sandbox="allow-scripts allow-same-origin allow-forms"
         title="Live Preview"
       />
@@ -298,30 +300,32 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
           </DialogContent>
       </Dialog>
       
-      <Card className="shadow-md">
-        <CardHeader>
-          <div className="flex justify-between items-start">
-              <div>
-                  <CardTitle className="font-headline text-2xl">Live Preview &amp; Placement</CardTitle>
-                  <CardDescription className="flex items-center gap-2">
-                    <MousePointerClick className="h-4 w-4" /> Click an element in the preview to place the player. Resize your browser to test responsiveness.
-                  </CardDescription>
-              </div>
-              <div className="flex items-center gap-4">
-                {selectedPlacement && <Button variant="outline" size="sm" onClick={handleClearPlacement}><Pointer className="mr-2 h-4 w-4"/>Clear Placement</Button>}
-                <Button onClick={onSaveDemo} disabled={!url || !selectedPlacement || isSaving}>
-                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                    Save &amp; Share
-                </Button>
-              </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="bg-muted/50 rounded-lg p-4">
-              {renderPreviewContent()}
+      <div className="mx-auto w-full max-w-screen-xl px-4 sm:px-6 lg:px-8">
+        <Card className="shadow-md overflow-hidden">
+            <CardHeader>
+            <div className="flex flex-wrap justify-between items-start gap-4">
+                <div>
+                    <CardTitle className="font-headline text-2xl">Live Preview &amp; Placement</CardTitle>
+                    <CardDescription className="flex items-center gap-2 mt-1">
+                        <MousePointerClick className="h-4 w-4" /> Click an element in the preview to place the player. Resize your browser to test responsiveness.
+                    </CardDescription>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                    {selectedPlacement && <Button variant="outline" size="sm" onClick={handleClearPlacement}><Pointer className="mr-2 h-4 w-4"/>Clear Placement</Button>}
+                    <Button onClick={onSaveDemo} disabled={!url || !selectedPlacement || isSaving}>
+                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Save &amp; Share
+                    </Button>
+                </div>
             </div>
-        </CardContent>
-      </Card>
+            </CardHeader>
+            <CardContent className="p-0">
+            <div className="bg-muted/50 p-1 sm:p-2 md:p-4 border-t">
+                {renderPreviewContent()}
+                </div>
+            </CardContent>
+        </Card>
+      </div>
     </>
   );
 }

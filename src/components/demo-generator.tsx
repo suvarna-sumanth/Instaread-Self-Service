@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Copy, Link as LinkIcon, ExternalLink } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 
 export default function DemoGenerator() {
   const { toast } = useToast();
@@ -149,31 +150,39 @@ export default function DemoGenerator() {
         </DialogContent>
     </Dialog>
 
-    <div className="space-y-8">
-      <div className="mx-auto max-w-screen-xl px-8 pt-8">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_400px]">
-            <WebsiteAnalysisSection 
-              url={url}
-              onAnalyze={handleAnalyze} 
-              analysis={analysis} 
-              isLoading={isLoading} 
-              statusText={statusText}
-            />
-            <div className="space-y-8">
-              <PlayerConfigSection 
-                config={playerConfig} 
-                setConfig={setPlayerConfig} 
-                analysis={analysis}
-              />
-              <IntegrationCodeSection 
-                playerConfig={playerConfig} 
-                websiteUrl={url}
-                selectedPlacement={selectedPlacement}
-              />
+    <div className="flex flex-col">
+      <div className="mx-auto w-full max-w-screen-xl px-4 pt-8 sm:px-6 lg:px-8">
+        <WebsiteAnalysisSection 
+          url={url}
+          onAnalyze={handleAnalyze} 
+          analysis={analysis} 
+          isLoading={isLoading} 
+          statusText={statusText}
+        />
+      </div>
+
+      {analysis && (
+        <div className="mx-auto mt-8 w-full max-w-screen-xl px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_400px]">
+                <div className="space-y-8 lg:col-start-2">
+                <PlayerConfigSection 
+                    config={playerConfig} 
+                    setConfig={setPlayerConfig} 
+                    analysis={analysis}
+                />
+                <IntegrationCodeSection 
+                    playerConfig={playerConfig} 
+                    websiteUrl={url}
+                    selectedPlacement={selectedPlacement}
+                />
+                </div>
             </div>
         </div>
-      </div>
-      <div className="px-8 pb-8">
+      )}
+
+      {(isLoading || cloneHtml) && <Separator className="my-8" />}
+
+      <div className="flex-grow">
           <LivePreviewSection
             url={url}
             cloneHtml={cloneHtml}
