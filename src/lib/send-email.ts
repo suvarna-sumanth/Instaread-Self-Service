@@ -104,13 +104,18 @@ export async function sendPartnerInstallNotification(args: InstallNotificationAr
     const emailHtml = generateEmailHtml(args);
 
     const transporter = getTransporter();
-    const toList = to.split(',').map(email => email.trim());
+    
+    // Split the string by commas, then for each resulting string,
+    // trim whitespace and remove any surrounding double quotes.
+    const toList = to.split(',')
+                      .map(email => email.trim().replace(/^"|"$/g, ''))
+                      .join(', ');
 
     try {
         // 2. Send the email
         const info = await transporter.sendMail({
             from: from,
-            to: toList.join(', '),
+            to: toList,
             subject: `🎉 New Installation: ${args.publication} has installed the Instaread Player!`,
             html: emailHtml,
         });
