@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -162,11 +163,13 @@ export default function DemoGenerator() {
       </div>
 
       <div className="flex-grow">
-        {analysis && (
+        {(analysis || isLoading) && (
           <div className="mx-auto mt-8 w-full max-w-screen-xl px-4 sm:px-6 lg:px-8">
               <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
                   <div className="space-y-8 lg:col-span-4 lg:col-start-9">
-                      <PlayerConfigSection 
+                      {analysis && (
+                        <>
+                        <PlayerConfigSection 
                           config={playerConfig} 
                           setConfig={setPlayerConfig} 
                           analysis={analysis}
@@ -176,6 +179,8 @@ export default function DemoGenerator() {
                           websiteUrl={url}
                           selectedPlacement={selectedPlacement}
                       />
+                      </>
+                      )}
                   </div>
                   <div className="lg:col-span-8 lg:col-start-1 lg:row-start-1">
                       <LivePreviewSection
@@ -192,22 +197,6 @@ export default function DemoGenerator() {
                   </div>
               </div>
           </div>
-        )}
-        
-        {isLoading && (
-            <div className="flex-grow">
-                <LivePreviewSection
-                    url={url}
-                    cloneHtml={cloneHtml}
-                    isLoading={isLoading}
-                    statusText={statusText}
-                    selectedPlacement={selectedPlacement}
-                    onSelectPlacement={handlePlacementSelect}
-                    playerConfig={playerConfig}
-                    onSaveDemo={handleSaveDemo}
-                    isSaving={isSaving}
-                />
-            </div>
         )}
       </div>
     </div>
