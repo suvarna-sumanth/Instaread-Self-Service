@@ -20,6 +20,7 @@ import type { WordPressConfigFormValues } from '@/lib/schemas';
 import { generatePartnerPlugin, checkWorkflowRun, getReleaseDownloadUrl } from '@/lib/actions';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { ScrollArea } from '../ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 type CodeBlockProps = {
     content: string;
@@ -58,9 +59,10 @@ type IntegrationCodeSectionProps = {
     playerConfig: PlayerConfig;
     websiteUrl: string;
     selectedPlacement: Placement;
+    disabled: boolean;
 };
 
-const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement }: IntegrationCodeSectionProps) => {
+const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement, disabled }: IntegrationCodeSectionProps) => {
     const { toast } = useToast();
     const [isBuilding, setIsBuilding] = useState(false);
     
@@ -294,7 +296,7 @@ const MyComponent = () => {
     }
 
     return (
-        <Card className="shadow-md">
+        <Card className={cn("shadow-md transition-opacity", disabled && "opacity-50 pointer-events-none")}>
             <CardHeader>
                 <CardTitle className="font-headline text-2xl">3. Get Integration Code</CardTitle>
                 <CardDescription>Copy a code snippet or generate a full WordPress partner plugin solution.</CardDescription>
@@ -302,9 +304,9 @@ const MyComponent = () => {
             <CardContent>
                 <Tabs defaultValue="wordpress" className="w-full">
                     <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="html">HTML</TabsTrigger>
-                        <TabsTrigger value="react">React</TabsTrigger>
-                        <TabsTrigger value="wordpress">WordPress</TabsTrigger>
+                        <TabsTrigger value="html" disabled={disabled}>HTML</TabsTrigger>
+                        <TabsTrigger value="react" disabled={disabled}>React</TabsTrigger>
+                        <TabsTrigger value="wordpress" disabled={disabled}>WordPress</TabsTrigger>
                     </TabsList>
                     
                     <TabsContent value="html">

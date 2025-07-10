@@ -163,26 +163,23 @@ export default function DemoGenerator() {
       </div>
 
       <div className="flex-grow">
-        {(analysis || isLoading) && (
           <div className="mx-auto mt-8 w-full max-w-screen-xl px-4 sm:px-6 lg:px-8">
               <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-                  <div className="space-y-8 lg:col-span-4 lg:col-start-9">
-                      {analysis && (
-                        <>
-                        <PlayerConfigSection 
-                          config={playerConfig} 
-                          setConfig={setPlayerConfig} 
-                          analysis={analysis}
+                  <div className="space-y-8 lg:col-span-4">
+                      <PlayerConfigSection 
+                        config={playerConfig} 
+                        setConfig={setPlayerConfig} 
+                        analysis={analysis}
+                        disabled={!analysis || isLoading}
                       />
                       <IntegrationCodeSection 
-                          playerConfig={playerConfig} 
-                          websiteUrl={url}
-                          selectedPlacement={selectedPlacement}
+                        playerConfig={playerConfig} 
+                        websiteUrl={url}
+                        selectedPlacement={selectedPlacement}
+                        disabled={!analysis || isLoading}
                       />
-                      </>
-                      )}
                   </div>
-                  <div className="lg:col-span-8 lg:col-start-1 lg:row-start-1">
+                  <div className="lg:col-span-8">
                       <LivePreviewSection
                         url={url}
                         cloneHtml={cloneHtml}
@@ -197,7 +194,6 @@ export default function DemoGenerator() {
                   </div>
               </div>
           </div>
-        )}
       </div>
     </div>
     </>
