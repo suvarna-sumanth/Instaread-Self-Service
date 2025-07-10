@@ -54,9 +54,10 @@ export async function appendDemoToSheet(demo: DemoConfig) {
     
     const appUrl = process.env.NODE_ENV === 'development' 
         ? 'http://localhost:3000' 
-        : `https://${process.env.NEXT_PUBLIC_APP_HOSTNAME}`; // Use a production URL env var later
+        : `https://${process.env.NEXT_PUBLIC_APP_HOSTNAME || 'your-app-url.com'}`;
 
     // The order of values MUST match the column order in your sheet
+    // Column A: Demo ID, B: Website, C: Sales Rep, D: Created At, E: Status, F: Installed, G: Link
     const values = [
       [
         demo.id,
@@ -71,7 +72,7 @@ export async function appendDemoToSheet(demo: DemoConfig) {
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAME}!A:G`, // Adjust range as needed
+      range: `${SHEET_NAME}!A:G`, // Append to the sheet, covering all columns
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: values,
@@ -102,7 +103,7 @@ export async function updateDemoStatusInSheet(demoId: string, installedAt: strin
     try {
         const sheets = await getSheetsClient();
 
-        // 1. Find the row number for the given demoId
+        // 1. Find the row number for the given demoId by reading the first column (A)
         const readResult = await sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
             range: `${SHEET_NAME}!A:A`, // Only need to read the ID column
@@ -122,16 +123,16 @@ export async function updateDemoStatusInSheet(demoId: string, installedAt: strin
 
         const rowNumber = rowIndex + 1; // Sheet rows are 1-based
 
-        // 2. Update the Status (column E) and Installation Date (column F)
+        // 2. Update the Status (column E) and Installation Date (column F) for the found row.
         await sheets.spreadsheets.values.update({
             spreadsheetId: SPREADSHEET_ID,
-            range: `${SHEET_NAME}!E${rowNumber}:F${rowNumber}`, // Range for Status and Install Date
+            range: `${SHEET_NAME}!E${rowNumber}:F${rowNumber}`, // Correct range for Status and Install Date
             valueInputOption: 'USER_ENTERED',
             requestBody: {
                 values: [
                     [
-                        '✅ Installed', // New status
-                        new Date(installedAt).toISOString() // New installation date
+                        '✅ Installed', // New status for column E
+                        new Date(installedAt).toISOString() // New installation date for column F
                     ]
                 ],
             },
