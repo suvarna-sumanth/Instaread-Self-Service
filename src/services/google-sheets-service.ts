@@ -6,6 +6,7 @@
 
 import { google } from 'googleapis';
 import type { DemoConfig } from '@/types';
+import { format } from 'date-fns';
 
 // --- Configuration ---
 
@@ -15,7 +16,6 @@ const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 const HEADERS = [
     'Demo ID', 
     'Partner Website', 
-    'Sales Rep', 
     'Demo Created At', 
     'Status', 
     'Installation Date', 
@@ -72,27 +72,50 @@ export async function appendDemoToSheet(demo: DemoConfig) {
         // Sheet is empty, add headers first.
         await sheets.spreadsheets.values.append({
             spreadsheetId: SPREADSHEET_ID,
-            range: `${SHEET_NAME}!A1:G1`,
+            range: `${SHEET_NAME}!A1`,
             valueInputOption: 'USER_ENTERED',
             requestBody: {
                 values: [HEADERS],
             },
         });
+        
+        // Now, make the header row bold
+        const sheetInfo = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
+        const sheetId = sheetInfo.data.sheets?.find(s => s.properties?.title === SHEET_NAME)?.properties?.sheetId;
+        if (typeof sheetId === 'number') {
+            await sheets.spreadsheets.batchUpdate({
+                spreadsheetId: SPREADSHEET_ID,
+                requestBody: {
+                    requests: [{
+                        repeatCell: {
+                            range: {
+                                sheetId: sheetId,
+                                startRowIndex: 0,
+                                endRowIndex: 1,
+                            },
+                            cell: {
+                                userEnteredFormat: {
+                                    textFormat: { bold: true }
+                                }
+                            },
+                            fields: 'userEnteredFormat(textFormat)'
+                        }
+                    }]
+                }
+            });
+        }
     }
 
-    // Determine the base URL for the shareable link
     const appUrl = process.env.VERCEL_URL 
       ? `https://${process.env.VERCEL_URL}` 
       : (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://your-production-domain.com');
-
 
     // The order of values MUST match the column order defined in HEADERS
     const values = [
       [
         demo.id,
         demo.websiteUrl,
-        'Sales Rep', // Placeholder for Sales Rep Name
-        new Date(demo.createdAt).toISOString(),
+        format(new Date(demo.createdAt), "MMMM d, yyyy 'at' h:mm a"),
         'Pending',
         '', // Installation Date (blank initially)
         `${appUrl}/demo/${demo.id}`
@@ -101,7 +124,7 @@ export async function appendDemoToSheet(demo: DemoConfig) {
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAME}!A:G`,
+      range: `${SHEET_NAME}!A:A`, // Append to the first column to find the next empty row
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: values,
@@ -152,16 +175,16 @@ export async function updateDemoStatusInSheet(demoId: string, installedAt: strin
 
         const rowNumber = rowIndex + 1; // Sheet rows are 1-based
 
-        // 2. Update the Status (column E) and Installation Date (column F) for the found row.
+        // 2. Update the Status (column D) and Installation Date (column E) for the found row.
         await sheets.spreadsheets.values.update({
             spreadsheetId: SPREADSHEET_ID,
-            range: `${SHEET_NAME}!E${rowNumber}:F${rowNumber}`, // Correct range for Status and Install Date
+            range: `${SHEET_NAME}!D${rowNumber}:E${rowNumber}`, // Columns D and E
             valueInputOption: 'USER_ENTERED',
             requestBody: {
                 values: [
                     [
-                        '✅ Installed', // New status for column E
-                        new Date(installedAt).toISOString() // New installation date for column F
+                        '✅ Installed', // New status for column D
+                        format(new Date(installedAt), "MMMM d, yyyy 'at' h:mm a") // New formatted installation date for column E
                     ]
                 ],
             },
