@@ -161,39 +161,54 @@ export default function DemoGenerator() {
         />
       </div>
 
-      {analysis && (
-        <div className="mx-auto mt-8 w-full max-w-screen-xl px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_400px]">
-                <div className="space-y-8 lg:col-start-2">
-                <PlayerConfigSection 
-                    config={playerConfig} 
-                    setConfig={setPlayerConfig} 
-                    analysis={analysis}
-                />
-                <IntegrationCodeSection 
-                    playerConfig={playerConfig} 
-                    websiteUrl={url}
-                    selectedPlacement={selectedPlacement}
-                />
-                </div>
-            </div>
-        </div>
-      )}
-
-      {(isLoading || cloneHtml) && <Separator className="my-8" />}
-
       <div className="flex-grow">
-          <LivePreviewSection
-            url={url}
-            cloneHtml={cloneHtml}
-            isLoading={isLoading}
-            statusText={statusText}
-            selectedPlacement={selectedPlacement}
-            onSelectPlacement={handlePlacementSelect}
-            playerConfig={playerConfig}
-            onSaveDemo={handleSaveDemo}
-            isSaving={isSaving}
-          />
+        {analysis && (
+          <div className="mx-auto mt-8 w-full max-w-screen-xl px-4 sm:px-6 lg:px-8">
+              <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+                  <div className="space-y-8 lg:col-span-4 lg:col-start-9">
+                      <PlayerConfigSection 
+                          config={playerConfig} 
+                          setConfig={setPlayerConfig} 
+                          analysis={analysis}
+                      />
+                      <IntegrationCodeSection 
+                          playerConfig={playerConfig} 
+                          websiteUrl={url}
+                          selectedPlacement={selectedPlacement}
+                      />
+                  </div>
+                  <div className="lg:col-span-8 lg:col-start-1 lg:row-start-1">
+                      <LivePreviewSection
+                        url={url}
+                        cloneHtml={cloneHtml}
+                        isLoading={isLoading}
+                        statusText={statusText}
+                        selectedPlacement={selectedPlacement}
+                        onSelectPlacement={handlePlacementSelect}
+                        playerConfig={playerConfig}
+                        onSaveDemo={handleSaveDemo}
+                        isSaving={isSaving}
+                      />
+                  </div>
+              </div>
+          </div>
+        )}
+        
+        {isLoading && (
+            <div className="flex-grow">
+                <LivePreviewSection
+                    url={url}
+                    cloneHtml={cloneHtml}
+                    isLoading={isLoading}
+                    statusText={statusText}
+                    selectedPlacement={selectedPlacement}
+                    onSelectPlacement={handlePlacementSelect}
+                    playerConfig={playerConfig}
+                    onSaveDemo={handleSaveDemo}
+                    isSaving={isSaving}
+                />
+            </div>
+        )}
       </div>
     </div>
     </>

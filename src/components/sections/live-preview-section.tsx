@@ -244,7 +244,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     
     if (!url) {
       return (
-        <div className="flex flex-col items-center justify-center text-center p-8 mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col items-center justify-center text-center p-8 min-h-[40vh]">
             <Info className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="font-semibold text-lg">Live Preview</h3>
             <p className="text-muted-foreground">Enter a URL to start generating your demo.</p>
@@ -254,7 +254,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
 
     if (!effectiveHtml && url && !isLoading) {
         return (
-            <div className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8">
+            <div>
                 <Alert variant="destructive" className="m-4">
                     <AlertTitle>Preview Generation Failed</AlertTitle>
                     <AlertDescription>We couldn't generate a visual clone for this website. It may be protected or unreachable. Please try a different URL.</AlertDescription>
@@ -300,32 +300,30 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
           </DialogContent>
       </Dialog>
       
-      <div className="mx-auto w-full max-w-screen-xl px-4 sm:px-6 lg:px-8">
-        <Card className="shadow-md overflow-hidden">
-            <CardHeader>
-            <div className="flex flex-wrap justify-between items-start gap-4">
-                <div>
-                    <CardTitle className="font-headline text-2xl">Live Preview &amp; Placement</CardTitle>
-                    <CardDescription className="flex items-center gap-2 mt-1">
-                        <MousePointerClick className="h-4 w-4" /> Click an element in the preview to place the player. Resize your browser to test responsiveness.
-                    </CardDescription>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                    {selectedPlacement && <Button variant="outline" size="sm" onClick={handleClearPlacement}><Pointer className="mr-2 h-4 w-4"/>Clear Placement</Button>}
-                    <Button onClick={onSaveDemo} disabled={!url || !selectedPlacement || isSaving}>
-                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        Save &amp; Share
-                    </Button>
-                </div>
+      <Card className="shadow-md overflow-hidden">
+        <CardHeader>
+        <div className="flex flex-wrap justify-between items-start gap-4">
+            <div>
+                <CardTitle className="font-headline text-2xl">Live Preview &amp; Placement</CardTitle>
+                <CardDescription className="flex items-center gap-2 mt-1">
+                    <MousePointerClick className="h-4 w-4" /> Click an element in the preview to place the player. Resize your browser to test responsiveness.
+                </CardDescription>
             </div>
-            </CardHeader>
-            <CardContent className="p-0">
-            <div className="bg-muted/50 p-1 sm:p-2 md:p-4 border-t">
-                {renderPreviewContent()}
-                </div>
-            </CardContent>
-        </Card>
-      </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+                {selectedPlacement && <Button variant="outline" size="sm" onClick={handleClearPlacement}><Pointer className="mr-2 h-4 w-4"/>Clear Placement</Button>}
+                <Button onClick={onSaveDemo} disabled={!url || !selectedPlacement || isSaving}>
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    Save &amp; Share
+                </Button>
+            </div>
+        </div>
+        </CardHeader>
+        <CardContent className="p-0">
+        <div className="bg-muted/50 p-1 sm:p-2 md:p-4 border-t">
+            {renderPreviewContent()}
+            </div>
+        </CardContent>
+    </Card>
     </>
   );
 }
