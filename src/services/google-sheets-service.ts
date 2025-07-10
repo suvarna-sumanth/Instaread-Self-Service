@@ -6,7 +6,6 @@
 
 import { google } from 'googleapis';
 import type { DemoConfig } from '@/types';
-import { getDemoById } from './demo-service';
 
 // --- Configuration ---
 
@@ -53,6 +52,10 @@ export async function appendDemoToSheet(demo: DemoConfig) {
   try {
     const sheets = await getSheetsClient();
     
+    const appUrl = process.env.NODE_ENV === 'development' 
+        ? 'http://localhost:3000' 
+        : `https://${process.env.NEXT_PUBLIC_APP_HOSTNAME}`; // Use a production URL env var later
+
     // The order of values MUST match the column order in your sheet
     const values = [
       [
@@ -62,7 +65,7 @@ export async function appendDemoToSheet(demo: DemoConfig) {
         new Date(demo.createdAt).toISOString(),
         'Pending',
         '', // Installation Date (blank initially)
-        `${process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://your-app.com'}/demo/${demo.id}`
+        `${appUrl}/demo/${demo.id}`
       ]
     ];
 

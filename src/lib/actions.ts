@@ -3,7 +3,7 @@
 
 import { generateVisualClone as generateVisualCloneFlow } from '@/ai/flows/generate-visual-clone';
 import { analyzeWebsite as analyzeWebsiteFlow, type WebsiteAnalysisOutput } from '@/ai/flows/website-analysis';
-import { upsertDemo, deleteDemo as deleteDemoFromDb, resetDemoStatus as resetDemoStatusFromDb } from '@/services/demo-service';
+import { upsertDemo, deleteDemo as deleteDemoFromDb, resetDemoStatus as resetDemoStatusFromDb, getDemoById } from '@/services/demo-service';
 import { appendDemoToSheet } from '@/services/google-sheets-service';
 import type { WordPressConfigFormValues } from '@/lib/schemas';
 import type { DemoConfig, Placement, PlayerConfig } from '@/types';
@@ -57,10 +57,10 @@ export async function saveDemo(
         };
 
         const demoId = await upsertDemo(demoData);
-
-        // After saving to DB, append to Google Sheet
+        
+        // After saving to DB, get the full record and append to Google Sheet
         try {
-            const savedDemo = await deleteDemoFromDb(demoId); // This is a trick to get the full demo object back
+            const savedDemo = await getDemoById(demoId);
             if(savedDemo) {
                 await appendDemoToSheet(savedDemo);
             }
