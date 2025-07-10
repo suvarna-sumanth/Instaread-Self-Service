@@ -90,6 +90,7 @@ const generateEmailHtml = ({ publication, websiteUrl, installedAt, dashboardUrl 
 
 /**
  * Renders the email template and sends it using Nodemailer.
+ * In development mode, it logs to the console instead of sending an email.
  * @param args The arguments for the email template.
  */
 export async function sendPartnerInstallNotification(args: InstallNotificationArgs) {
@@ -100,19 +101,22 @@ export async function sendPartnerInstallNotification(args: InstallNotificationAr
         throw new Error('Email sender (EMAIL_FROM) or recipient (EMAIL_TO) is not configured in environment variables.');
     }
     
-    // 1. Generate the HTML string
-    const emailHtml = generateEmailHtml(args);
-
-    const transporter = getTransporter();
-    
     // Split the string by commas, then for each resulting string,
     // trim whitespace and remove any surrounding double quotes.
     const toList = to.split(',')
                       .map(email => email.trim().replace(/^"|"$/g, ''))
                       .join(', ');
 
+    if (process.env.NODE_ENV === 'development') {
+        console.log(`[Email Development] Email sending skipped. Would have been sent to: ${toList}`);
+        console.log(`[Email Development] Subject: 🎉 New Installation: ${args.publication} has installed the Instaread Player!`);
+        return;
+    }
+
+    const emailHtml = generateEmailHtml(args);
+    const transporter = getTransporter();
+    
     try {
-        // 2. Send the email
         const info = await transporter.sendMail({
             from: from,
             to: toList,
