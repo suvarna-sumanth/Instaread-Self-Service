@@ -105,8 +105,9 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
 
   // Effect to process the raw HTML and inject our scripts/styles for the iframe
   useEffect(() => {
+    setEffectiveHtml(null); // 🔥 clear previous iframe doc
+
     if (!cloneHtml) {
-      setEffectiveHtml(null);
       return;
     }
 
