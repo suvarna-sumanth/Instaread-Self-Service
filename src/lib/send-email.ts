@@ -1,46 +1,55 @@
-
 /**
  * @fileOverview A self-contained utility for rendering and sending the partner installation email.
  * This file is dynamically imported by the API route to avoid Next.js build issues.
  */
 
-import nodemailer from 'nodemailer';
-import { format } from 'date-fns';
+import nodemailer from "nodemailer";
+import { format } from "date-fns";
 
 type InstallNotificationArgs = {
-    publication: string;
-    websiteUrl: string;
-    installedAt: string;
-    dashboardUrl: string;
+  publication: string;
+  websiteUrl: string;
+  installedAt: string;
+  dashboardUrl: string;
 };
 
 // This function creates and configures a Nodemailer "transporter"
 const getTransporter = () => {
-    const { EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS } = process.env;
+  const { EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS } = process.env;
 
-    if (!EMAIL_HOST || !EMAIL_PORT || !EMAIL_USER || !EMAIL_PASS) {
-        throw new Error('Nodemailer provider credentials are not configured in environment variables.');
-    }
+  if (!EMAIL_HOST || !EMAIL_PORT || !EMAIL_USER || !EMAIL_PASS) {
+    throw new Error(
+      "Nodemailer provider credentials are not configured in environment variables."
+    );
+  }
 
-    return nodemailer.createTransport({
-        host: EMAIL_HOST,
-        port: parseInt(EMAIL_PORT, 10),
-        secure: parseInt(EMAIL_PORT, 10) === 465,
-        auth: {
-            user: EMAIL_USER,
-            pass: EMAIL_PASS,
-        },
-    });
+  return nodemailer.createTransport({
+    host: EMAIL_HOST,
+    port: parseInt(EMAIL_PORT, 10),
+    secure: parseInt(EMAIL_PORT, 10) === 465,
+    auth: {
+      user: EMAIL_USER,
+      pass: EMAIL_PASS,
+    },
+  });
 };
 
 /**
  * Generates the HTML content for the notification email using a template string.
  * This avoids the need for react-dom/server.
  */
-const generateEmailHtml = ({ publication, websiteUrl, installedAt, dashboardUrl }: InstallNotificationArgs): string => {
-    const formattedDate = format(new Date(installedAt), "MMMM d, yyyy 'at' h:mm a");
+const generateEmailHtml = ({
+  publication,
+  websiteUrl,
+  installedAt,
+  dashboardUrl,
+}: InstallNotificationArgs): string => {
+  const formattedDate = format(
+    new Date(installedAt),
+    "MMMM d, yyyy 'at' h:mm a"
+  );
 
-    return `
+  return `
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -87,47 +96,57 @@ const generateEmailHtml = ({ publication, websiteUrl, installedAt, dashboardUrl 
     </html>`;
 };
 
-
 /**
  * Renders the email template and sends it using Nodemailer.
  * In development mode, it logs to the console instead of sending an email.
  * @param args The arguments for the email template.
  */
-export async function sendPartnerInstallNotification(args: InstallNotificationArgs) {
-    const from = process.env.EMAIL_FROM;
-    const to = process.env.EMAIL_TO;
+export async function sendPartnerInstallNotification(
+  args: InstallNotificationArgs
+) {
+  const from = process.env.EMAIL_FROM;
+  const to = process.env.EMAIL_TO;
 
-    if (!from || !to) {
-        throw new Error('Email sender (EMAIL_FROM) or recipient (EMAIL_TO) is not configured in environment variables.');
-    }
-    
-    // Split the string by commas, then for each resulting string,
-    // trim whitespace and remove any surrounding double quotes.
-    const toList = to.split(',')
-                      .map(email => email.trim().replace(/^"|"$/g, ''))
-                      .join(', ');
+  if (!from || !to) {
+    throw new Error(
+      "Email sender (EMAIL_FROM) or recipient (EMAIL_TO) is not configured in environment variables."
+    );
+  }
 
-    if (process.env.NODE_ENV === 'development') {
-        console.log(`[Email Development] Email sending skipped. Would have been sent to: ${toList}`);
-        console.log(`[Email Development] Subject: 🎉 New Installation: ${args.publication} has installed the Instaread Player!`);
-        return;
-    }
+  // Split the string by commas, then for each resulting string,
+  // trim whitespace and remove any surrounding double quotes.
+  const toList = to
+    .split(",")
+    .map((email) => email.trim().replace(/^"|"$/g, ""))
+    .join(", ");
 
-    const emailHtml = generateEmailHtml(args);
-    const transporter = getTransporter();
-    
-    try {
-        const info = await transporter.sendMail({
-            from: from,
-            to: toList,
-            subject: `🎉 New Installation: ${args.publication} has installed the Instaread Player!`,
-            html: emailHtml,
-        });
+  if (process.env.NODE_ENV === "development") {
+    console.log(
+      `[Email Development] Email sending skipped. Would have been sent to: ${toList}`
+    );
+    console.log(
+      `[Email Development] Subject: 🎉 New Installation: ${args.publication} has installed the Instaread Player!`
+    );
+    return;
+  }
 
-        console.log(`[Email Utility] Email sent successfully! Message ID: ${info.messageId}`);
-    } catch (error) {
-        console.error("[Email Utility Error]", error);
-        // We throw the error so the calling function can handle it.
-        throw new Error('Failed to send email via Nodemailer.');
-    }
+  const emailHtml = generateEmailHtml(args);
+  const transporter = getTransporter();
+
+  try {
+    const info = await transporter.sendMail({
+      from: from,
+      to: toList,
+      subject: `🎉 New Installation: ${args.publication} has installed the Instaread Player!`,
+      html: emailHtml,
+    });
+
+    console.log(
+      `[Email Utility] Email sent successfully! Message ID: ${info.messageId}`
+    );
+  } catch (error) {
+    console.error("[Email Utility Error]", error);
+    // We throw the error so the calling function can handle it.
+    throw new Error("Failed to send email via Nodemailer.");
+  }
 }
