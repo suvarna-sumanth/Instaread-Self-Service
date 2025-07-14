@@ -1,11 +1,12 @@
+
 import type { WebsiteAnalysisOutput } from "@/ai/flows/website-analysis";
 
 export type PlayerType =
+  | "default"
   | "shortdesign"
   | "scrubandwaves"
   | "scrub"
-  | "old"
-  | "default";
+  | "old";
 
 export type PlayerConfig = {
   playerType: PlayerType;
@@ -17,6 +18,7 @@ export type AnalysisResult = WebsiteAnalysisOutput | null;
 export type Placement = {
   selector: string;
   position: "before" | "after";
+  nth: number; // The 0-based index of the element if the selector matches multiple elements
 } | null;
 
 export type DemoConfig = {

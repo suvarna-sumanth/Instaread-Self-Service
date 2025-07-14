@@ -21,6 +21,7 @@ import { generatePartnerPlugin, checkWorkflowRun, getReleaseDownloadUrl } from '
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { Input as NumberInput } from '../ui/input';
 
 type CodeBlockProps = {
     content: string;
@@ -129,7 +130,8 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement, d
             const newRule = {
                 target_selector: selectedPlacement.selector,
                 insert_position: selectedPlacement.position === 'before' ? 'before_element' : 'after_element',
-                exclude_slugs: ""
+                exclude_slugs: "",
+                nth: selectedPlacement.nth
             };
             replace([newRule]);
         } else {
@@ -446,7 +448,7 @@ const MyComponent = () => {
                                             type="button"
                                             variant="outline"
                                             size="sm"
-                                            onClick={() => append({ target_selector: '', insert_position: 'after_element', exclude_slugs: '' })}
+                                            onClick={() => append({ target_selector: '', insert_position: 'after_element', exclude_slugs: '', nth: 0 })}
                                         >
                                             <PlusCircle className="mr-2 h-4 w-4" />
                                             Add Rule
@@ -478,7 +480,7 @@ const MyComponent = () => {
                                                         <FormItem>
                                                         <FormLabel>Target Selector</FormLabel>
                                                         <FormControl>
-                                                            <Input placeholder="e.g. .article-body > p:first-of-type" {...field} />
+                                                            <Input placeholder="e.g. .article-body > p" {...field} />
                                                         </FormControl>
                                                         <FormMessage />
                                                         </FormItem>
@@ -508,19 +510,39 @@ const MyComponent = () => {
                                                     )}
                                                 />
                                             </div>
-                                             <FormField
-                                                control={control}
-                                                name={`injection_rules.${index}.exclude_slugs`}
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                    <FormLabel>Exclude Slugs (Optional)</FormLabel>
-                                                    <FormControl>
-                                                        <Textarea placeholder="Comma-separated list of slugs to exclude, e.g. about-us,contact" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <FormField
+                                                    control={control}
+                                                    name={`injection_rules.${index}.nth`}
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>Instance Number (nth)</FormLabel>
+                                                            <FormControl>
+                                                                <NumberInput 
+                                                                    type="number"
+                                                                    placeholder="e.g., 0 for the first instance" 
+                                                                    {...field}
+                                                                    onChange={event => field.onChange(+event.target.value)}
+                                                                />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                                <FormField
+                                                    control={control}
+                                                    name={`injection_rules.${index}.exclude_slugs`}
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>Exclude Slugs (Optional)</FormLabel>
+                                                            <FormControl>
+                                                                <Textarea placeholder="e.g. about-us,contact" {...field} />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -614,5 +636,3 @@ const MyComponent = () => {
 };
 
 export default IntegrationCodeSection;
-
-    

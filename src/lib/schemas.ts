@@ -5,7 +5,8 @@ import type { PlayerType } from '@/types';
 export const injectionRuleSchema = z.object({
     target_selector: z.string().min(1, "Selector is required"),
     insert_position: z.enum(['before_element', 'after_element', 'inside_first_child', 'inside_last_child']),
-    exclude_slugs: z.string().optional()
+    exclude_slugs: z.string().optional(),
+    nth: z.number().optional() // Add the nth property
 });
 
 export const wordpressConfigSchema = z.object({

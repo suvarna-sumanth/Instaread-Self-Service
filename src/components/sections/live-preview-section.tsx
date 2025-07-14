@@ -52,6 +52,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [stagedPlacement, setStagedPlacement] = useState<{
     selector: string;
+    nth: number;
   } | null>(null);
   const [effectiveHtml, setEffectiveHtml] = useState<string | null>(null);
 
@@ -62,66 +63,67 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     }
 
     const path: string[] = [];
+    // Prioritize class names that are more likely to be unique and descriptive.
     const keyClassNames = [
-      /article/, /post/, /content/, /entry/, /main/, /body/, /story/,
+      /article/, /post/, /content/, /entry/, /main/, /body/, /story/, /wrapper/, /container/
     ];
 
-    while (el && el.nodeType === Node.ELEMENT_NODE) {
-      let selector = el.nodeName.toLowerCase();
+    let currentEl: Element | null = el;
+    while (currentEl && currentEl.nodeType === Node.ELEMENT_NODE) {
+      let selector = currentEl.nodeName.toLowerCase();
       
-      if (el.id) {
-        selector = `#${el.id.replace(/(:|\.|\[|\]|,|=|@)/g, "\\$1")}`;
+      if (currentEl.id) {
+        // IDs are supposed to be unique, so this is the best selector.
+        selector = `#${currentEl.id.replace(/(:|\.|\[|\]|,|=|@)/g, "\\$1")}`;
         path.unshift(selector);
-        break; // ID is unique, no need to traverse further
+        break; // Stop traversing up, ID is the most specific anchor.
       }
       
-      const classList = Array.from(el.classList);
+      const classList = Array.from(currentEl.classList);
       const significantClass = classList.find(cls => keyClassNames.some(regex => regex.test(cls)));
 
       if (significantClass) {
-        selector = `${el.nodeName.toLowerCase()}.${significantClass.replace(/(:|\.|\[|\]|,|=|@)/g, "\\$1")}`;
+        // Using a descriptive class name is more robust than just tag names.
+        selector = `${currentEl.nodeName.toLowerCase()}.${significantClass.replace(/(:|\.|\[|\]|,|=|@)/g, "\\$1")}`;
         path.unshift(selector);
-        // If we found a very significant class, we might stop, assuming it's a good anchor
+        // If we found a very significant class, we can stop, as it's a good anchor.
         if (/article|post|content|entry|main/.test(significantClass)) {
           break;
         }
-      } else {
-         let sib: Element | null = el;
+      } else if (path.length < 3) { // Only add nth-of-type for less specific initial selectors
+         let sib: Element | null = currentEl;
          let nth = 1;
          while ((sib = sib.previousElementSibling)) {
-           if (sib.nodeName.toLowerCase() === selector) {
+           if (sib.nodeName.toLowerCase() === currentEl.nodeName.toLowerCase()) {
              nth++;
            }
          }
-         if (nth !== 1) {
+         if (nth > 1) {
            selector += `:nth-of-type(${nth})`;
          }
       }
 
       path.unshift(selector);
       
-      if (el.parentElement) {
-         el = el.parentElement;
-      } else {
-        break;
-      }
+      currentEl = currentEl.parentElement;
     }
-    return path.join(" > ");
+    // Join the path components. Limit the depth to prevent overly specific selectors.
+    return path.slice(Math.max(path.length - 4, 0)).join(" > ");
   };
 
   // This effect listens for messages (clicks) from the iframe
   useEffect(() => {
     const handleIframeMessage = (event: MessageEvent) => {
       if (event.data && event.data.type === "placement-click") {
-        const selector = event.data.selector;
+        const { selector, nth } = event.data;
         if (selector) {
-          setStagedPlacement({ selector });
+          setStagedPlacement({ selector, nth });
         }
       }
     };
     window.addEventListener("message", handleIframeMessage);
     return () => window.removeEventListener("message", handleIframeMessage);
-  }, [setStagedPlacement]);
+  }, []);
 
   // Effect to process the raw HTML and inject our scripts/styles for the iframe
   useEffect(() => {
@@ -267,7 +269,12 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
               e.preventDefault();
               e.stopPropagation();
               const selector = generateSelector(e.target);
-              window.parent.postMessage({ type: 'placement-click', selector: selector }, '*');
+              
+              // Calculate the 'nth' index of the clicked element among its siblings that match the selector
+              const elements = Array.from(document.querySelectorAll(selector));
+              const nth = elements.indexOf(e.target);
+
+              window.parent.postMessage({ type: 'placement-click', selector: selector, nth: nth }, '*');
             }
           }, true);
 
@@ -321,7 +328,11 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
 
   const handlePlacementChoice = (position: "before" | "after") => {
     if (stagedPlacement) {
-      onSelectPlacement({ selector: stagedPlacement.selector, position });
+      onSelectPlacement({
+        selector: stagedPlacement.selector,
+        nth: stagedPlacement.nth,
+        position,
+      });
       setStagedPlacement(null);
     }
   };
@@ -394,6 +405,9 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
           </DialogHeader>
           <div className="text-xs text-muted-foreground bg-muted p-2 rounded-md break-all">
             Selector: <code>{stagedPlacement?.selector}</code>
+            {stagedPlacement && stagedPlacement.nth > 0 && (
+              <span> (Instance #{stagedPlacement.nth + 1})</span>
+            )}
           </div>
           <DialogFooter>
             <Button
