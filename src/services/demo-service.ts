@@ -1,26 +1,29 @@
-
-'use server';
+"use server";
 /**
  * @fileOverview A service for managing demo configurations in the database.
  * This is the only file that should directly interact with the database.
  * To switch to a different database (e.g., PostgreSQL), only this file needs to be modified.
  */
 
-import { getDb } from '@/lib/firebase';
-import type { DemoConfig } from '@/types';
-
+import { getDb } from "@/lib/firebase";
+import type { DemoConfig } from "@/types";
 
 /**
  * Creates or updates a demo configuration in the database based on the websiteUrl.
  * @param demoData - The configuration data for the demo.
  * @returns The unique ID of the created or updated demo.
  */
-export async function upsertDemo(demoData: Omit<DemoConfig, 'id' | 'createdAt' | 'updatedAt' | 'isInstalled' | 'installedAt'>): Promise<string> {
+export async function upsertDemo(
+  demoData: Omit<
+    DemoConfig,
+    "id" | "createdAt" | "updatedAt" | "isInstalled" | "installedAt"
+  >
+): Promise<string> {
   const db = getDb();
   try {
-    const demosRef = db.collection('demos');
+    const demosRef = db.collection("demos");
     // We use websiteUrl as the unique key to find existing demos
-    const q = demosRef.where('websiteUrl', '==', demoData.websiteUrl).limit(1);
+    const q = demosRef.where("websiteUrl", "==", demoData.websiteUrl).limit(1);
     const snapshot = await q.get();
 
     const now = new Date().toISOString();
@@ -49,7 +52,8 @@ export async function upsertDemo(demoData: Omit<DemoConfig, 'id' | 'createdAt' |
       return docRef.id;
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : "An unknown error occurred.";
+    const message =
+      error instanceof Error ? error.message : "An unknown error occurred.";
     console.error("Error upserting demo in Firestore: ", message);
     throw new Error(`Failed to save demo configuration: ${message}`);
   }
@@ -63,9 +67,9 @@ export async function upsertDemo(demoData: Omit<DemoConfig, 'id' | 'createdAt' |
 export async function getDemoById(id: string): Promise<DemoConfig | null> {
   const db = getDb();
   try {
-    const docRef = db.collection('demos').doc(id);
+    const docRef = db.collection("demos").doc(id);
     const doc = await docRef.get();
-    
+
     if (!doc.exists) {
       return null;
     }
@@ -84,13 +88,32 @@ export async function getDemoById(id: string): Promise<DemoConfig | null> {
 export async function getAllDemos(): Promise<DemoConfig[]> {
   const db = getDb();
   try {
-    const snapshot = await db.collection('demos').orderBy('updatedAt', 'desc').get();
+    const snapshot = await db
+      .collection("demos")
+      .orderBy("updatedAt", "desc")
+      .get();
     if (snapshot.empty) {
       return [];
     }
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DemoConfig));
+    return snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt?.toDate
+          ? data.createdAt.toDate().toISOString()
+          : data.createdAt,
+        updatedAt: data.updatedAt?.toDate
+          ? data.updatedAt.toDate().toISOString()
+          : data.updatedAt,
+        installedAt: data.installedAt?.toDate
+          ? data.installedAt.toDate().toISOString()
+          : data.installedAt,
+      } as DemoConfig;
+    });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "An unknown error occurred.";
+    const message =
+      error instanceof Error ? error.message : "An unknown error occurred.";
     console.error("Error fetching all demos from Firestore: ", message);
     throw new Error(`Failed to retrieve demo configurations: ${message}`);
   }
@@ -101,24 +124,25 @@ export async function getAllDemos(): Promise<DemoConfig[]> {
  * @param id - The unique ID of the demo to delete.
  */
 export async function deleteDemo(id: string): Promise<DemoConfig | null> {
-    const db = getDb();
-    try {
-        const docRef = db.collection('demos').doc(id);
-        const doc = await docRef.get();
-        if (!doc.exists) return null;
-        const data = { id: doc.id, ...doc.data() } as DemoConfig;
-        await docRef.delete();
-        return data;
-    } catch (error) {
-        const message = error instanceof Error ? error.message : "An unknown error occurred.";
-        console.error(`Error deleting demo ${id} from Firestore: `, message);
-        throw new Error(`Failed to delete demo: ${message}`);
-    }
+  const db = getDb();
+  try {
+    const docRef = db.collection("demos").doc(id);
+    const doc = await docRef.get();
+    if (!doc.exists) return null;
+    const data = { id: doc.id, ...doc.data() } as DemoConfig;
+    await docRef.delete();
+    return data;
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "An unknown error occurred.";
+    console.error(`Error deleting demo ${id} from Firestore: `, message);
+    throw new Error(`Failed to delete demo: ${message}`);
+  }
 }
 
-type RecordInstallResult = 
-    | { success: true, demo: DemoConfig, installedAt: string }
-    | { success: false }
+type RecordInstallResult =
+  | { success: true; demo: DemoConfig; installedAt: string }
+  | { success: false };
 
 /**
  * Records an installation event for a given publication.
@@ -127,30 +151,42 @@ type RecordInstallResult =
  * @param publication - The unique publication name of the partner.
  * @returns A result object indicating success and containing demo data for the caller.
  */
-export async function recordInstall(publication: string): Promise<RecordInstallResult> {
+export async function recordInstall(
+  publication: string
+): Promise<RecordInstallResult> {
   const db = getDb();
   try {
     if (!publication) {
-        console.warn(`[recordInstall] Received install ping with no publication name.`);
-        return { success: false };
+      console.warn(
+        `[recordInstall] Received install ping with no publication name.`
+      );
+      return { success: false };
     }
 
-    const demosRef = db.collection('demos');
-    const q = demosRef.where('publication', '==', publication).limit(1);
+    const demosRef = db.collection("demos");
+    const q = demosRef.where("publication", "==", publication).limit(1);
     const snapshot = await q.get();
 
     if (snapshot.empty) {
-      console.warn(`[recordInstall] Received install ping for unknown publication: "${publication}". No record found.`);
+      console.warn(
+        `[recordInstall] Received install ping for unknown publication: "${publication}". No record found.`
+      );
       return { success: false };
     }
 
     const demoDoc = snapshot.docs[0];
     const demoData = { id: demoDoc.id, ...demoDoc.data() } as DemoConfig;
-    
+
     // Only update if it's the first time being installed. This makes the endpoint idempotent.
     if (demoData.isInstalled) {
-        console.log(`[recordInstall] Received duplicate install ping for publication: "${publication}". No update needed.`);
-        return { success: true, demo: demoData, installedAt: demoData.installedAt! };
+      console.log(
+        `[recordInstall] Received duplicate install ping for publication: "${publication}". No update needed.`
+      );
+      return {
+        success: true,
+        demo: demoData,
+        installedAt: demoData.installedAt!,
+      };
     }
 
     const installedAt = new Date().toISOString();
@@ -159,36 +195,44 @@ export async function recordInstall(publication: string): Promise<RecordInstallR
       installedAt: installedAt,
     });
 
-    console.log(`[recordInstall] Successfully recorded installation for publication: "${publication}".`);
-    
+    console.log(
+      `[recordInstall] Successfully recorded installation for publication: "${publication}".`
+    );
+
     const updatedDemoData = { ...demoData, isInstalled: true, installedAt };
     return { success: true, demo: updatedDemoData, installedAt };
-
   } catch (error) {
-    const message = error instanceof Error ? error.message : "An unknown error occurred.";
-    console.error(`[recordInstall] Error recording install for publication "${publication}": `, message);
+    const message =
+      error instanceof Error ? error.message : "An unknown error occurred.";
+    console.error(
+      `[recordInstall] Error recording install for publication "${publication}": `,
+      message
+    );
     // We throw here to be explicit about failure, but the API route will catch it.
     throw new Error(`Failed to record installation: ${message}`);
   }
 }
-
 
 /**
  * Resets the installation status of a demo.
  * @param id The ID of the demo to reset.
  */
 export async function resetDemoStatus(id: string): Promise<void> {
-    const db = getDb();
-    try {
-        const docRef = db.collection('demos').doc(id);
-        await docRef.update({
-            isInstalled: false,
-            installedAt: null,
-            updatedAt: new Date().toISOString(),
-        });
-    } catch (error) {
-        const message = error instanceof Error ? error.message : "An unknown error occurred.";
-        console.error(`Error resetting demo status for ${id} in Firestore: `, message);
-        throw new Error(`Failed to reset demo status: ${message}`);
-    }
+  const db = getDb();
+  try {
+    const docRef = db.collection("demos").doc(id);
+    await docRef.update({
+      isInstalled: false,
+      installedAt: null,
+      updatedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "An unknown error occurred.";
+    console.error(
+      `Error resetting demo status for ${id} in Firestore: `,
+      message
+    );
+    throw new Error(`Failed to reset demo status: ${message}`);
+  }
 }

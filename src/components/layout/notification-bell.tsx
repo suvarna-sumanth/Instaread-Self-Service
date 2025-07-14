@@ -31,6 +31,7 @@ export default function NotificationBell() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [viewedIds, setViewedIds] = useState<string[]>([]);
 
+  // Fetch installed demos and initialize viewedIds
   useEffect(() => {
     const localViewedIds: string[] = JSON.parse(
       localStorage.getItem(VIEWED_INSTALLS_KEY) || "[]"
@@ -48,30 +49,47 @@ export default function NotificationBell() {
         id: doc.id,
         ...doc.data(),
       })) as DemoConfig[];
-
       setAllInstalled(installedDemos);
-
-      const newNotifications = installedDemos.filter(
-        (demo) => !localViewedIds.includes(demo.id)
-      );
-      setUnreadCount(newNotifications.length);
     });
 
     return () => unsubscribe();
   }, []);
 
+  // Listen for localStorage changes across tabs
+  useEffect(() => {
+    function handleStorageChange(event: StorageEvent) {
+      if (event.key === VIEWED_INSTALLS_KEY) {
+        const updatedViewedIds = JSON.parse(event.newValue || "[]");
+        setViewedIds(updatedViewedIds);
+      }
+    }
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
+  // Recalculate unread count whenever allInstalled or viewedIds changes
+  useEffect(() => {
+    const newNotifications = allInstalled.filter(
+      (demo) => !viewedIds.includes(demo.id)
+    );
+    setUnreadCount(newNotifications.length);
+  }, [allInstalled, viewedIds]);
+
+  // Optionally re-read localStorage when opening the sheet
   const handleSheetOpenChange = (open: boolean) => {
     setIsSheetOpen(open);
     if (!open) {
       const allCurrentIds = allInstalled.map((demo) => demo.id);
       localStorage.setItem(VIEWED_INSTALLS_KEY, JSON.stringify(allCurrentIds));
       setViewedIds(allCurrentIds);
-      setUnreadCount(0);
+    } else {
+      // Always sync viewedIds in case another tab updated it
+      const localViewedIds: string[] = JSON.parse(
+        localStorage.getItem(VIEWED_INSTALLS_KEY) || "[]"
+      );
+      setViewedIds(localViewedIds);
     }
   };
-  useEffect(() => {
-    document.body.style.pointerEvents = isSheetOpen ? "auto" : "auto";
-  }, [isSheetOpen]);
 
   return (
     <>

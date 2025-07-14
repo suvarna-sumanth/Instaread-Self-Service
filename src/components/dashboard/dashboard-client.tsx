@@ -42,10 +42,13 @@ export default function DashboardClient({ data }: { data: DemoConfig[] }) {
   useEffect(() => {
     const q = query(collection(db, "demos"), orderBy("updatedAt", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      console.log("Snapshot changes:", snapshot.docChanges());
+
       const updated = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       })) as DemoConfig[];
+
       setLiveData(updated);
     });
 
