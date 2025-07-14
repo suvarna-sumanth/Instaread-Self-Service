@@ -80,6 +80,8 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement, d
             domain: '',
             publication: '',
             version: '1.0.0',
+            playerType: 'default',
+            color: '#3B82F6',
             injection_context: 'singular',
             injection_strategy: 'first',
             injection_rules: []
@@ -115,10 +117,12 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement, d
             domain: newDomain,
             partner_id: newPartnerId,
             publication: newPublication,
+            playerType: playerConfig.playerType, // Keep player config in sync
+            color: playerConfig.color, // Keep player config in sync
             injection_rules: currentValues.injection_rules || []
         });
 
-    }, [websiteUrl, reset, getValues]);
+    }, [websiteUrl, playerConfig, reset, getValues]);
     
     useEffect(() => {
         if (selectedPlacement?.selector) {
@@ -610,3 +614,5 @@ const MyComponent = () => {
 };
 
 export default IntegrationCodeSection;
+
+    
