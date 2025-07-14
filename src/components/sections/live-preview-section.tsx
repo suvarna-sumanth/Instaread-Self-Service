@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
@@ -55,33 +56,52 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   const [effectiveHtml, setEffectiveHtml] = useState<string | null>(null);
 
   // This function will be stringified and injected into the iframe to handle interactions.
-  const generateSelector = (el: Element): string => {
+  const generateSelector = (el: Element | null): string => {
     if (!el || !(el instanceof Element)) {
       return "";
     }
+
     const path: string[] = [];
+    const keyClassNames = [
+      /article/, /post/, /content/, /entry/, /main/, /body/, /story/,
+    ];
+
     while (el && el.nodeType === Node.ELEMENT_NODE) {
       let selector = el.nodeName.toLowerCase();
+      
       if (el.id) {
-        const escapedId = el.id.replace(/([^\w\d_-]+)/g, "\\$1");
-        selector += `#${escapedId}`;
+        selector = `#${el.id.replace(/(:|\.|\[|\]|,|=|@)/g, "\\$1")}`;
         path.unshift(selector);
-        break;
-      } else {
-        let sib: Element | null = el;
-        let nth = 1;
-        while ((sib = sib.previousElementSibling)) {
-          if (sib.nodeName.toLowerCase() === selector) {
-            nth++;
-          }
-        }
-        if (nth !== 1) {
-          selector += `:nth-of-type(${nth})`;
-        }
+        break; // ID is unique, no need to traverse further
       }
+      
+      const classList = Array.from(el.classList);
+      const significantClass = classList.find(cls => keyClassNames.some(regex => regex.test(cls)));
+
+      if (significantClass) {
+        selector = `${el.nodeName.toLowerCase()}.${significantClass.replace(/(:|\.|\[|\]|,|=|@)/g, "\\$1")}`;
+        path.unshift(selector);
+        // If we found a very significant class, we might stop, assuming it's a good anchor
+        if (/article|post|content|entry|main/.test(significantClass)) {
+          break;
+        }
+      } else {
+         let sib: Element | null = el;
+         let nth = 1;
+         while ((sib = sib.previousElementSibling)) {
+           if (sib.nodeName.toLowerCase() === selector) {
+             nth++;
+           }
+         }
+         if (nth !== 1) {
+           selector += `:nth-of-type(${nth})`;
+         }
+      }
+
       path.unshift(selector);
+      
       if (el.parentElement) {
-        el = el.parentElement;
+         el = el.parentElement;
       } else {
         break;
       }
