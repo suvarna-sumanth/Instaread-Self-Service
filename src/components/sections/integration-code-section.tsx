@@ -11,7 +11,7 @@ import { Clipboard, Check, Wand2, AlertTriangle, PlusCircle, Trash2, Loader2, Ch
 import { useToast } from "@/hooks/use-toast";
 import { PLAYER_SCRIPT_URL } from '@/lib/constants';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Textarea } from '../ui/textarea';
@@ -89,12 +89,14 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement, d
         }
     });
 
-    const { control, reset, getValues, clearErrors } = form;
+    const { control, reset, getValues, clearErrors, watch } = form;
 
     const { fields, append, remove, replace } = useFieldArray({
         control,
         name: "injection_rules"
     });
+
+    const injectionStrategy = watch('injection_strategy');
 
     useEffect(() => {
         const currentValues = getValues();
@@ -118,8 +120,8 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement, d
             domain: newDomain,
             partner_id: newPartnerId,
             publication: newPublication,
-            playerType: playerConfig.playerType, // Keep player config in sync
-            color: playerConfig.color, // Keep player config in sync
+            playerType: playerConfig.playerType,
+            color: playerConfig.color,
             injection_rules: currentValues.injection_rules || []
         });
 
@@ -431,6 +433,11 @@ const MyComponent = () => {
                                                             <SelectItem value="custom">Custom</SelectItem>
                                                         </SelectContent>
                                                     </Select>
+                                                    {injectionStrategy === 'custom' && (
+                                                        <FormDescription className="pt-2 text-orange-600">
+                                                            This advanced option requires a developer to manually edit plugin files. Use only if automatic placement fails on a complex site.
+                                                        </FormDescription>
+                                                    )}
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
