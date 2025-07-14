@@ -60,10 +60,11 @@ type IntegrationCodeSectionProps = {
     playerConfig: PlayerConfig;
     websiteUrl: string;
     selectedPlacement: Placement;
+    isPlacementFragile: boolean;
     disabled: boolean;
 };
 
-const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement, disabled }: IntegrationCodeSectionProps) => {
+const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement, isPlacementFragile, disabled }: IntegrationCodeSectionProps) => {
     const { toast } = useToast();
     const [isBuilding, setIsBuilding] = useState(false);
     
@@ -89,7 +90,7 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement, d
         }
     });
 
-    const { control, reset, getValues, clearErrors, watch } = form;
+    const { control, reset, getValues, clearErrors, watch, setValue } = form;
 
     const { fields, append, remove, replace } = useFieldArray({
         control,
@@ -122,10 +123,11 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement, d
             publication: newPublication,
             playerType: playerConfig.playerType,
             color: playerConfig.color,
-            injection_rules: currentValues.injection_rules || []
+            injection_rules: currentValues.injection_rules || [],
+            injection_strategy: isPlacementFragile ? 'custom' : (currentValues.injection_strategy || 'first')
         });
 
-    }, [websiteUrl, playerConfig, reset, getValues]);
+    }, [websiteUrl, playerConfig, isPlacementFragile, reset, getValues]);
     
     useEffect(() => {
         if (selectedPlacement?.selector) {
@@ -140,6 +142,14 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement, d
              replace([]);
         }
     }, [selectedPlacement, replace]);
+
+    // Effect to auto-select "custom" strategy if placement is fragile
+    useEffect(() => {
+        if (isPlacementFragile) {
+            setValue('injection_strategy', 'custom');
+        }
+    }, [isPlacementFragile, setValue]);
+
 
     const generateJsonContent = () => {
         const data = getValues();
@@ -420,7 +430,7 @@ const MyComponent = () => {
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>Injection Strategy</FormLabel>
-                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                                                         <FormControl>
                                                         <SelectTrigger>
                                                             <SelectValue placeholder="Select strategy" />

@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2, Info, Pointer, MousePointerClick, Save } from "lucide-react";
+import { Loader2, Info, Pointer, MousePointerClick, Save, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "../ui/button";
@@ -31,7 +31,7 @@ type LivePreviewSectionProps = {
   isLoading: boolean;
   statusText: string;
   selectedPlacement: Placement;
-  onSelectPlacement: (placement: Placement) => void;
+  onSelectPlacement: (placement: Placement, isFragile: boolean) => void;
   playerConfig: PlayerConfig;
   onSaveDemo: () => void;
   isSaving: boolean;
@@ -55,6 +55,8 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     nth: number;
   } | null>(null);
   const [effectiveHtml, setEffectiveHtml] = useState<string | null>(null);
+  const [isPlacementFragile, setIsPlacementFragile] = useState(false);
+
 
   // This function will be stringified and injected into the iframe to handle interactions.
   const generateSelector = (el: Element | null): string => {
@@ -109,6 +111,22 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     }
     // Join the path components. Limit the depth to prevent overly specific selectors.
     return path.slice(Math.max(path.length - 4, 0)).join(" > ");
+  };
+
+  const isSelectorFragile = (selector: string): boolean => {
+    // Rule 1: Selector is too long or deeply nested
+    if ((selector.match(/>/g) || []).length > 4) {
+      return true;
+    }
+    // Rule 2: Selector relies on nth-of-type, which is brittle
+    if (selector.includes(':nth-of-type')) {
+      return true;
+    }
+    // Rule 3: Selector lacks a stabilizing ID or a meaningful class name
+    if (!selector.includes('#') && !selector.match(/\.(article|post|content|entry|main|body|story|wrapper|container)/)) {
+      return true;
+    }
+    return false;
   };
 
   // This effect listens for messages (clicks) from the iframe
@@ -323,16 +341,19 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   }, []);
 
   const handleClearPlacement = () => {
-    onSelectPlacement(null);
+    onSelectPlacement(null, false);
+    setIsPlacementFragile(false);
   };
 
   const handlePlacementChoice = (position: "before" | "after") => {
     if (stagedPlacement) {
+        const isFragile = isSelectorFragile(stagedPlacement.selector);
+        setIsPlacementFragile(isFragile);
       onSelectPlacement({
         selector: stagedPlacement.selector,
         nth: stagedPlacement.nth,
         position,
-      });
+      }, isFragile);
       setStagedPlacement(null);
     }
   };
@@ -405,7 +426,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
           </DialogHeader>
           <div className="text-xs text-muted-foreground bg-muted p-2 rounded-md break-all">
             Selector: <code>{stagedPlacement?.selector}</code>
-            {stagedPlacement && stagedPlacement.nth > 0 && (
+            {stagedPlacement && stagedPlacement.nth >= 0 && (
               <span> (Instance #{stagedPlacement.nth + 1})</span>
             )}
           </div>
@@ -460,6 +481,15 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
               </Button>
             </div>
           </div>
+            {isPlacementFragile && (
+                <Alert variant="destructive" className="mt-4">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Potential Placement Issue</AlertTitle>
+                    <AlertDescription>
+                        This website has a complex structure. The selected placement might not work on all pages. For best results, a developer may need to adjust the generated WordPress plugin (the injection strategy has been set to "Custom" for you).
+                    </AlertDescription>
+                </Alert>
+            )}
         </CardHeader>
         <CardContent className="p-0">
           <div className="bg-muted/50 p-1 sm:p-2 md:p-4 border-t">

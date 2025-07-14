@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -32,6 +33,7 @@ export default function DemoGenerator() {
   const [isLoading, setIsLoading] = useState(false);
   const [statusText, setStatusText] = useState("");
   const [selectedPlacement, setSelectedPlacement] = useState<Placement>(null);
+  const [isPlacementFragile, setIsPlacementFragile] = useState(false);
 
   const [shareableLink, setShareableLink] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -50,6 +52,7 @@ export default function DemoGenerator() {
     setAnalysis(null);
     setCloneHtml(null);
     setSelectedPlacement(null);
+    setIsPlacementFragile(false);
     setUrl(newUrl);
 
     try {
@@ -92,8 +95,9 @@ export default function DemoGenerator() {
     }
   };
 
-  const handlePlacementSelect = (placement: Placement) => {
+  const handlePlacementSelect = (placement: Placement, isFragile: boolean) => {
     setSelectedPlacement(placement);
+    setIsPlacementFragile(isFragile);
   };
 
   const handleSaveDemo = async () => {
@@ -205,6 +209,7 @@ export default function DemoGenerator() {
             playerConfig={playerConfig}
             websiteUrl={url}
             selectedPlacement={selectedPlacement}
+            isPlacementFragile={isPlacementFragile}
             disabled={!analysis || isLoading}
           />
         </div>
