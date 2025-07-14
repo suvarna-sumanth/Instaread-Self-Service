@@ -105,9 +105,8 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
 
   // Effect to process the raw HTML and inject our scripts/styles for the iframe
   useEffect(() => {
-    setEffectiveHtml(null); // 🔥 clear previous iframe doc
-
     if (!cloneHtml) {
+      setEffectiveHtml(null);
       return;
     }
 
@@ -124,6 +123,48 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       }
 
       const { playerType, color } = playerConfig;
+
+      // Create a style element for our overrides
+      const styleEl = doc.createElement("style");
+      let styleContent = `
+          /* Initially hide the player to prevent seeing "loading" text */
+          instaread-player {
+              opacity: 0;
+              transition: opacity 0.5s ease-in-out;
+          }
+      `;
+
+      if (playerType === "default" || playerType === "shortdesign") {
+        styleContent += `
+              @media (max-width: 1199px) {
+                  .instaread-audio-player {
+                      height: 224px !important;
+                  }
+              }
+              @media (min-width: 1200px) {
+                  .instaread-audio-player {
+                      height: 144px !important;
+                  }
+              }
+          `;
+      }
+
+      // Add specific styles for shortdesign
+      if (playerType === "shortdesign") {
+        styleContent += `
+              @media only screen and (min-width: 651px) {
+                  .instaread-audio-player {
+                      width: 100% !important;
+                      max-width: 700px !important;
+                      margin: 0 auto;
+                      position: relative;
+                  }
+              }
+          `;
+      }
+
+      styleEl.textContent = styleContent;
+      doc.head.appendChild(styleEl);
 
       if (selectedPlacement) {
         // Inject the player script ONLY when a placement is selected
@@ -237,13 +278,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       console.error("[LivePreview] Error parsing or modifying HTML:", e);
       setEffectiveHtml(cloneHtml); // Fallback to raw clone on error
     }
-  }, [
-    cloneHtml,
-    selectedPlacement,
-    playerConfig.playerType,
-    playerConfig.color,
-    url,
-  ]);
+  }, [cloneHtml, selectedPlacement, playerConfig, url]);
 
   // Effect to handle iframe height resizing
   useEffect(() => {

@@ -6,7 +6,8 @@ import WebsiteAnalysisSection from "@/components/sections/website-analysis-secti
 import PlayerConfigSection from "@/components/sections/player-config-section";
 import IntegrationCodeSection from "@/components/sections/integration-code-section";
 import LivePreviewSection from "@/components/sections/live-preview-section";
-import { getVisualClone, analyzeWebsite, saveDemo } from "@/lib/actions";
+import { analyzeWebsite, saveDemo } from "@/lib/actions";
+import { generateVisualClone } from "@/ai/flows/generate-visual-clone";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -24,7 +25,7 @@ export default function DemoGenerator() {
   const [url, setUrl] = useState("");
   const [analysis, setAnalysis] = useState<AnalysisResult>(null);
   const [playerConfig, setPlayerConfig] = useState<PlayerConfig>({
-    playerType: "newdesign",
+    playerType: "default",
     color: "#3B82F6",
   });
   const [cloneHtml, setCloneHtml] = useState<string | null>(null);
@@ -53,7 +54,9 @@ export default function DemoGenerator() {
 
     try {
       setStatusText("Generating visual preview...");
-      const html = await getVisualClone(newUrl);
+      const { cloneHtml: html } = await generateVisualClone({
+        websiteUrl: newUrl,
+      });
       setCloneHtml(html);
 
       setStatusText("Analyzing website design...");

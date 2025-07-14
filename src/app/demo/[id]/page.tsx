@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import { getDemoById } from "@/services/demo-service";
-import { getVisualClone } from "@/lib/actions";
 import { PLAYER_SCRIPT_URL } from "@/lib/constants";
 import { unstable_noStore as noStore } from "next/cache";
+import * as cheerio from "cheerio";
+import { generateVisualClone as generateVisualCloneFlow } from "@/ai/flows/generate-visual-clone";
 
 async function generateDemoHtml(id: string): Promise<string> {
   noStore(); // Opt out of caching for this render
@@ -13,13 +14,14 @@ async function generateDemoHtml(id: string): Promise<string> {
 
   const { websiteUrl, playerConfig, placement } = demoConfig;
 
-  let cloneHtml = await getVisualClone(websiteUrl);
+  const cloneResult = await generateVisualCloneFlow({ websiteUrl: websiteUrl });
+  let cloneHtml = cloneResult.cloneHtml;
+
   if (!cloneHtml || cloneHtml.startsWith("Error")) {
     return `<html><body><h1>Error</h1><p>Could not generate a preview for ${websiteUrl}. The site may be unreachable.</p></body></html>`;
   }
 
   // Use cheerio to manipulate the HTML on the server
-  const cheerio = await import("cheerio");
   const $ = cheerio.load(cloneHtml);
 
   // Add a <base> tag to resolve all relative URLs for images, fonts, etc.
@@ -32,6 +34,41 @@ async function generateDemoHtml(id: string): Promise<string> {
   if (unwantedWidget) {
     unwantedWidget.remove();
   }
+
+  // Inject dynamic styles based on player type
+  const styleEl = $("<style></style>");
+  let styleContent = "";
+  const { playerType } = playerConfig;
+
+  if (playerType === "default" || playerType === "shortdesign") {
+    styleContent += `
+          @media (max-width: 1199px) {
+              .instaread-audio-player {
+                  height: 224px !important;
+              }
+          }
+          @media (min-width: 1200px) {
+              .instaread-audio-player {
+                  height: 144px !important;
+              }
+          }
+      `;
+  }
+
+  if (playerType === "shortdesign") {
+    styleContent += `
+          @media only screen and (min-width: 651px) {
+              .instaread-audio-player {
+                  width: 100% !important;
+                  max-width: 700px !important;
+                  margin: 0 auto;
+                  position: relative;
+              }
+          }
+      `;
+  }
+  styleEl.text(styleContent);
+  $("head").append(styleEl);
 
   // Inject player script
   const playerScript = `<script type="module" crossorigin src="${PLAYER_SCRIPT_URL}"></script>`;
