@@ -137,7 +137,7 @@ const IntegrationCodeSection = ({ playerConfig, websiteUrl, selectedPlacement, i
                 exclude_slugs: "",
                 nth: selectedPlacement.nth
             };
-            replace([newRule]);
+            replace([newRule as any]);
         } else {
              replace([]);
         }
