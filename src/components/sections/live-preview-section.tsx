@@ -81,6 +81,8 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       /story/,
       /wrapper/,
       /container/,
+      /meat/, // for specific partner cases
+      /news/, // for animenewsnetwork
     ];
 
     let currentEl: Element | null = el;
@@ -107,7 +109,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
         )}`;
         path.unshift(selector);
         // If we found a very significant class, we can stop, as it's a good anchor.
-        if (/article|post|content|entry|main/.test(significantClass)) {
+        if (/article|post|content|entry|main|news/.test(significantClass)) {
           break;
         }
       } else if (path.length < 3) {
@@ -145,7 +147,7 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     if (
       !selector.includes("#") &&
       !selector.match(
-        /\.(article|post|content|entry|main|body|story|wrapper|container)/
+        /\.(article|post|content|entry|main|body|story|wrapper|container|news)/
       )
     ) {
       return true;
@@ -187,48 +189,6 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       }
 
       const { playerType, color } = playerConfig;
-
-      // Create a style element for our overrides
-      // const styleEl = doc.createElement("style");
-      // let styleContent = `
-      //     /* Initially hide the player to prevent seeing "loading" text */
-      //     instaread-player {
-      //         opacity: 0;
-      //         transition: opacity 0.5s ease-in-out;
-      //     }
-      // `;
-
-      // if (playerType === "default" || playerType === "shortdesign") {
-      //   styleContent += `
-      //         @media (max-width: 1199px) {
-      //             .instaread-audio-player {
-      //                 height: 224px !important;
-      //             }
-      //         }
-      //         @media (min-width: 1200px) {
-      //             .instaread-audio-player {
-      //                 height: 144px !important;
-      //             }
-      //         }
-      //     `;
-      // }
-
-      // // Add specific styles for shortdesign
-      // if (playerType === "shortdesign") {
-      //   styleContent += `
-      //         @media only screen and (min-width: 651px) {
-      //             .instaread-audio-player {
-      //                 width: 100% !important;
-      //                 max-width: 700px !important;
-      //                 margin: 0 auto;
-      //                 position: relative;
-      //             }
-      //         }
-      //     `;
-      // }
-
-      // styleEl.textContent = styleContent;
-      // doc.head.appendChild(styleEl);
 
       if (selectedPlacement) {
         // Inject the player script ONLY when a placement is selected
