@@ -36,39 +36,39 @@ async function generateDemoHtml(id: string): Promise<string> {
   }
 
   // Inject dynamic styles based on player type
-  const styleEl = $("<style></style>");
-  let styleContent = "";
-  const { playerType } = playerConfig;
+  // const styleEl = $("<style></style>");
+  // let styleContent = "";
+  // const { playerType } = playerConfig;
 
-  if (playerType === "default" || playerType === "shortdesign") {
-    styleContent += `
-          @media (max-width: 1199px) {
-              .instaread-audio-player {
-                  height: 224px !important;
-              }
-          }
-          @media (min-width: 1200px) {
-              .instaread-audio-player {
-                  height: 144px !important;
-              }
-          }
-      `;
-  }
+  // if (playerType === "default" || playerType === "shortdesign") {
+  //   styleContent += `
+  //         @media (max-width: 1199px) {
+  //             .instaread-audio-player {
+  //                 height: 224px !important;
+  //             }
+  //         }
+  //         @media (min-width: 1200px) {
+  //             .instaread-audio-player {
+  //                 height: 144px !important;
+  //             }
+  //         }
+  //     `;
+  // }
 
-  if (playerType === "shortdesign") {
-    styleContent += `
-          @media only screen and (min-width: 651px) {
-              .instaread-audio-player {
-                  width: 100% !important;
-                  max-width: 700px !important;
-                  margin: 0 auto;
-                  position: relative;
-              }
-          }
-      `;
-  }
-  styleEl.text(styleContent);
-  $("head").append(styleEl);
+  // if (playerType === "shortdesign") {
+  //   styleContent += `
+  //         @media only screen and (min-width: 651px) {
+  //             .instaread-audio-player {
+  //                 width: 100% !important;
+  //                 max-width: 700px !important;
+  //                 margin: 0 auto;
+  //                 position: relative;
+  //             }
+  //         }
+  //     `;
+  // }
+  // styleEl.text(styleContent);
+  // $("head").append(styleEl);
 
   // Inject player script
   const playerScript = `<script type="module" crossorigin src="${PLAYER_SCRIPT_URL}"></script>`;

@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
@@ -11,7 +10,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2, Info, Pointer, MousePointerClick, Save, AlertTriangle } from "lucide-react";
+import {
+  Loader2,
+  Info,
+  Pointer,
+  MousePointerClick,
+  Save,
+  AlertTriangle,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "../ui/button";
@@ -57,7 +63,6 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
   const [effectiveHtml, setEffectiveHtml] = useState<string | null>(null);
   const [isPlacementFragile, setIsPlacementFragile] = useState(false);
 
-
   // This function will be stringified and injected into the iframe to handle interactions.
   const generateSelector = (el: Element | null): string => {
     if (!el || !(el instanceof Element)) {
@@ -67,46 +72,60 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     const path: string[] = [];
     // Prioritize class names that are more likely to be unique and descriptive.
     const keyClassNames = [
-      /article/, /post/, /content/, /entry/, /main/, /body/, /story/, /wrapper/, /container/
+      /article/,
+      /post/,
+      /content/,
+      /entry/,
+      /main/,
+      /body/,
+      /story/,
+      /wrapper/,
+      /container/,
     ];
 
     let currentEl: Element | null = el;
     while (currentEl && currentEl.nodeType === Node.ELEMENT_NODE) {
       let selector = currentEl.nodeName.toLowerCase();
-      
+
       if (currentEl.id) {
         // IDs are supposed to be unique, so this is the best selector.
         selector = `#${currentEl.id.replace(/(:|\.|\[|\]|,|=|@)/g, "\\$1")}`;
         path.unshift(selector);
         break; // Stop traversing up, ID is the most specific anchor.
       }
-      
+
       const classList = Array.from(currentEl.classList);
-      const significantClass = classList.find(cls => keyClassNames.some(regex => regex.test(cls)));
+      const significantClass = classList.find((cls) =>
+        keyClassNames.some((regex) => regex.test(cls))
+      );
 
       if (significantClass) {
         // Using a descriptive class name is more robust than just tag names.
-        selector = `${currentEl.nodeName.toLowerCase()}.${significantClass.replace(/(:|\.|\[|\]|,|=|@)/g, "\\$1")}`;
+        selector = `${currentEl.nodeName.toLowerCase()}.${significantClass.replace(
+          /(:|\.|\[|\]|,|=|@)/g,
+          "\\$1"
+        )}`;
         path.unshift(selector);
         // If we found a very significant class, we can stop, as it's a good anchor.
         if (/article|post|content|entry|main/.test(significantClass)) {
           break;
         }
-      } else if (path.length < 3) { // Only add nth-of-type for less specific initial selectors
-         let sib: Element | null = currentEl;
-         let nth = 1;
-         while ((sib = sib.previousElementSibling)) {
-           if (sib.nodeName.toLowerCase() === currentEl.nodeName.toLowerCase()) {
-             nth++;
-           }
-         }
-         if (nth > 1) {
-           selector += `:nth-of-type(${nth})`;
-         }
+      } else if (path.length < 3) {
+        // Only add nth-of-type for less specific initial selectors
+        let sib: Element | null = currentEl;
+        let nth = 1;
+        while ((sib = sib.previousElementSibling)) {
+          if (sib.nodeName.toLowerCase() === currentEl.nodeName.toLowerCase()) {
+            nth++;
+          }
+        }
+        if (nth > 1) {
+          selector += `:nth-of-type(${nth})`;
+        }
       }
 
       path.unshift(selector);
-      
+
       currentEl = currentEl.parentElement;
     }
     // Join the path components. Limit the depth to prevent overly specific selectors.
@@ -119,11 +138,16 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       return true;
     }
     // Rule 2: Selector relies on nth-of-type, which is brittle
-    if (selector.includes(':nth-of-type')) {
+    if (selector.includes(":nth-of-type")) {
       return true;
     }
     // Rule 3: Selector lacks a stabilizing ID or a meaningful class name
-    if (!selector.includes('#') && !selector.match(/\.(article|post|content|entry|main|body|story|wrapper|container)/)) {
+    if (
+      !selector.includes("#") &&
+      !selector.match(
+        /\.(article|post|content|entry|main|body|story|wrapper|container)/
+      )
+    ) {
       return true;
     }
     return false;
@@ -165,46 +189,46 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       const { playerType, color } = playerConfig;
 
       // Create a style element for our overrides
-      const styleEl = doc.createElement("style");
-      let styleContent = `
-          /* Initially hide the player to prevent seeing "loading" text */
-          instaread-player {
-              opacity: 0;
-              transition: opacity 0.5s ease-in-out;
-          }
-      `;
+      // const styleEl = doc.createElement("style");
+      // let styleContent = `
+      //     /* Initially hide the player to prevent seeing "loading" text */
+      //     instaread-player {
+      //         opacity: 0;
+      //         transition: opacity 0.5s ease-in-out;
+      //     }
+      // `;
 
-      if (playerType === "default" || playerType === "shortdesign") {
-        styleContent += `
-              @media (max-width: 1199px) {
-                  .instaread-audio-player {
-                      height: 224px !important;
-                  }
-              }
-              @media (min-width: 1200px) {
-                  .instaread-audio-player {
-                      height: 144px !important;
-                  }
-              }
-          `;
-      }
+      // if (playerType === "default" || playerType === "shortdesign") {
+      //   styleContent += `
+      //         @media (max-width: 1199px) {
+      //             .instaread-audio-player {
+      //                 height: 224px !important;
+      //             }
+      //         }
+      //         @media (min-width: 1200px) {
+      //             .instaread-audio-player {
+      //                 height: 144px !important;
+      //             }
+      //         }
+      //     `;
+      // }
 
-      // Add specific styles for shortdesign
-      if (playerType === "shortdesign") {
-        styleContent += `
-              @media only screen and (min-width: 651px) {
-                  .instaread-audio-player {
-                      width: 100% !important;
-                      max-width: 700px !important;
-                      margin: 0 auto;
-                      position: relative;
-                  }
-              }
-          `;
-      }
+      // // Add specific styles for shortdesign
+      // if (playerType === "shortdesign") {
+      //   styleContent += `
+      //         @media only screen and (min-width: 651px) {
+      //             .instaread-audio-player {
+      //                 width: 100% !important;
+      //                 max-width: 700px !important;
+      //                 margin: 0 auto;
+      //                 position: relative;
+      //             }
+      //         }
+      //     `;
+      // }
 
-      styleEl.textContent = styleContent;
-      doc.head.appendChild(styleEl);
+      // styleEl.textContent = styleContent;
+      // doc.head.appendChild(styleEl);
 
       if (selectedPlacement) {
         // Inject the player script ONLY when a placement is selected
@@ -347,13 +371,16 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
 
   const handlePlacementChoice = (position: "before" | "after") => {
     if (stagedPlacement) {
-        const isFragile = isSelectorFragile(stagedPlacement.selector);
-        setIsPlacementFragile(isFragile);
-      onSelectPlacement({
-        selector: stagedPlacement.selector,
-        nth: stagedPlacement.nth,
-        position,
-      }, isFragile);
+      const isFragile = isSelectorFragile(stagedPlacement.selector);
+      setIsPlacementFragile(isFragile);
+      onSelectPlacement(
+        {
+          selector: stagedPlacement.selector,
+          nth: stagedPlacement.nth,
+          position,
+        },
+        isFragile
+      );
       setStagedPlacement(null);
     }
   };
@@ -481,15 +508,18 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
               </Button>
             </div>
           </div>
-            {isPlacementFragile && (
-                <Alert variant="destructive" className="mt-4">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Potential Placement Issue</AlertTitle>
-                    <AlertDescription>
-                        This website has a complex structure. The selected placement might not work on all pages. For best results, a developer may need to adjust the generated WordPress plugin (the injection strategy has been set to "Custom" for you).
-                    </AlertDescription>
-                </Alert>
-            )}
+          {isPlacementFragile && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Potential Placement Issue</AlertTitle>
+              <AlertDescription>
+                This website has a complex structure. The selected placement
+                might not work on all pages. For best results, a developer may
+                need to adjust the generated WordPress plugin (the injection
+                strategy has been set to "Custom" for you).
+              </AlertDescription>
+            </Alert>
+          )}
         </CardHeader>
         <CardContent className="p-0">
           <div className="bg-muted/50 p-1 sm:p-2 md:p-4 border-t">
