@@ -166,24 +166,30 @@ This PR will be merged automatically to trigger the build process.`;
         if (!createBranchResponse.ok && createBranchResponse.status !== 422) throw new Error(`Failed to create branch: ${(await createBranchResponse.json()).message}`);
         
         const configContent = Buffer.from(JSON.stringify(data, null, 2)).toString('base64');
+        const commitMessageConfig = `feat(config): Create config for ${data.partner_id}`;
         await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GithubRepoName}/contents/${configFilePath}`, {
             method: 'PUT',
             headers,
-            body: JSON.stringify({ message: `feat(config): Create config for ${data.partner_id}`, content: configContent, branch: branchName }),
+            body: JSON.stringify({ message: commitMessageConfig, content: configContent, branch: branchName }),
         });
 
         const downloadUrl = `https://github.com/${GITHUB_REPO_OWNER}/${GithubRepoName}/releases/download/${data.partner_id}-v${data.version}/${data.partner_id}-v${data.version}.zip`;
-        const pluginJsonContent = Buffer.from(JSON.stringify({
+        const pluginJsonData = {
             name: `Instaread Audio Player - ${data.publication || data.partner_id}`,
             version: data.version,
             download_url: downloadUrl,
-            requires: "5.6", tested: "6.5",
-            sections: { changelog: `<h4>${data.version}</h4><ul><li>Partner-specific build for ${data.publication || data.partne_id}</li></ul>` }
-        }, null, 2)).toString('base64');
+            requires: "5.6", 
+            tested: "6.5",
+            sections: { 
+                changelog: `<h4>${data.version}</h4><ul><li>Partner-specific build for ${data.publication || data.partner_id}</li></ul>` 
+            }
+        };
+        const pluginJsonContent = Buffer.from(JSON.stringify(pluginJsonData, null, 2)).toString('base64');
+        const commitMessagePluginJson = `feat(plugin): Create plugin.json for ${data.partner_id}`;
         await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GithubRepoName}/contents/${pluginJsonFilePath}`, {
             method: 'PUT',
             headers,
-            body: JSON.stringify({ message: `feat(plugin): Create plugin.json for ${data.partner_id}`, content: pluginJsonContent, branch: branchName }),
+            body: JSON.stringify({ message: commitMessagePluginJson, content: pluginJsonContent, branch: branchName }),
         });
 
         const createPrResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GithubRepoName}/pulls`, {
