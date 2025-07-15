@@ -1,4 +1,4 @@
-# AudioLeap - Self-Service Demo Generator
+# Instaread - Self-Service Demo Generator
 
 This application is a powerful self-service tool designed to generate live, interactive demos of the AudioLeap audio player on any website. It enables sales and support teams to quickly create and share compelling demonstrations for potential partners without needing to write any code.
 
