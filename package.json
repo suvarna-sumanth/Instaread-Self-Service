@@ -1,4 +1,3 @@
-
 {
   "name": "nextn",
   "version": "0.1.0",
@@ -47,6 +46,9 @@
     "nodemailer": "^6.9.14",
     "openai": "^4.52.7",
     "patch-package": "^8.0.0",
+    "puppeteer": "^24.13.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-hook-form": "^7.52.1",
