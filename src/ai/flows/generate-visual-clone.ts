@@ -23,18 +23,18 @@ export type GenerateVisualCloneOutput = {
 export async function generateVisualClone(
   input: GenerateVisualCloneInput
 ): Promise<GenerateVisualCloneOutput> {
-  let htmlContent = await fetchWebsite(input.websiteUrl);
+  let htmlContent = await fetchWebsiteWithPuppeteer(input.websiteUrl);
   if (htmlContent.startsWith("Error")) {
     console.warn("Fetch failed. Falling back to Puppeteer...");
-    try {
-      htmlContent = await fetchWebsiteWithPuppeteer(input.websiteUrl);
-    } catch (e) {
-      throw new Error(
-        `Both fetch and Puppeteer failed: ${
-          e instanceof Error ? e.message : String(e)
-        }`
-      );
-    }
+    // try {
+    //   htmlContent = await fetchWebsiteWithPuppeteer(input.websiteUrl);
+    // } catch (e) {
+    //   throw new Error(
+    //     `Both fetch and Puppeteer failed: ${
+    //       e instanceof Error ? e.message : String(e)
+    //     }`
+    //   );
+    // }
   }
 
   const $ = cheerio.load(htmlContent);
