@@ -70,7 +70,6 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
     }
 
     const path: string[] = [];
-    // Prioritize class names that are more likely to be unique and descriptive.
     const keyClassNames = [
       /article/,
       /post/,
@@ -81,19 +80,21 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       /story/,
       /wrapper/,
       /container/,
-      /meat/, // for specific partner cases
-      /news/, // for animenewsnetwork
+      /meat/,
+      /news/,
     ];
 
     let currentEl: Element | null = el;
     while (currentEl && currentEl.nodeType === Node.ELEMENT_NODE) {
       let selector = currentEl.nodeName.toLowerCase();
 
-      if (currentEl.id) {
-        // IDs are supposed to be unique, so this is the best selector.
+      const hasNumericId = currentEl.id && /\d/.test(currentEl.id);
+
+      // Prioritize stable, non-numeric IDs.
+      if (currentEl.id && !hasNumericId) {
         selector = `#${currentEl.id.replace(/(:|\.|\[|\]|,|=|@)/g, "\\$1")}`;
         path.unshift(selector);
-        break; // Stop traversing up, ID is the most specific anchor.
+        break; // Found a strong anchor, we can stop.
       }
 
       const classList = Array.from(currentEl.classList);
@@ -102,48 +103,54 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
       );
 
       if (significantClass) {
-        // Using a descriptive class name is more robust than just tag names.
         selector = `${currentEl.nodeName.toLowerCase()}.${significantClass.replace(
           /(:|\.|\[|\]|,|=|@)/g,
           "\\$1"
         )}`;
         path.unshift(selector);
-        // If we found a very significant class, we can stop, as it's a good anchor.
-        if (/article|post|content|entry|main|news/.test(significantClass)) {
-          break;
+      } else if (
+        currentEl.parentElement &&
+        currentEl.parentElement.children.length > 1
+      ) {
+        const siblings = Array.from(currentEl.parentElement.children);
+        const sameTagSiblings = siblings.filter(
+          (sibling) => sibling.nodeName === currentEl?.nodeName
+        );
+        if (sameTagSiblings.length > 1) {
+          const index = sameTagSiblings.indexOf(currentEl) + 1;
+          selector += `:nth-of-type(${index})`;
         }
-      } else if (path.length < 3) {
-        // Only add nth-of-type for less specific initial selectors
-        let sib: Element | null = currentEl;
-        let nth = 1;
-        while ((sib = sib.previousElementSibling)) {
-          if (sib.nodeName.toLowerCase() === currentEl.nodeName.toLowerCase()) {
-            nth++;
-          }
-        }
-        if (nth > 1) {
-          selector += `:nth-of-type(${nth})`;
-        }
+        path.unshift(selector);
+      } else {
+        path.unshift(selector);
       }
-
-      path.unshift(selector);
 
       currentEl = currentEl.parentElement;
     }
-    // Join the path components. Limit the depth to prevent overly specific selectors.
-    return path.slice(Math.max(path.length - 4, 0)).join(" > ");
+
+    // Limit the depth of the selector to avoid being too specific.
+    return path.slice(Math.max(path.length - 5, 0)).join(" > ");
   };
 
   const isSelectorFragile = (selector: string): boolean => {
-    // Rule 1: Selector is too long or deeply nested
+    // Rule 1: Selector contains an ID with numbers, which is very likely to be dynamic.
+    if (/#\S*\d/.test(selector)) {
+      return true;
+    }
+    // Rule 2: Selector is too long or deeply nested
     if ((selector.match(/>/g) || []).length > 4) {
       return true;
     }
-    // Rule 2: Selector relies on nth-of-type, which is brittle
+    // Rule 3: Selector relies on position, which can be brittle, and lacks a strong anchor
     if (selector.includes(":nth-of-type")) {
-      return true;
+      if (
+        !selector.includes("#") &&
+        !selector.match(/\.(article|post|content|entry|main)/)
+      ) {
+        return true;
+      }
     }
-    // Rule 3: Selector lacks a stabilizing ID or a meaningful class name
+    // Rule 4: Selector lacks a stabilizing ID or a meaningful class name
     if (
       !selector.includes("#") &&
       !selector.match(
@@ -198,7 +205,9 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
         playerScriptElement.src = PLAYER_SCRIPT_URL;
         doc.head.appendChild(playerScriptElement);
 
-        const targetEl = doc.querySelector(selectedPlacement.selector);
+        const targetElements = doc.querySelectorAll(selectedPlacement.selector);
+        // Use the 'nth' value to target the exact element instance
+        const targetEl = targetElements[selectedPlacement.nth];
 
         if (targetEl) {
           // Always use 'xyz' for the live preview on the main page.
@@ -235,18 +244,49 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
           const generateSelector = ${generateSelector.toString()};
           let lastHovered = null;
           let originalOutline = null;
+          
+          // Create a tooltip element to show the selector
+          const tooltip = document.createElement('div');
+          tooltip.id = 'selector-tooltip';
+          Object.assign(tooltip.style, {
+            position: 'fixed',
+            display: 'none',
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            color: 'white',
+            padding: '5px 10px',
+            borderRadius: '5px',
+            fontSize: '12px',
+            fontFamily: 'monospace',
+            zIndex: '99999',
+            pointerEvents: 'none', // Make sure it doesn't interfere with clicks
+            whiteSpace: 'nowrap',
+            maxWidth: '400px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          });
+          document.body.appendChild(tooltip);
+
+          document.addEventListener('mousemove', (e) => {
+            if (tooltip.style.display === 'block') {
+              tooltip.style.left = (e.clientX + 15) + 'px';
+              tooltip.style.top = (e.clientY + 15) + 'px';
+            }
+          });
 
           /* Logic to show fade-in player after a short delay */
           const instareadPlayer = document.querySelector('instaread-player');
           if (instareadPlayer) {
+              // Add a class to trigger the animation
               setTimeout(() => {
-                  instareadPlayer.style.opacity = '1';
-              }, 500);
+                if (instareadPlayer) {
+                    instareadPlayer.classList.add('instaread-player-fade-in');
+                }
+              }, 300); // Small delay to allow rendering
           }
 
           document.addEventListener('mouseover', (e) => {
               const target = e.target;
-              if (target && target !== lastHovered) {
+              if (target && target !== lastHovered && target.id !== 'selector-tooltip') {
                   if (lastHovered) {
                       lastHovered.style.outline = originalOutline || '';
                   }
@@ -254,6 +294,11 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                   originalOutline = target.style.outline;
                   if (!target.closest('instaread-player')) {
                        target.style.outline = '2px dashed #FF8C00';
+                       
+                       // Update and show the tooltip
+                       const selector = generateSelector(target);
+                       tooltip.textContent = selector;
+                       tooltip.style.display = 'block';
                   }
               }
           });
@@ -263,6 +308,9 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
                   lastHovered.style.outline = originalOutline || '';
                   lastHovered = null;
                   originalOutline = null;
+                  
+                  // Hide the tooltip
+                  tooltip.style.display = 'none';
               }
           });
           
@@ -300,6 +348,19 @@ const LivePreviewSection = (props: LivePreviewSectionProps) => {
         })();
       `;
       doc.body.appendChild(interactionScriptEl);
+
+      // Add fade-in styles for the player
+      const styleEl = doc.createElement("style");
+      styleEl.textContent = `
+        instaread-player {
+          opacity: 0;
+          transition: opacity 0.5s ease-in-out;
+        }
+        instaread-player.instaread-player-fade-in {
+          opacity: 1;
+        }
+      `;
+      doc.head.appendChild(styleEl);
 
       const finalHtml = `<!DOCTYPE html>${doc.documentElement.outerHTML}`;
       setEffectiveHtml(finalHtml);

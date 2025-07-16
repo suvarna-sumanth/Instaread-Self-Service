@@ -26,7 +26,7 @@ export async function fetchWebsiteWithPuppeteer(url: string): Promise<string> {
 
     // Go to the page and wait for the network to be idle, which is a good
     // sign that all resources have loaded. Increase timeout to 30 seconds.
-    await page.goto(url, { waitUntil: "networkidle2", timeout: 30000 });
+    await page.goto(url, { waitUntil: "networkidle2", timeout: 50000 });
 
     const html = await page.content();
     return html;
